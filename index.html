@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260607-ew-v3';
+  var BUILD='20260607-ew-v4-liquidglass';
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
     var qp=new URLSearchParams(location.search);
@@ -240,6 +240,20 @@ body{
 
 /* ════════ DESKTOP/PC/Mac: iframe a tutta larghezza → l'app attiva il SUO layout desktop ════════ */
 /* (TradoCroods: sidebar + contenuto largo; GoWork: griglia 2 colonne 1000px) */
+
+/* ════════ LIQUID GLASS refinement (iOS 26 / macOS 26) ════════ */
+.lg-card, .prof, .switcher, .hub-lock, .lg-input, .lg-btn.ghost{
+  -webkit-backdrop-filter:blur(24px) saturate(1.8) !important;
+  backdrop-filter:blur(24px) saturate(1.8) !important;
+}
+.lg-card{ box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 28px 72px -24px rgba(0,0,0,.72) !important; }
+.prof{ box-shadow:inset 0 1px 0 rgba(255,255,255,.10) !important; }
+.switcher{ box-shadow:inset 0 1px 0 rgba(255,255,255,.16) !important; }
+.hub-lock{ box-shadow:inset 0 1px 0 rgba(255,255,255,.12) !important; }
+/* carte wallet: riflesso speculare di vetro sopra il gradiente */
+.wallet .card{ box-shadow:inset 0 1px 0 rgba(255,255,255,.32), 0 26px 60px -18px rgba(0,0,0,.7) !important; }
+/* barra app: sfocatura più ricca */
+.app-topbar{ -webkit-backdrop-filter:blur(24px) saturate(1.7); backdrop-filter:blur(24px) saturate(1.7); }
 </style>
 </head>
 <body>
