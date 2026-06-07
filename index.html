@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260607-ew-v2';
+  var BUILD='20260607-ew-v3';
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
     var qp=new URLSearchParams(location.search);
@@ -34,186 +34,223 @@
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#080c0a;
-  --bg2:#0a1410;
-  --gold:#c9a84c;
-  --gold-bright:#e8c874;
-  --green:#34d27a;
-  --green-deep:#1f6b46;
-  --text:#f3efe6;
-  --muted:rgba(243,239,230,0.55);
+  --bg:#080c0a; --bg2:#0a1410;
+  --gold:#c9a84c; --gold-bright:#e8c874;
+  --green:#34d27a; --green-deep:#1f6b46;
+  --text:#f3efe6; --muted:rgba(243,239,230,0.55);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{margin:0;height:100%;}
 body{
   font-family:'DM Sans',system-ui,sans-serif;
-  background:var(--bg);
-  color:var(--text);
-  overflow:hidden;
-  position:fixed;inset:0;
+  background:var(--bg); color:var(--text);
+  overflow:hidden; position:fixed; inset:0;
 }
-
-/* ════════ HUB ════════ */
-#hub{
-  position:fixed;inset:0;z-index:10;
-  display:flex;flex-direction:column;align-items:center;
-  padding:calc(env(safe-area-inset-top) + 28px) 22px calc(env(safe-area-inset-bottom) + 28px);
-  overflow-y:auto;-webkit-overflow-scrolling:touch;
+.bg-glow{
+  position:fixed; inset:0; z-index:0; pointer-events:none;
   background:
     radial-gradient(circle at 18% 8%, rgba(201,168,76,0.16) 0%, transparent 46%),
     radial-gradient(circle at 84% 92%, rgba(52,210,122,0.16) 0%, transparent 44%),
     linear-gradient(160deg,#0a1410 0%,#080c0a 60%,#0a0e0c 100%);
-  transition:opacity .35s ease;
-}
-.hub-head{ text-align:center; margin:auto 0 2px; }
-.hub-eyebrow{
-  font-size:11px; letter-spacing:5px; text-transform:uppercase;
-  color:var(--gold); opacity:.8; margin-bottom:10px;
-}
-.hub-title{
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:800;
-  font-size:clamp(40px,11vw,64px); line-height:.92; letter-spacing:-.02em;
-  margin:0; text-shadow:0 8px 40px rgba(0,0,0,.5);
-}
-.hub-title .e{ color:var(--gold-bright); }
-.hub-title .w{ color:var(--green); }
-.hub-tag{
-  font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:300;
-  font-size:16px; color:var(--muted); margin-top:12px;
 }
 
-/* ════════ WALLET / CARTE ════════ */
-.wallet{
-  position:relative; width:min(340px,86vw); height:430px;
-  margin:30px auto; perspective:1400px;
+/* ════════ LOGIN GATE ════════ */
+#ewLogin{
+  position:fixed; inset:0; z-index:20;
+  display:flex; flex-direction:column; align-items:center;
+  padding:calc(env(safe-area-inset-top) + 36px) 22px calc(env(safe-area-inset-bottom) + 28px);
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  transition:opacity .4s ease;
 }
+.lg-head{ text-align:center; margin-bottom:26px; }
+.lg-eyebrow{ font-size:11px; letter-spacing:5px; text-transform:uppercase; color:var(--gold); opacity:.85; margin-bottom:10px; }
+.lg-title{
+  font-family:'Bricolage Grotesque',sans-serif; font-weight:800;
+  font-size:clamp(38px,10vw,58px); line-height:.92; letter-spacing:-.02em; margin:0;
+  text-shadow:0 8px 40px rgba(0,0,0,.5);
+}
+.lg-title .e{ color:var(--gold-bright); } .lg-title .w{ color:var(--green); }
+.lg-tag{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:300; font-size:16px; color:var(--muted); margin-top:12px; }
+
+.lg-card{
+  width:min(380px,92vw);
+  background:rgba(20,28,23,0.66);
+  border:1px solid rgba(201,168,76,0.18);
+  border-radius:22px; padding:22px 20px;
+  backdrop-filter:blur(16px) saturate(1.2); -webkit-backdrop-filter:blur(16px) saturate(1.2);
+  box-shadow:0 26px 70px -24px rgba(0,0,0,.7);
+}
+.lg-sub{ font-size:13px; font-weight:600; color:var(--muted); text-align:center; margin-bottom:16px; letter-spacing:.3px; }
+
+/* profili */
+.prof-list{ display:flex; flex-direction:column; gap:10px; }
+.prof{
+  display:flex; align-items:center; gap:13px; cursor:pointer;
+  padding:11px 13px; border-radius:14px;
+  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
+  transition:all .18s ease;
+}
+.prof:hover,.prof.sel{ border-color:rgba(201,168,76,0.55); background:rgba(201,168,76,0.08); }
+.prof-av{
+  width:44px; height:44px; border-radius:50%; flex:0 0 44px;
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:19px; color:#10140f;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold));
+  overflow:hidden;
+}
+.prof-av img{ width:100%; height:100%; object-fit:cover; }
+.prof-info{ flex:1; min-width:0; }
+.prof-name{ font-size:15px; font-weight:600; color:var(--text); }
+.prof-email{ font-size:11.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.prof-chips{ display:flex; gap:5px; margin-top:4px; }
+.chip-app{ font-size:9px; letter-spacing:.5px; padding:2px 7px; border-radius:20px; font-weight:700; }
+.chip-tc{ background:rgba(201,168,76,0.18); color:var(--gold-bright); border:1px solid rgba(201,168,76,0.3); }
+.chip-gw{ background:rgba(52,210,122,0.16); color:var(--green); border:1px solid rgba(52,210,122,0.3); }
+
+/* password */
+.lg-pass{ margin-top:14px; }
+.lg-pass.hidden{ display:none; }
+.lg-selname{ text-align:center; font-size:14px; font-weight:600; margin-bottom:12px; }
+.lg-input{
+  width:100%; padding:13px 15px; border-radius:12px;
+  background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.12);
+  color:var(--text); font-size:15px; font-family:'DM Sans',sans-serif; outline:none;
+  transition:border-color .2s ease;
+}
+.lg-input:focus{ border-color:var(--gold); }
+.lg-btn{
+  width:100%; margin-top:12px; padding:14px; border:0; border-radius:12px; cursor:pointer;
+  font-family:'DM Sans',sans-serif; font-size:14px; font-weight:700; letter-spacing:.5px; color:#10140f;
+  background:linear-gradient(135deg,var(--gold-bright),var(--gold));
+  transition:transform .12s ease, filter .2s ease;
+}
+.lg-btn:active{ transform:scale(.985); }
+.lg-btn.ghost{ background:transparent; color:var(--muted); font-weight:600; font-size:12.5px; margin-top:14px; }
+.lg-err{ color:#ff8a7a; font-size:12.5px; text-align:center; min-height:16px; margin-top:10px; }
+.lg-back{ display:block; margin:10px auto 0; background:none; border:0; color:var(--muted); font-size:12px; cursor:pointer; }
+.lg-empty{ text-align:center; color:var(--muted); font-size:13px; line-height:1.6; padding:10px 4px; }
+.lg-foot{ margin-top:22px; font-size:11px; letter-spacing:1.5px; color:rgba(201,168,76,.5); text-align:center; }
+
+/* ════════ HUB ════════ */
+#hub{
+  position:fixed; inset:0; z-index:10;
+  display:flex; flex-direction:column; align-items:center;
+  padding:calc(env(safe-area-inset-top) + 28px) 22px calc(env(safe-area-inset-bottom) + 24px);
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  opacity:0; visibility:hidden; transition:opacity .4s ease, visibility .4s;
+}
+#hub.show{ opacity:1; visibility:visible; }
+.hub-head{ text-align:center; margin:auto 0 2px; }
+.hub-eyebrow{ font-size:11px; letter-spacing:5px; text-transform:uppercase; color:var(--gold); opacity:.8; margin-bottom:10px; }
+.hub-title{
+  font-family:'Bricolage Grotesque',sans-serif; font-weight:800;
+  font-size:clamp(40px,11vw,64px); line-height:.92; letter-spacing:-.02em; margin:0;
+  text-shadow:0 8px 40px rgba(0,0,0,.5);
+}
+.hub-title .e{ color:var(--gold-bright); } .hub-title .w{ color:var(--green); }
+.hub-tag{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:300; font-size:16px; color:var(--muted); margin-top:12px; }
+.hub-user{ font-size:12px; color:var(--muted); margin-top:8px; }
+.hub-user b{ color:var(--gold-bright); font-weight:600; }
+
+.wallet{ position:relative; width:min(340px,86vw); height:430px; margin:26px auto; perspective:1400px; }
 .card{
-  position:absolute; left:0; right:0;
-  height:212px; border-radius:22px;
-  padding:22px 24px;
-  cursor:pointer; color:#fff;
-  display:flex; flex-direction:column; justify-content:space-between;
+  position:absolute; left:0; right:0; height:212px; border-radius:22px; padding:22px 24px;
+  cursor:pointer; color:#fff; display:flex; flex-direction:column; justify-content:space-between;
   box-shadow:0 26px 60px -18px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.18);
   transition:transform .55s cubic-bezier(.2,.8,.2,1), box-shadow .4s ease, opacity .4s ease;
-  overflow:hidden; border:1px solid rgba(255,255,255,.14);
-  will-change:transform;
+  overflow:hidden; border:1px solid rgba(255,255,255,.14); will-change:transform;
 }
-.card::after{ /* riflesso obliquo */
+.card::after{
   content:''; position:absolute; inset:0;
   background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);
   opacity:.5; pointer-events:none;
 }
-.card .chip{
-  width:42px; height:30px; border-radius:6px;
-  background:linear-gradient(135deg,#f6e6b0,#caa84f 60%,#8c6f2c);
-  box-shadow:inset 0 0 0 1px rgba(0,0,0,.15);
-  position:relative;
-}
-.card .chip::before{
-  content:''; position:absolute; inset:7px 9px;
-  border:1px solid rgba(0,0,0,.25); border-radius:3px;
-}
+.card .chip{ width:42px; height:30px; border-radius:6px; position:relative;
+  background:linear-gradient(135deg,#f6e6b0,#caa84f 60%,#8c6f2c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.15); }
+.card .chip::before{ content:''; position:absolute; inset:7px 9px; border:1px solid rgba(0,0,0,.25); border-radius:3px; }
 .card-row{ display:flex; align-items:flex-end; justify-content:space-between; }
-.card-mono{
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:800;
-  font-size:34px; letter-spacing:1px; line-height:1;
-}
+.card-mono{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:34px; letter-spacing:1px; line-height:1; }
 .card-name{ font-size:15px; font-weight:600; letter-spacing:.5px; }
 .card-sub{ font-size:11px; letter-spacing:2px; text-transform:uppercase; opacity:.8; margin-top:3px; }
-.card-open{
-  font-size:11px; letter-spacing:1.5px; text-transform:uppercase;
-  opacity:.85; display:flex; align-items:center; gap:6px;
-}
-
-/* TradoCroods — oro */
-#card-tc{
-  background:linear-gradient(135deg,#4a3a14 0%,#8a6e26 40%,#c9a84c 100%);
-}
+.card-open{ font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
+#card-tc{ background:linear-gradient(135deg,#4a3a14 0%,#8a6e26 40%,#c9a84c 100%); }
 #card-tc .card-mono{ color:#fff7e0; text-shadow:0 2px 10px rgba(0,0,0,.35); }
-/* GoWork — verde */
-#card-gw{
-  background:linear-gradient(135deg,#0c2a1c 0%,#1f6b46 45%,#34d27a 100%);
-}
+#card-gw{ background:linear-gradient(135deg,#0c2a1c 0%,#1f6b46 45%,#34d27a 100%); }
 #card-gw .card-mono{ color:#eafff3; text-shadow:0 2px 10px rgba(0,0,0,.35); }
-
-/* stack: la carta "front" davanti e dritta, la "back" dietro, più piccola e inclinata */
 .card.front{ transform:translateY(150px) scale(1) rotate(0deg); z-index:3; }
 .card.back { transform:translateY(20px) scale(.9) rotate(-4deg); z-index:2; opacity:.92; }
 .card.front:hover{ transform:translateY(144px) scale(1.015) rotate(0deg); }
 
-/* switcher */
-.switcher{
-  display:inline-flex; gap:4px; margin:8px auto 0;
-  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1);
-  border-radius:40px; padding:4px; backdrop-filter:blur(8px);
-}
-.switcher button{
-  border:0; cursor:pointer; font-family:'DM Sans',sans-serif;
-  font-size:12px; font-weight:600; letter-spacing:.5px;
-  padding:8px 18px; border-radius:30px; color:var(--muted);
-  background:transparent; transition:all .25s ease;
-}
-.switcher button.active{ color:#10140f; }
-.switcher button.active.tc{ background:linear-gradient(135deg,var(--gold-bright),var(--gold)); }
+.switcher{ display:inline-flex; gap:4px; margin:8px auto 0;
+  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:40px; padding:4px; backdrop-filter:blur(8px); }
+.switcher button{ border:0; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.5px;
+  padding:8px 18px; border-radius:30px; color:var(--muted); background:transparent; transition:all .25s ease; }
+.switcher button.active.tc{ background:linear-gradient(135deg,var(--gold-bright),var(--gold)); color:#10140f; }
 .switcher button.active.gw{ background:linear-gradient(135deg,#5ee29a,var(--green)); color:#06140c; }
 
-.hub-foot{
-  margin-top:auto; padding-top:18px;
-  font-size:11px; letter-spacing:1.5px; color:rgba(201,168,76,.55);
-  text-align:center;
-}
+.hub-foot{ margin-top:auto; padding-top:18px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+.hub-lock{ background:none; border:1px solid rgba(255,255,255,0.12); color:var(--muted); font-size:12px; font-weight:600;
+  padding:8px 18px; border-radius:30px; cursor:pointer; transition:all .2s ease; }
+.hub-lock:hover{ border-color:rgba(201,168,76,0.5); color:var(--gold-bright); }
+.hub-copy{ font-size:11px; letter-spacing:1.5px; color:rgba(201,168,76,.5); }
 
 /* ════════ PANEL APP (iframe) ════════ */
-.app-panel{
-  position:fixed; inset:0; z-index:40;
-  background:var(--bg2);
-  opacity:0; visibility:hidden;
-  transform:translateY(100%);
-  transition:transform .42s cubic-bezier(.3,.85,.25,1), opacity .3s ease, visibility .42s;
-}
+.app-panel{ position:fixed; inset:0; z-index:40; background:var(--bg2);
+  opacity:0; visibility:hidden; transform:translateY(100%);
+  transition:transform .42s cubic-bezier(.3,.85,.25,1), opacity .3s ease, visibility .42s; }
 .app-panel.open{ opacity:1; visibility:visible; transform:translateY(0); }
-.app-frame{
-  position:absolute; inset:0; width:100%; height:100%;
-  border:0; background:var(--bg2);
-}
-
-/* loader brandizzato (copre l'iframe finché non carica) */
-.app-loader{
-  position:absolute; inset:0; z-index:2;
-  display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
-  background:radial-gradient(circle at 50% 40%, #102018 0%, #0a1410 70%);
-  transition:opacity .4s ease;
-}
+.app-frame{ position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg2); }
+.app-loader{ position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+  background:radial-gradient(circle at 50% 40%, #102018 0%, #0a1410 70%); transition:opacity .4s ease; }
 .app-loader.hide{ opacity:0; pointer-events:none; }
-.loader-mono{
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:44px;
-  letter-spacing:1px;
-}
-.loader-ring{
-  width:34px; height:34px; border-radius:50%;
-  border:2px solid rgba(255,255,255,.12); border-top-color:var(--gold);
-  animation:spin .8s linear infinite;
-}
+.loader-mono{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:44px; letter-spacing:1px; }
+.loader-ring{ width:34px; height:34px; border-radius:50%; border:2px solid rgba(255,255,255,.12); border-top-color:var(--gold); animation:spin .8s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 .loader-label{ font-size:12px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
-
-/* back pill fluttuante */
-.ew-back{
-  position:fixed; z-index:60;
-  top:calc(env(safe-area-inset-top) + 10px); left:12px;
-  display:flex; align-items:center; gap:6px;
-  padding:9px 16px 9px 12px; border-radius:30px; border:0; cursor:pointer;
-  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; letter-spacing:.3px;
-  color:#10140f; background:rgba(243,239,230,.92);
+.ew-back{ position:fixed; z-index:60; top:calc(env(safe-area-inset-top) + 10px); left:12px;
+  display:flex; align-items:center; gap:6px; padding:9px 16px 9px 12px; border-radius:30px; border:0; cursor:pointer;
+  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; color:#10140f; background:rgba(243,239,230,.92);
   box-shadow:0 8px 24px -6px rgba(0,0,0,.6); backdrop-filter:blur(10px);
   opacity:0; transform:translateY(-12px) scale(.95); pointer-events:none;
-  transition:all .35s cubic-bezier(.2,.8,.2,1);
-}
+  transition:all .35s cubic-bezier(.2,.8,.2,1); }
 .ew-back.show{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
 .ew-back:active{ transform:scale(.94); }
 </style>
 </head>
 <body>
+<div class="bg-glow"></div>
+
+<!-- ════════ LOGIN GATE ════════ -->
+<div id="ewLogin">
+  <div class="lg-head">
+    <div class="lg-eyebrow">Tradclab Wallet</div>
+    <h1 class="lg-title"><span class="e">E</span>-Wall<span class="w">e</span>t</h1>
+    <div class="lg-tag">Un accesso solo, le tue app pronte.</div>
+  </div>
+
+  <div class="lg-card">
+    <!-- step profili -->
+    <div id="lgProfiles">
+      <div class="lg-sub">Scegli il profilo</div>
+      <div class="prof-list" id="profList"></div>
+      <div class="lg-empty" id="profEmpty" style="display:none">
+        Nessun profilo trovato su questo dispositivo.<br>Entra nelle app e crea il tuo account, poi torna qui.
+      </div>
+    </div>
+    <!-- step password -->
+    <div id="lgPass" class="lg-pass hidden">
+      <div class="lg-selname" id="lgSelName">—</div>
+      <input type="password" id="lgPassword" class="lg-input" placeholder="Password" autocomplete="current-password"
+             onkeydown="if(event.key==='Enter')doEwLogin()">
+      <button class="lg-btn" onclick="doEwLogin()">Entra</button>
+      <button class="lg-back" onclick="backToProfiles()">‹ Cambia profilo</button>
+      <div class="lg-err" id="lgErr"></div>
+    </div>
+    <button class="lg-btn ghost" onclick="skipLogin()">Salta · accedi nelle app singolarmente</button>
+  </div>
+
+  <div class="lg-foot">© 2026/2027 TRAD.CLAB · E-WALLET</div>
+</div>
 
 <!-- ════════ HUB ════════ -->
 <div id="hub">
@@ -221,34 +258,21 @@ body{
     <div class="hub-eyebrow">Tradclab Wallet</div>
     <h1 class="hub-title"><span class="e">E</span>-Wall<span class="w">e</span>t</h1>
     <div class="hub-tag">Le tue app, un solo portafoglio.</div>
+    <div class="hub-user" id="hubUser"></div>
   </div>
 
   <div class="wallet" id="wallet">
-    <!-- TradoCroods -->
     <div class="card front" id="card-tc" data-app="tc" onclick="cardTap('tc')">
+      <div class="card-row"><div class="chip"></div><div class="card-mono">TC</div></div>
       <div class="card-row">
-        <div class="chip"></div>
-        <div class="card-mono">TC</div>
-      </div>
-      <div class="card-row">
-        <div>
-          <div class="card-name">TradoCroods</div>
-          <div class="card-sub">Budget · Famiglia</div>
-        </div>
+        <div><div class="card-name">TradoCroods</div><div class="card-sub">Budget · Famiglia</div></div>
         <div class="card-open">Apri ›</div>
       </div>
     </div>
-    <!-- GoWork -->
     <div class="card back" id="card-gw" data-app="gw" onclick="cardTap('gw')">
+      <div class="card-row"><div class="chip"></div><div class="card-mono">GW</div></div>
       <div class="card-row">
-        <div class="chip"></div>
-        <div class="card-mono">GW</div>
-      </div>
-      <div class="card-row">
-        <div>
-          <div class="card-name">GoWork</div>
-          <div class="card-sub">Gestione · Orari</div>
-        </div>
+        <div><div class="card-name">GoWork</div><div class="card-sub">Gestione · Orari</div></div>
         <div class="card-open">Apri ›</div>
       </div>
     </div>
@@ -259,142 +283,199 @@ body{
     <button class="gw" data-app="gw" onclick="bringFront('gw')">GoWork</button>
   </div>
 
-  <div class="hub-foot">© 2026/2027 TRAD.CLAB · E-WALLET</div>
+  <div class="hub-foot">
+    <button class="hub-lock" onclick="ewLock()">🔒 Blocca / cambia profilo</button>
+    <div class="hub-copy">© 2026/2027 TRAD.CLAB · E-WALLET</div>
+  </div>
 </div>
 
-<!-- ════════ PANEL TRADOCROODS ════════ -->
+<!-- ════════ PANELS ════════ -->
 <section class="app-panel" id="panel-tc">
   <div class="app-loader" id="loader-tc">
     <div class="loader-mono" style="color:var(--gold-bright)">TC</div>
-    <div class="loader-ring"></div>
-    <div class="loader-label">Apertura TradoCroods…</div>
+    <div class="loader-ring"></div><div class="loader-label">Apertura TradoCroods…</div>
   </div>
-  <iframe class="app-frame" id="frame-tc" title="TradoCroods"
-          allow="clipboard-read; clipboard-write; camera; geolocation"></iframe>
+  <iframe class="app-frame" id="frame-tc" title="TradoCroods" allow="clipboard-read; clipboard-write; camera; geolocation"></iframe>
 </section>
-
-<!-- ════════ PANEL GOWORK ════════ -->
 <section class="app-panel" id="panel-gw">
   <div class="app-loader" id="loader-gw">
     <div class="loader-mono" style="color:var(--green)">GW</div>
-    <div class="loader-ring"></div>
-    <div class="loader-label">Apertura GoWork…</div>
+    <div class="loader-ring"></div><div class="loader-label">Apertura GoWork…</div>
   </div>
-  <iframe class="app-frame" id="frame-gw" title="GoWork"
-          allow="clipboard-read; clipboard-write; camera; geolocation"></iframe>
+  <iframe class="app-frame" id="frame-gw" title="GoWork" allow="clipboard-read; clipboard-write; camera; geolocation"></iframe>
 </section>
 
-<!-- back pill -->
 <button class="ew-back" id="ewBack" onclick="closeApp()">‹ <span id="ewBackLabel">Wallet</span></button>
 
 <script>
 // ════════ CONFIG ════════
-// Stessa origine (tradori23-ops.github.io) → iframe same-origin, localStorage condiviso.
 const APPS = {
-  tc: { url:'https://tradori23-ops.github.io/tradocroods/', label:'TradoCroods' },
-  gw: { url:'https://tradori23-ops.github.io/GoWork/',      label:'GoWork' }
+  tc:{ url:'https://tradori23-ops.github.io/tradocroods/', label:'TradoCroods' },
+  gw:{ url:'https://tradori23-ops.github.io/GoWork/',      label:'GoWork' }
 };
-const EW_KEY = 'ew_user';     // identità condivisa (opzionale, per auto-login)
-let frontApp = 'tc';          // carta in primo piano
-let activeApp = null;         // app attualmente aperta
-const loaded = { tc:false, gw:false };  // iframe già caricato?
+const EW_KEY='ew_user';
+let frontApp='tc', activeApp=null, selEmail=null;
+const loaded={tc:false,gw:false};
 
-// ════════ HUB: switch carta in primo piano ════════
+// ════════ HASH (copiati dalle app, per validare le password vere) ════════
+function tcHash(pass){            // TradoCroods · hashPasswordSync
+  let h=0; const s=pass+'TRADCLAB_SALT_2026';
+  for(let i=0;i<s.length;i++) h=(Math.imul(31,h)+s.charCodeAt(i))|0;
+  return 'h_'+Math.abs(h).toString(16).padStart(8,'0')+'_'+s.length;
+}
+async function gwHash(pass,salt){ // GoWork · hashPass (SHA-256)
+  const buf=await crypto.subtle.digest('SHA-256', new TextEncoder().encode((salt||'')+'::'+pass+'::GOWORK2026'));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+const tcUsers=()=>{ try{return JSON.parse(localStorage.getItem('tc_users')||'[]');}catch(e){return[];} };
+const gwUsers=()=>{ try{return JSON.parse(localStorage.getItem('gw_users')||'[]');}catch(e){return[];} };
+
+// ════════ LOGIN GATE ════════
+// unione dei profili delle due app, per email
+function allProfiles(){
+  const map={};
+  tcUsers().forEach(u=>{ const e=(u.email||'').toLowerCase(); if(!e)return;
+    map[e]=map[e]||{email:e,name:u.name||e,foto:null,tc:false,gw:false}; map[e].tc=true; map[e].name=u.name||map[e].name; });
+  gwUsers().forEach(u=>{ const e=(u.email||'').toLowerCase(); if(!e)return;
+    map[e]=map[e]||{email:e,name:u.name||e,foto:null,tc:false,gw:false}; map[e].gw=true;
+    map[e].name=u.name||map[e].name; if(u.foto) map[e].foto=u.foto; });
+  return Object.values(map);
+}
+function renderProfiles(){
+  const list=document.getElementById('profList');
+  const profs=allProfiles();
+  if(!profs.length){ list.innerHTML=''; document.getElementById('profEmpty').style.display='block'; return; }
+  document.getElementById('profEmpty').style.display='none';
+  list.innerHTML=profs.map(p=>{
+    const av=p.foto?`<img src="${p.foto}" alt="">`:(p.name[0]||'?').toUpperCase();
+    const chips=(p.tc?'<span class="chip-app chip-tc">TC</span>':'')+(p.gw?'<span class="chip-app chip-gw">GW</span>':'');
+    return `<div class="prof" onclick="pickProfile('${p.email}')">
+      <div class="prof-av">${av}</div>
+      <div class="prof-info"><div class="prof-name">${p.name}</div>
+        <div class="prof-email">${p.email}</div><div class="prof-chips">${chips}</div></div>
+    </div>`;
+  }).join('');
+}
+function pickProfile(email){
+  selEmail=email;
+  document.querySelectorAll('.prof').forEach(c=>c.classList.remove('sel'));
+  document.getElementById('lgProfiles').style.display='none';
+  document.getElementById('lgPass').classList.remove('hidden');
+  const p=allProfiles().find(x=>x.email===email);
+  document.getElementById('lgSelName').textContent=p?p.name:email;
+  const inp=document.getElementById('lgPassword'); inp.value=''; setTimeout(()=>inp.focus(),60);
+  document.getElementById('lgErr').textContent='';
+}
+function backToProfiles(){
+  selEmail=null;
+  document.getElementById('lgPass').classList.add('hidden');
+  document.getElementById('lgProfiles').style.display='block';
+}
+async function doEwLogin(){
+  if(!selEmail) return;
+  const pass=document.getElementById('lgPassword').value;
+  const err=document.getElementById('lgErr');
+  if(!pass){ err.textContent='Inserisci la password.'; return; }
+  // valida contro lo store di una delle due app (la password di famiglia di solito coincide)
+  let ok=false;
+  const tcU=tcUsers().find(u=>(u.email||'').toLowerCase()===selEmail);
+  if(tcU && (tcU.pass===pass || tcU.pass===tcHash(pass))) ok=true;
+  if(!ok){
+    const gwU=gwUsers().find(u=>(u.email||'').toLowerCase()===selEmail);
+    if(gwU){ const h=await gwHash(pass, gwU.salt||''); if(h===gwU.pass) ok=true; }
+  }
+  if(!ok){ err.textContent='Password non corretta.'; return; }
+
+  const prof=allProfiles().find(x=>x.email===selEmail);
+  localStorage.setItem(EW_KEY, JSON.stringify({email:selEmail, name:prof?prof.name:selEmail}));
+  // GoWork: scrivendo gw_current rientra da solo al boot dell'iframe
+  if(prof && prof.gw) localStorage.setItem('gw_current', selEmail);
+  enterHub();
+}
+function skipLogin(){
+  // nessun auto-login: ogni app mostrerà il proprio accesso
+  localStorage.removeItem(EW_KEY);
+  enterHub(true);
+}
+
+// ════════ HUB ════════
+function enterHub(skipped){
+  const lg=document.getElementById('ewLogin'); lg.style.opacity='0';
+  setTimeout(()=>{ lg.style.display='none'; }, 400);
+  document.getElementById('hub').classList.add('show');
+  const u=JSON.parse(localStorage.getItem(EW_KEY)||'null');
+  document.getElementById('hubUser').innerHTML = (u&&u.name)?('Accesso: <b>'+u.name+'</b>'):'';
+}
+function ewLock(){
+  // blocca: dimentica la sessione condivisa e ricarica al gate (resetta gli iframe)
+  localStorage.removeItem(EW_KEY);
+  localStorage.removeItem('gw_current');
+  location.reload();
+}
 function bringFront(which){
-  frontApp = which;
-  const tc = document.getElementById('card-tc');
-  const gw = document.getElementById('card-gw');
+  frontApp=which;
+  const tc=document.getElementById('card-tc'), gw=document.getElementById('card-gw');
   if(which==='tc'){ tc.className='card front'; gw.className='card back'; }
-  else            { gw.className='card front'; tc.className='card back'; }
-  document.querySelectorAll('#switcher button').forEach(b=>{
-    b.classList.toggle('active', b.dataset.app===which);
-  });
+  else { gw.className='card front'; tc.className='card back'; }
+  document.querySelectorAll('#switcher button').forEach(b=>b.classList.toggle('active', b.dataset.app===which));
 }
+function cardTap(which){ if(which!==frontApp){ bringFront(which); return; } openApp(which); }
 
-// tap su una carta: se è già davanti → apre; se è dietro → la porta davanti
-function cardTap(which){
-  if(which!==frontApp){ bringFront(which); return; }
-  openApp(which);
-}
-
-// ════════ APRI APP (iframe lazy) ════════
 function openApp(which){
-  const cfg   = APPS[which];
-  const panel = document.getElementById('panel-'+which);
-  const frame = document.getElementById('frame-'+which);
-  const loader= document.getElementById('loader-'+which);
-  if(!cfg || !panel) return;
-
-  activeApp = which;
-
-  // mostra loader + panel; carica l'iframe solo la prima volta
+  const cfg=APPS[which], panel=document.getElementById('panel-'+which),
+        frame=document.getElementById('frame-'+which), loader=document.getElementById('loader-'+which);
+  if(!cfg||!panel) return;
+  activeApp=which;
   loader.classList.remove('hide');
   if(!loaded[which]){
-    frame.onload = function(){
-      loaded[which] = true;
-      loader.classList.add('hide');
-      tryAutoLogin(which, frame);
-    };
-    frame.src = cfg.url;
-  } else {
-    // già caricato: nascondi loader subito
-    setTimeout(()=>loader.classList.add('hide'), 120);
-  }
-
-  // nascondi hub, mostra panel + back
-  document.getElementById('hub').style.opacity = '0';
+    frame.onload=function(){ loaded[which]=true; loader.classList.add('hide'); tryAutoLogin(which, frame); };
+    frame.src=cfg.url;
+  } else { setTimeout(()=>loader.classList.add('hide'),120); }
+  document.getElementById('hub').style.opacity='0';
   panel.classList.add('open');
-  const back = document.getElementById('ewBack');
-  document.getElementById('ewBackLabel').textContent = 'Wallet';
-  setTimeout(()=>back.classList.add('show'), 250);
+  document.getElementById('ewBackLabel').textContent='Wallet';
+  setTimeout(()=>document.getElementById('ewBack').classList.add('show'),250);
 }
-
-// ════════ TORNA AL WALLET ════════
 function closeApp(){
-  const back = document.getElementById('ewBack');
-  back.classList.remove('show');
-  if(activeApp){
-    const panel = document.getElementById('panel-'+activeApp);
-    panel.classList.remove('open');   // l'iframe resta caricato per riaperture istantanee
-  }
-  document.getElementById('hub').style.opacity = '1';
-  activeApp = null;
+  document.getElementById('ewBack').classList.remove('show');
+  if(activeApp) document.getElementById('panel-'+activeApp).classList.remove('open');
+  document.getElementById('hub').style.opacity='1';
+  activeApp=null;
 }
 
-// ════════ AUTO-LOGIN best-effort (same-origin) ════════
-// Le app hanno comunque il proprio login: questo è solo un tentativo
-// non distruttivo di passare l'identità condivisa salvata in EW_KEY.
+// ════════ AUTO-LOGIN nelle app (same-origin) ════════
 function tryAutoLogin(which, frame){
   try{
-    const ewU = JSON.parse(localStorage.getItem(EW_KEY) || 'null');
+    const ewU=JSON.parse(localStorage.getItem(EW_KEY)||'null');
     if(!ewU || !ewU.email) return;
-    const win = frame.contentWindow;
-    if(!win) return;
-    if(which==='tc' && typeof win.selectProfile==='function'){
-      win.selectProfile(ewU.email);
+    const win=frame.contentWindow; if(!win) return;
+    if(which==='tc'){
+      // TradoCroods non auto-ripristina: lo facciamo entrare con enterApp(utente già salvato)
+      const users=(typeof win.getUsers==='function')?win.getUsers():[];
+      const u=users.find(x=>(x.email||'').toLowerCase()===ewU.email);
+      if(u && typeof win.enterApp==='function') win.enterApp(u);
     }
-    // GoWork: gancio lasciato pronto se in futuro esporrà una funzione dedicata
-    // if(which==='gw' && typeof win.gwAutoLogin==='function'){ win.gwAutoLogin(ewU.email); }
-  }catch(e){ /* cross-version / non disponibile: si ignora */ }
+    // GoWork entra da solo via gw_current (impostato al login del gate) — nessuna azione necessaria
+  }catch(e){ /* versione diversa / non disponibile: l'app mostra il suo login */ }
 }
 
 // ════════ PWA: manifest inline (deploy a file singolo) ════════
 (function(){
   try{
-    const mani = {
-      name:'E-Wallet · TradClab', short_name:'E-Wallet',
-      start_url:'./', display:'standalone',
-      background_color:'#0a1410', theme_color:'#0a1410',
-      icons:[]
-    };
-    const blob = new Blob([JSON.stringify(mani)], {type:'application/manifest+json'});
-    const link = document.createElement('link');
-    link.rel='manifest'; link.href=URL.createObjectURL(blob);
+    const mani={ name:'E-Wallet · TradClab', short_name:'E-Wallet', start_url:'./', display:'standalone',
+      background_color:'#0a1410', theme_color:'#0a1410', icons:[] };
+    const blob=new Blob([JSON.stringify(mani)],{type:'application/manifest+json'});
+    const link=document.createElement('link'); link.rel='manifest'; link.href=URL.createObjectURL(blob);
     document.head.appendChild(link);
   }catch(e){}
 })();
 
-// ESC per tornare al wallet (desktop)
+// ════════ BOOT ════════
+(function boot(){
+  const ewU=JSON.parse(localStorage.getItem(EW_KEY)||'null');
+  if(ewU && ewU.email){ enterHub(); }   // sessione già attiva → direttamente all'hub
+  else { renderProfiles(); }             // mostra il gate
+})();
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) closeApp(); });
 </script>
 </body>
