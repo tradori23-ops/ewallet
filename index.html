@@ -212,8 +212,8 @@ body{
 .app-panel.open{ opacity:1; visibility:visible; transform:translateY(0); }
 #panel-tc, #panel-tc .app-frame{ background:#0a0a12; }   /* TradoCroods: scuro */
 #panel-gw, #panel-gw .app-frame{ background:#f4f2ec; }   /* GoWork: chiaro */
-.app-frame{ position:absolute; left:0; right:0; bottom:0; top:calc(env(safe-area-inset-top) + 50px);
-  width:auto; height:auto; border:0; background:var(--bg2); z-index:1; }
+.app-frame{ position:absolute; left:0; right:0; top:calc(env(safe-area-inset-top) + 50px);
+  width:100%; height:calc(100% - env(safe-area-inset-top) - 50px); border:0; background:var(--bg2); z-index:1; }
 /* barra superiore dell'E-Wallet, a tema con ciascuna app */
 .app-topbar{ position:absolute; top:0; left:0; right:0; z-index:4;
   height:calc(env(safe-area-inset-top) + 50px);
@@ -250,11 +250,15 @@ body{
     width:480px; max-width:94vw; height:54px; padding:0 8px;
     border-radius:20px 20px 0 0; box-shadow:0 36px 90px -24px rgba(0,0,0,.75);
   }
-  .app-frame, .app-loader{
+  .app-loader{
     top:80px; left:50%; transform:translateX(-50%);
     width:480px; max-width:94vw; bottom:26px; border-radius:0 0 20px 20px;
   }
-  .app-frame{ box-shadow:0 36px 90px -24px rgba(0,0,0,.75); }
+  .app-frame{
+    top:80px; left:50%; right:auto; transform:translateX(-50%);
+    width:480px; max-width:94vw; height:calc(100% - 106px); border-radius:0 0 20px 20px;
+    box-shadow:0 36px 90px -24px rgba(0,0,0,.75);
+  }
 }
 </style>
 </head>
