@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260607-ew-v4-liquidglass';
+  var BUILD='20260607-ew-v5-gobank';
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
     var qp=new URLSearchParams(location.search);
@@ -171,11 +171,24 @@ body{
   transition:transform .55s cubic-bezier(.2,.8,.2,1), box-shadow .4s ease, opacity .4s ease;
   overflow:hidden; border:1px solid rgba(255,255,255,.14); will-change:transform;
 }
-.card::after{
-  content:''; position:absolute; inset:0;
-  background:linear-gradient(115deg,transparent 40%,rgba(255,255,255,.22) 50%,transparent 60%);
-  opacity:.5; pointer-events:none;
+.card::before{
+  content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
+  background:linear-gradient(160deg, rgba(255,255,255,.40) 0%, rgba(255,255,255,.08) 20%, transparent 44%, rgba(0,0,0,.16) 100%);
 }
+.card::after{
+  content:''; position:absolute; top:-20%; bottom:-20%; left:0; width:55%; z-index:2;
+  background:linear-gradient(105deg, transparent 0%, rgba(255,255,255,.0) 32%, rgba(255,255,255,.65) 50%, rgba(255,255,255,.0) 68%, transparent 100%);
+  transform:translateX(-180%) skewX(-14deg);
+  mix-blend-mode:screen; pointer-events:none;
+  animation:cardShine 6.5s ease-in-out infinite;
+}
+#card-gw::after{ animation-delay:3.2s; }
+@keyframes cardShine{
+  0%{ transform:translateX(-180%) skewX(-14deg); }
+  16%,100%{ transform:translateX(330%) skewX(-14deg); }
+}
+/* il contenuto della carta resta sopra i riflessi */
+.card-row{ position:relative; z-index:3; }
 .card .chip{ width:42px; height:30px; border-radius:6px; position:relative;
   background:linear-gradient(135deg,#f6e6b0,#caa84f 60%,#8c6f2c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.15); }
 .card .chip::before{ content:''; position:absolute; inset:7px 9px; border:1px solid rgba(0,0,0,.25); border-radius:3px; }
@@ -184,9 +197,9 @@ body{
 .card-name{ font-size:15px; font-weight:600; letter-spacing:.5px; }
 .card-sub{ font-size:11px; letter-spacing:2px; text-transform:uppercase; opacity:.8; margin-top:3px; }
 .card-open{ font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
-#card-tc{ background:linear-gradient(135deg,#4a3a14 0%,#8a6e26 40%,#c9a84c 100%); }
+#card-tc{ background:linear-gradient(135deg,#4a3a14 0%,#8a6e26 15%,#e8c874 29%,#f7e8ad 37%,#c9a84c 47%,#7a611f 63%,#e2c168 82%,#574215 100%); }
 #card-tc .card-mono{ color:#fff7e0; text-shadow:0 2px 10px rgba(0,0,0,.35); }
-#card-gw{ background:linear-gradient(135deg,#0c2a1c 0%,#1f6b46 45%,#34d27a 100%); }
+#card-gw{ background:linear-gradient(135deg,#082619 0%,#1f6b46 15%,#3fd488 29%,#9bf0c4 37%,#2aa564 47%,#0f4a30 63%,#52df97 82%,#08301f 100%); }
 #card-gw .card-mono{ color:#eafff3; text-shadow:0 2px 10px rgba(0,0,0,.35); }
 .card.front{ transform:translateY(150px) scale(1) rotate(0deg); z-index:3; }
 .card.back { transform:translateY(20px) scale(.9) rotate(-4deg); z-index:2; opacity:.92; }
@@ -306,9 +319,9 @@ body{
 
   <div class="wallet" id="wallet">
     <div class="card front" id="card-tc" data-app="tc" onclick="cardTap('tc')">
-      <div class="card-row"><div class="chip"></div><div class="card-mono">TC</div></div>
+      <div class="card-row"><div class="chip"></div><div class="card-mono">GB</div></div>
       <div class="card-row">
-        <div><div class="card-name">TradoCroods</div><div class="card-sub">Budget · Famiglia</div></div>
+        <div><div class="card-name">GoBank</div><div class="card-sub">Budget · Famiglia</div></div>
         <div class="card-open">Apri ›</div>
       </div>
     </div>
@@ -322,7 +335,7 @@ body{
   </div>
 
   <div class="switcher" id="switcher">
-    <button class="active tc" data-app="tc" onclick="bringFront('tc')">TradoCroods</button>
+    <button class="active tc" data-app="tc" onclick="bringFront('tc')">GoBank</button>
     <button class="gw" data-app="gw" onclick="bringFront('gw')">GoWork</button>
   </div>
 
@@ -334,11 +347,11 @@ body{
 
 <!-- ════════ PANELS ════════ -->
 <section class="app-panel" id="panel-tc">
-  <div class="app-topbar tc"><button class="tb-back" onclick="closeApp()">‹ Wallet</button><div class="tb-title">TradoCroods</div></div>
+  <div class="app-topbar tc"><button class="tb-back" onclick="closeApp()">‹ Wallet</button><div class="tb-title">GoBank</div></div>
   <div class="app-stage" id="stage-tc">
     <div class="app-loader" id="loader-tc">
-      <div class="loader-mono" style="color:var(--gold-bright)">TC</div>
-      <div class="loader-ring"></div><div class="loader-label">Apertura TradoCroods…</div>
+      <div class="loader-mono" style="color:var(--gold-bright)">GB</div>
+      <div class="loader-ring"></div><div class="loader-label">Apertura GoBank…</div>
     </div>
     <iframe class="app-frame" id="frame-tc" title="TradoCroods" allow="clipboard-read; clipboard-write; camera; geolocation"></iframe>
   </div>
