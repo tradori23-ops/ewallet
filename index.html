@@ -477,6 +477,8 @@ function closeApp(){
   clearInterval(window._chromeTimer);
   if(activeApp) document.getElementById('panel-'+activeApp).classList.remove('open');
   document.getElementById('hub').style.opacity='1';
+  document.documentElement.style.backgroundColor='';   // ripristina sfondo hub
+  document.body.style.backgroundColor='';
   activeApp=null;
 }
 
@@ -499,6 +501,9 @@ function syncChrome(which, frame){
     const bar=panel.querySelector('.app-topbar'), back=panel.querySelector('.tb-back'), title=panel.querySelector('.tb-title');
     panel.style.background=bg; frame.style.background=bg; bar.style.background=bg;
     const stage=panel.querySelector('.app-stage'); if(stage) stage.style.background=bg;
+    // iOS: la fascia home-indicator usa lo sfondo dell'elemento <html> → coloralo come l'app
+    document.documentElement.style.backgroundColor=bg;
+    document.body.style.backgroundColor=bg;
     if(_lum(bg)>0.55){ // sfondo chiaro → testo scuro
       back.style.background='rgba(0,0,0,0.07)'; back.style.color='#16191c'; title.style.color='#16191c';
       bar.style.borderBottom='1px solid rgba(0,0,0,0.07)';
