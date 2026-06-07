@@ -210,22 +210,32 @@ body{
   opacity:0; visibility:hidden; transform:translateY(100%);
   transition:transform .42s cubic-bezier(.3,.85,.25,1), opacity .3s ease, visibility .42s; }
 .app-panel.open{ opacity:1; visibility:visible; transform:translateY(0); }
-.app-frame{ position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg2); }
-.app-loader{ position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
+#panel-tc, #panel-tc .app-frame{ background:#0a0a12; }   /* TradoCroods: scuro */
+#panel-gw, #panel-gw .app-frame{ background:#f4f2ec; }   /* GoWork: chiaro */
+.app-frame{ position:absolute; left:0; right:0; bottom:0; top:calc(env(safe-area-inset-top) + 50px);
+  width:auto; height:auto; border:0; background:var(--bg2); z-index:1; }
+/* barra superiore dell'E-Wallet, a tema con ciascuna app */
+.app-topbar{ position:absolute; top:0; left:0; right:0; z-index:4;
+  height:calc(env(safe-area-inset-top) + 50px);
+  padding:env(safe-area-inset-top) 14px 0 10px;
+  display:flex; align-items:center; gap:10px; }
+.tb-back{ border:0; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px;
+  padding:8px 15px; border-radius:30px; display:inline-flex; align-items:center; gap:3px; transition:transform .12s ease; }
+.tb-back:active{ transform:scale(.94); }
+.tb-title{ font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:15px; letter-spacing:.3px; }
+.app-topbar.tc{ background:#0e1413; border-bottom:1px solid rgba(201,168,76,0.22); }
+.app-topbar.tc .tb-back{ background:rgba(201,168,76,0.16); color:var(--gold-bright); }
+.app-topbar.tc .tb-title{ color:var(--gold-bright); }
+.app-topbar.gw{ background:#f3efe6; border-bottom:1px solid rgba(0,0,0,0.08); }
+.app-topbar.gw .tb-back{ background:rgba(31,107,70,0.14); color:var(--green-deep); }
+.app-topbar.gw .tb-title{ color:var(--green-deep); }
+.app-loader{ position:absolute; left:0; right:0; bottom:0; top:calc(env(safe-area-inset-top) + 50px); z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
   background:radial-gradient(circle at 50% 40%, #102018 0%, #0a1410 70%); transition:opacity .4s ease; }
 .app-loader.hide{ opacity:0; pointer-events:none; }
 .loader-mono{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:44px; letter-spacing:1px; }
 .loader-ring{ width:34px; height:34px; border-radius:50%; border:2px solid rgba(255,255,255,.12); border-top-color:var(--gold); animation:spin .8s linear infinite; }
 @keyframes spin{ to{ transform:rotate(360deg); } }
 .loader-label{ font-size:12px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
-.ew-back{ position:fixed; z-index:60; top:calc(env(safe-area-inset-top) + 10px); left:12px;
-  display:flex; align-items:center; gap:6px; padding:9px 16px 9px 12px; border-radius:30px; border:0; cursor:pointer;
-  font-family:'DM Sans',sans-serif; font-size:13px; font-weight:600; color:#10140f; background:rgba(243,239,230,.92);
-  box-shadow:0 8px 24px -6px rgba(0,0,0,.6); backdrop-filter:blur(10px);
-  opacity:0; transform:translateY(-12px) scale(.95); pointer-events:none;
-  transition:all .35s cubic-bezier(.2,.8,.2,1); }
-.ew-back.show{ opacity:1; transform:translateY(0) scale(1); pointer-events:auto; }
-.ew-back:active{ transform:scale(.94); }
 </style>
 </head>
 <body>
@@ -308,6 +318,7 @@ body{
 
 <!-- ════════ PANELS ════════ -->
 <section class="app-panel" id="panel-tc">
+  <div class="app-topbar tc"><button class="tb-back" onclick="closeApp()">‹ Wallet</button><div class="tb-title">TradoCroods</div></div>
   <div class="app-loader" id="loader-tc">
     <div class="loader-mono" style="color:var(--gold-bright)">TC</div>
     <div class="loader-ring"></div><div class="loader-label">Apertura TradoCroods…</div>
@@ -315,6 +326,7 @@ body{
   <iframe class="app-frame" id="frame-tc" title="TradoCroods" allow="clipboard-read; clipboard-write; camera; geolocation"></iframe>
 </section>
 <section class="app-panel" id="panel-gw">
+  <div class="app-topbar gw"><button class="tb-back" onclick="closeApp()">‹ Wallet</button><div class="tb-title">GoWork</div></div>
   <div class="app-loader" id="loader-gw">
     <div class="loader-mono" style="color:var(--green)">GW</div>
     <div class="loader-ring"></div><div class="loader-label">Apertura GoWork…</div>
@@ -322,7 +334,6 @@ body{
   <iframe class="app-frame" id="frame-gw" title="GoWork" allow="clipboard-read; clipboard-write; camera; geolocation"></iframe>
 </section>
 
-<button class="ew-back" id="ewBack" onclick="closeApp()">‹ <span id="ewBackLabel">Wallet</span></button>
 
 <script>
 // ════════ CONFIG ════════
@@ -445,19 +456,48 @@ function openApp(which){
   activeApp=which;
   loader.classList.remove('hide');
   if(!loaded[which]){
-    frame.onload=function(){ loaded[which]=true; loader.classList.add('hide'); tryAutoLogin(which, frame); };
+    frame.onload=function(){ loaded[which]=true; loader.classList.add('hide'); tryAutoLogin(which, frame); syncChrome(which, frame); };
     frame.src=cfg.url;
-  } else { setTimeout(()=>loader.classList.add('hide'),120); }
+  } else { setTimeout(()=>{loader.classList.add('hide'); syncChrome(which, frame);},120); }
   document.getElementById('hub').style.opacity='0';
   panel.classList.add('open');
-  document.getElementById('ewBackLabel').textContent='Wallet';
-  setTimeout(()=>document.getElementById('ewBack').classList.add('show'),250);
+  // ri-sync periodico: segue eventuali cambi di tema dentro l'app
+  clearInterval(window._chromeTimer);
+  window._chromeTimer=setInterval(()=>{ if(activeApp) syncChrome(activeApp, document.getElementById('frame-'+activeApp)); }, 1500);
 }
 function closeApp(){
-  document.getElementById('ewBack').classList.remove('show');
+  clearInterval(window._chromeTimer);
   if(activeApp) document.getElementById('panel-'+activeApp).classList.remove('open');
   document.getElementById('hub').style.opacity='1';
   activeApp=null;
+}
+
+
+// ════════ SYNC CHROME: barra e aree di sicurezza col colore reale dell'app ════════
+function _appBg(win){
+  try{
+    let c=win.getComputedStyle(win.document.body).backgroundColor;
+    if(!c||c==='rgba(0, 0, 0, 0)'||c==='transparent') c=win.getComputedStyle(win.document.documentElement).backgroundColor;
+    if(!c||c==='rgba(0, 0, 0, 0)'||c==='transparent') return null;
+    return c;
+  }catch(e){ return null; }
+}
+function _lum(rgb){ const m=rgb.match(/\d+(\.\d+)?/g); if(!m) return 0;
+  const [r,g,b]=m.map(Number); return (0.299*r+0.587*g+0.114*b)/255; }
+function syncChrome(which, frame){
+  try{
+    const win=frame.contentWindow; const bg=_appBg(win); if(!bg) return;
+    const panel=document.getElementById('panel-'+which);
+    const bar=panel.querySelector('.app-topbar'), back=panel.querySelector('.tb-back'), title=panel.querySelector('.tb-title');
+    panel.style.background=bg; frame.style.background=bg; bar.style.background=bg;
+    if(_lum(bg)>0.55){ // sfondo chiaro → testo scuro
+      back.style.background='rgba(0,0,0,0.07)'; back.style.color='#16191c'; title.style.color='#16191c';
+      bar.style.borderBottom='1px solid rgba(0,0,0,0.07)';
+    } else {           // sfondo scuro → testo chiaro
+      back.style.background='rgba(255,255,255,0.13)'; back.style.color='#f3efe6'; title.style.color='#f3efe6';
+      bar.style.borderBottom='1px solid rgba(255,255,255,0.10)';
+    }
+  }catch(e){}
 }
 
 // ════════ AUTO-LOGIN nelle app (same-origin) ════════
