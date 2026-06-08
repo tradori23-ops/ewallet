@@ -4,8 +4,8 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260608-ew-v16-fullbottom';
-if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});};
+  var BUILD='20260608-ew-v18-statusbar';
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
     var qp=new URLSearchParams(location.search);
@@ -226,24 +226,25 @@ body{
 .app-panel.open{ opacity:1; visibility:visible; transform:translateY(0); }
 #panel-tc .app-stage, #panel-tc .app-frame{ background:#0a0a12; }   /* TradoCroods: scuro */
 #panel-gw .app-stage, #panel-gw .app-frame{ background:#f4f2ec; }   /* GoWork: chiaro */
-.app-stage{ position:absolute; left:0; right:0; bottom:0; top:calc(env(safe-area-inset-top) + 50px);
+.app-stage{ position:absolute; left:0; right:0; bottom:0; top:0;
   z-index:1; overflow:hidden; background:var(--bg2); }
 .app-frame{ position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg2); }
 /* barra superiore dell'E-Wallet, a tema con ciascuna app */
-.app-topbar{ position:absolute; top:0; left:0; right:0; z-index:4;
-  height:calc(env(safe-area-inset-top) + 50px);
-  padding:env(safe-area-inset-top) 14px 0 10px;
-  display:flex; align-items:center; gap:10px; }
-.tb-back{ border:0; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px;
-  padding:8px 15px; border-radius:30px; display:inline-flex; align-items:center; gap:3px; transition:transform .12s ease; }
+.app-topbar{ position:fixed; top:calc(env(safe-area-inset-top) + 8px); left:10px; right:auto; z-index:8;
+  height:auto; padding:0; background:transparent!important; border-bottom:none!important; -webkit-backdrop-filter:none; backdrop-filter:none;
+  display:flex; align-items:center; gap:8px; pointer-events:none; }
+.app-topbar .tb-back{ pointer-events:auto; }
+.tb-back{ border:1px solid rgba(255,255,255,0.22); cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px;
+  padding:8px 15px; border-radius:30px; display:inline-flex; align-items:center; gap:3px; transition:transform .12s ease; -webkit-backdrop-filter:blur(16px) saturate(1.4); backdrop-filter:blur(16px) saturate(1.4); box-shadow:0 4px 18px rgba(0,0,0,0.30); }
 .tb-back:active{ transform:scale(.94); }
-.tb-title{ font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:15px; letter-spacing:.3px; }
+.tb-title{ display:none; }
 .app-topbar.tc{ background:#0e1413; border-bottom:1px solid rgba(201,168,76,0.22); }
 .app-topbar.tc .tb-back{ background:rgba(201,168,76,0.16); color:var(--gold-bright); }
 .app-topbar.tc .tb-title{ color:var(--gold-bright); }
 .app-topbar.gw{ background:#f3efe6; border-bottom:1px solid rgba(0,0,0,0.08); }
 .app-topbar.gw .tb-back{ background:rgba(31,107,70,0.14); color:var(--green-deep); }
 .app-topbar.gw .tb-title{ color:var(--green-deep); }
+#statusScrim{ position:fixed; top:0; left:0; right:0; height:calc(env(safe-area-inset-top) + 14px); z-index:7; pointer-events:none; opacity:0; transition:opacity .3s ease; background:linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0) 100%); }
 .app-loader{ position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
   background:radial-gradient(circle at 50% 40%, #102018 0%, #0a1410 70%); transition:opacity .4s ease; }
 .app-loader.hide{ opacity:0; pointer-events:none; }
@@ -485,7 +486,7 @@ function bringFront(which){
 function cardTap(which){ if(which!==frontApp){ bringFront(which); return; } openApp(which); }
 
 function readInset(side){var p=document.getElementById('saProbe');if(!p)return '0px';var cs=getComputedStyle(p);return (side==='bottom'?cs.paddingBottom:cs.paddingTop)||'0px';}
-function injectSafe(frame){try{var de=frame.contentWindow.document.documentElement;de.style.setProperty('--sat','0px');de.style.setProperty('--sab',readInset('bottom'));}catch(e){}try{var st=frame.parentElement;if(st){var hh=st.clientHeight;if(hh>0){frame.style.top='0';frame.style.bottom='auto';frame.style.height=hh+'px';}}}catch(e){}}
+function injectSafe(frame){try{var de=frame.contentWindow.document.documentElement;var topPx=parseFloat(readInset('top'))||0;de.style.setProperty('--sat',(topPx+50)+'px');de.style.setProperty('--sab',readInset('bottom'));}catch(e){}try{var st=frame.parentElement;if(st){var hh=st.clientHeight;if(hh>0){frame.style.top='0';frame.style.bottom='auto';frame.style.height=hh+'px';}}}catch(e){}}
 function _ewResize(){try{if(activeApp){var f=document.getElementById('frame-'+activeApp);if(f){syncChrome(activeApp,f);injectSafe(f);}}}catch(e){}}
 window.addEventListener('resize',_ewResize);window.addEventListener('orientationchange',function(){setTimeout(_ewResize,300);});window.addEventListener('pageshow',_ewResize);
 function openApp(which){
@@ -510,6 +511,7 @@ function closeApp(){
   document.getElementById('hub').style.opacity='1';
   document.documentElement.style.backgroundColor='';   // ripristina sfondo hub
   document.body.style.backgroundColor='';
+  var _scr=document.getElementById('statusScrim'); if(_scr) _scr.style.opacity='0';
   activeApp=null;
 }
 
@@ -530,17 +532,16 @@ function syncChrome(which, frame){
     const win=frame.contentWindow; const bg=_appBg(win); if(!bg) return;
     const panel=document.getElementById('panel-'+which);
     const bar=panel.querySelector('.app-topbar'), back=panel.querySelector('.tb-back'), title=panel.querySelector('.tb-title');
-    panel.style.background=bg; frame.style.background=bg; bar.style.background=bg;
+    panel.style.background=bg; frame.style.background=bg; bar.style.background='transparent';
     const stage=panel.querySelector('.app-stage'); if(stage) stage.style.background=bg;
     // iOS: la fascia home-indicator usa lo sfondo dell'elemento <html> → coloralo come l'app
     document.documentElement.style.backgroundColor=bg;
     document.body.style.backgroundColor=bg;
+    var _scr=document.getElementById('statusScrim'); if(_scr) _scr.style.opacity=(_lum(bg)>0.55?'1':'0');
     if(_lum(bg)>0.55){ // sfondo chiaro → testo scuro
-      back.style.background='rgba(0,0,0,0.07)'; back.style.color='#16191c'; title.style.color='#16191c';
-      bar.style.borderBottom='1px solid rgba(0,0,0,0.07)';
+      back.style.background='rgba(0,0,0,0.55)'; back.style.color='#ffffff';
     } else {           // sfondo scuro → testo chiaro
-      back.style.background='rgba(255,255,255,0.13)'; back.style.color='#f3efe6'; title.style.color='#f3efe6';
-      bar.style.borderBottom='1px solid rgba(255,255,255,0.10)';
+      back.style.background='rgba(255,255,255,0.18)'; back.style.color='#ffffff';
     }
   }catch(e){}
 }
@@ -581,5 +582,6 @@ function tryAutoLogin(which, frame){
 document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) closeApp(); });
 </script>
 <div id="saProbe" style="position:fixed;top:0;left:0;width:0;height:0;visibility:hidden;pointer-events:none;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)"></div>
+<div id="statusScrim"></div>
 </body>
 </html>
