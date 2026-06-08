@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260607-ew-v15-pill';
+  var BUILD='20260608-ew-v16-fullbottom';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});};
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -485,7 +485,9 @@ function bringFront(which){
 function cardTap(which){ if(which!==frontApp){ bringFront(which); return; } openApp(which); }
 
 function readInset(side){var p=document.getElementById('saProbe');if(!p)return '0px';var cs=getComputedStyle(p);return (side==='bottom'?cs.paddingBottom:cs.paddingTop)||'0px';}
-function injectSafe(frame){try{var de=frame.contentWindow.document.documentElement;de.style.setProperty('--sat','0px');de.style.setProperty('--sab',readInset('bottom'));}catch(e){}}
+function injectSafe(frame){try{var de=frame.contentWindow.document.documentElement;de.style.setProperty('--sat','0px');de.style.setProperty('--sab',readInset('bottom'));}catch(e){}try{var st=frame.parentElement;if(st){var hh=st.clientHeight;if(hh>0){frame.style.top='0';frame.style.bottom='auto';frame.style.height=hh+'px';}}}catch(e){}}
+function _ewResize(){try{if(activeApp){var f=document.getElementById('frame-'+activeApp);if(f){syncChrome(activeApp,f);injectSafe(f);}}}catch(e){}}
+window.addEventListener('resize',_ewResize);window.addEventListener('orientationchange',function(){setTimeout(_ewResize,300);});window.addEventListener('pageshow',_ewResize);
 function openApp(which){
   const cfg=APPS[which], panel=document.getElementById('panel-'+which),
         frame=document.getElementById('frame-'+which), loader=document.getElementById('loader-'+which);
@@ -493,7 +495,7 @@ function openApp(which){
   activeApp=which;
   loader.classList.remove('hide');
   if(!loaded[which]){
-    frame.onload=function(){ loaded[which]=true; loader.classList.add('hide'); tryAutoLogin(which, frame); syncChrome(which, frame); injectSafe(frame); };
+    frame.onload=function(){ loaded[which]=true; loader.classList.add('hide'); tryAutoLogin(which, frame); syncChrome(which, frame); injectSafe(frame); setTimeout(function(){injectSafe(frame);},400); };
     if(window.APP_HTML&&window.APP_HTML[which]){frame.srcdoc=window.APP_HTML[which];}else{frame.src=cfg.url;}
   } else { setTimeout(()=>{loader.classList.add('hide'); syncChrome(which, frame);},120); }
   document.getElementById('hub').style.opacity='0';
