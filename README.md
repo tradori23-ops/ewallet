@@ -1,11 +1,13 @@
-# E-Wallet · Supabase Sync
+# E-Wallet – correzione apertura TradoCroods
 
-Versione corretta senza dipendenza dalla libreria CDN Supabase.
+Sostituire su GitHub Pages:
 
-Caricare nella radice del repository GitHub Pages:
-- index.html
-- ewallet.html
-- sw.js
-- README.md
+- `index.html`
+- `ewallet.html`
 
-Dopo il deploy aprire `?force_update=1` e accedere con l’utente Supabase.
+La correzione chiude correttamente il documento HTML generato dalla funzione di stampa,
+ripristinando l'esecuzione dello script TradoCroods/GoWork.
+
+Dopo il commit aprire:
+
+`https://tradori23-ops.github.io/?force_update=1`
