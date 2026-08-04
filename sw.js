@@ -1,5 +1,5 @@
 /* E-Wallet all-in-one — service worker (offline + online) */
-const CACHE = 'ewallet-supabase-v2';
+const CACHE = 'ewallet-supabase-direct-v1';
 const CORE  = ['./', './index.html'];
 
 self.addEventListener('install', e => {

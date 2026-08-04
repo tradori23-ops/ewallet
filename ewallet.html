@@ -5970,7 +5970,6 @@ nav.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-
 
 
 <!-- Supabase Cloud Sync -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
 </head>
 <body class="ew-root">
 <!-- E-Wallet Cloud login -->
@@ -31437,13 +31436,14 @@ self.addEventListener('fetch',e=>{
   const SB_URL='https://qjevhdpxsuwjskksudcn.supabase.co';
   const SB_KEY='sb_publishable_PFQfg1zWZqfUstTvmuaQAQ_dzxEwe9c';
   const CLOUD_TABLE='ewallet_data';
+  const SESSION_KEY='ew_sb_session_v2';
   const META_KEY='ew_sb_last_sync';
   const gate=document.getElementById('sbGate');
   const msg=document.getElementById('sbMsg');
   const email=document.getElementById('sbEmail');
   const password=document.getElementById('sbPassword');
   const button=document.getElementById('sbLoginBtn');
-  let client=null, currentUser=null, applyingCloud=false, saveTimer=null;
+  let session=null, applyingCloud=false, saveTimer=null;
 
   function setMessage(text, ok){
     if(!msg) return;
@@ -31452,7 +31452,7 @@ self.addEventListener('fetch',e=>{
   }
   function isSecretOrInternalKey(key){
     const k=String(key||'').toLowerCase();
-    return k===META_KEY || k.includes('supabase') || k.startsWith('sb-') ||
+    return k===META_KEY || k===SESSION_KEY || k.includes('supabase') || k.startsWith('sb-') ||
       k.includes('gist_token') || k.includes('gisttoken') || k.includes('github_token') ||
       k==='tc_ai_api_key' || k==='tc_ai_api_key_global';
   }
@@ -31468,66 +31468,87 @@ self.addEventListener('fetch',e=>{
     if(!data || typeof data!=='object') return;
     applyingCloud=true;
     try{
-      Object.keys(data).forEach(k=>{ if(!isSecretOrInternalKey(k)) localStorage.setItem(k, String(data[k])); });
-      localStorage.setItem(META_KEY, String(Date.now()));
+      Object.keys(data).forEach(function(k){if(!isSecretOrInternalKey(k)) localStorage.setItem(k,String(data[k]));});
+      localStorage.setItem(META_KEY,String(Date.now()));
     } finally { applyingCloud=false; }
   }
+  function authHeaders(){
+    return {'apikey':SB_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'};
+  }
+  async function api(url, options){
+    const controller=new AbortController();
+    const timer=setTimeout(function(){controller.abort();},15000);
+    try{
+      const res=await fetch(url,Object.assign({},options||{},{signal:controller.signal}));
+      const text=await res.text();
+      let body=null; try{body=text?JSON.parse(text):null;}catch(_){body=text;}
+      if(!res.ok) throw new Error((body&&body.message)||(body&&body.msg)||(body&&body.error_description)||(body&&body.error)||('Errore HTTP '+res.status));
+      return body;
+    } finally {clearTimeout(timer);}
+  }
+  async function signIn(e,p){
+    return api(SB_URL+'/auth/v1/token?grant_type=password',{
+      method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
+      body:JSON.stringify({email:e,password:p})
+    });
+  }
   async function pushNow(){
-    if(!client || !currentUser || applyingCloud) return;
-    const payload={user_id:currentUser.id,data:snapshot(),updated_at:new Date().toISOString()};
-    const {error}=await client.from(CLOUD_TABLE).upsert(payload,{onConflict:'user_id'});
-    if(error) throw error;
+    if(!session || !session.user || applyingCloud) return;
+    const payload={user_id:session.user.id,data:snapshot(),updated_at:new Date().toISOString()};
+    await api(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',{
+      method:'POST',headers:Object.assign(authHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(payload)
+    });
     localStorage.setItem(META_KEY,String(Date.now()));
   }
   function schedulePush(){
-    if(applyingCloud || !currentUser) return;
+    if(applyingCloud || !session) return;
     clearTimeout(saveTimer);
-    saveTimer=setTimeout(()=>pushNow().catch(e=>console.error('Supabase sync:',e)),1200);
+    saveTimer=setTimeout(function(){pushNow().catch(function(e){console.error('Supabase sync:',e);});},1200);
   }
   async function syncAfterLogin(){
-    const {data:row,error}=await client.from(CLOUD_TABLE).select('data,updated_at').eq('user_id',currentUser.id).maybeSingle();
-    if(error) throw error;
-    if(row && row.data && Object.keys(row.data).length){
-      applySnapshot(row.data);
-    } else {
-      await pushNow();
-    }
+    const rows=await api(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
+      method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
+    });
+    const row=Array.isArray(rows)?rows[0]:null;
+    if(row && row.data && Object.keys(row.data).length) applySnapshot(row.data);
+    else await pushNow();
   }
-  function reveal(){ if(gate) gate.classList.add('sb-hidden'); }
+  function reveal(){if(gate) gate.classList.add('sb-hidden');}
   async function login(){
-    const e=(email?.value||'').trim();
-    const p=password?.value||'';
+    const e=(email&&email.value||'').trim();
+    const p=password&&password.value||'';
     if(!e||!p){setMessage('Inserisci email e password.');return;}
-    button.disabled=true; setMessage('Connessione in corso…',true);
+    if(button){button.disabled=true;button.textContent='Connessione…';}
+    setMessage('Connessione in corso…',true);
     try{
-      const {data,error}=await client.auth.signInWithPassword({email:e,password:p});
-      if(error) throw error;
-      currentUser=data.user;
+      session=await signIn(e,p);
+      if(!session || !session.access_token || !session.user) throw new Error('Risposta di accesso non valida.');
+      localStorage.setItem(SESSION_KEY,JSON.stringify(session));
       await syncAfterLogin();
       setMessage('Sincronizzazione completata.',true);
-      setTimeout(()=>location.reload(),350);
+      setTimeout(function(){location.reload();},450);
     }catch(err){
-      console.error(err); setMessage(err?.message||'Accesso non riuscito.'); button.disabled=false;
+      console.error('Login Supabase:',err);
+      setMessage(err && err.message ? err.message : 'Accesso non riuscito.');
+      if(button){button.disabled=false;button.textContent='Accedi e sincronizza';}
     }
   }
   async function boot(){
-    if(!window.supabase || typeof window.supabase.createClient!=='function'){
-      setMessage('Libreria Supabase non caricata. Controlla Internet e ricarica.');
-      return;
-    }
-    client=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-    button?.addEventListener('click',login);
-    password?.addEventListener('keydown',e=>{if(e.key==='Enter')login();});
-    const {data:{session}}=await client.auth.getSession();
-    if(session?.user){
-      currentUser=session.user;
-      try{await syncAfterLogin();reveal();}catch(e){console.error(e);setMessage('Errore sincronizzazione: '+(e.message||e));}
+    if(button) button.addEventListener('click',login);
+    if(password) password.addEventListener('keydown',function(e){if(e.key==='Enter')login();});
+    try{session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){session=null;}
+    if(session && session.access_token && session.user){
+      try{await syncAfterLogin();reveal();}catch(e){
+        console.warn('Sessione non valida o sync fallita:',e);
+        localStorage.removeItem(SESSION_KEY); session=null;
+        setMessage('Sessione scaduta: accedi di nuovo.');
+      }
     }
     const nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem, nativeClear=Storage.prototype.clear;
     Storage.prototype.setItem=function(k,v){nativeSet.call(this,k,v);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
     Storage.prototype.removeItem=function(k){nativeRemove.call(this,k);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
     Storage.prototype.clear=function(){nativeClear.call(this);if(this===localStorage)schedulePush();};
-    window.addEventListener('pagehide',()=>{if(currentUser)pushNow().catch(()=>{});});
+    window.addEventListener('pagehide',function(){if(session)pushNow().catch(function(){});});
     window.addEventListener('online',schedulePush);
     setInterval(schedulePush,30000);
   }

@@ -1,9 +1,11 @@
 # E-Wallet · Supabase Sync
 
-Carica nella cartella principale di GitHub Pages:
+Versione corretta senza dipendenza dalla libreria CDN Supabase.
 
-- `index.html`
-- `ewallet.html`
-- `sw.js`
+Caricare nella radice del repository GitHub Pages:
+- index.html
+- ewallet.html
+- sw.js
+- README.md
 
-Dopo il caricamento apri il sito con `?force_update=1`, accedi dal Mac che contiene i dati originali e attendi il completamento della sincronizzazione.
+Dopo il deploy aprire `?force_update=1` e accedere con l’utente Supabase.
