@@ -1,6 +1,6 @@
 /* E-Wallet — PWA cache v10 */
-const CACHE = 'ewallet-allinone-v10-gwfix';
-const CORE = ['./', './index.html', './ewallet.html'];
+const CACHE = 'ewallet-allinone-v11-supabase';
+const CORE = ['./', './index.html'];
 
 self.addEventListener('install', event => {
   self.skipWaiting();
