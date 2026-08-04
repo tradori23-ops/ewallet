@@ -1,5 +1,5 @@
 /* E-Wallet all-in-one — service worker (offline + online) */
-const CACHE = 'ewallet-allinone-v8-supabase';
+const CACHE = 'ewallet-supabase-v2';
 const CORE  = ['./', './index.html'];
 
 self.addEventListener('install', e => {

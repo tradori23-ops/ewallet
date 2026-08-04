@@ -5968,8 +5968,31 @@ nav.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-
 
 </style>
 
+
+<!-- Supabase Cloud Sync -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.49.8/dist/umd/supabase.min.js"></script>
 </head>
 <body class="ew-root">
+<!-- E-Wallet Cloud login -->
+<div id="sbGate" aria-live="polite">
+  <div class="sb-card">
+    <h1>E-Wallet Cloud</h1>
+    <p>Accedi con il tuo account Supabase. I dati restano sincronizzati tra Mac, telefono e tablet.</p>
+    <input id="sbEmail" type="email" placeholder="Email" autocomplete="username">
+    <input id="sbPassword" type="password" placeholder="Password" autocomplete="current-password">
+    <button id="sbLoginBtn" type="button">Accedi e sincronizza</button>
+    <div id="sbMsg"></div>
+  </div>
+</div>
+<div id="sbStatus" hidden>Cloud</div>
+<style>
+#sbGate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(circle at 20% 10%,#273c32 0,#09100d 48%,#050806 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#f4efe4}
+#sbGate.sb-hidden{display:none}.sb-card{width:min(390px,94vw);padding:28px 24px;border-radius:24px;background:rgba(16,25,20,.94);border:1px solid rgba(221,188,96,.35);box-shadow:0 30px 90px rgba(0,0,0,.6)}
+.sb-card h1{margin:0 0 8px;font-size:24px}.sb-card p{margin:0 0 18px;line-height:1.45;color:rgba(244,239,228,.72);font-size:13px}.sb-card input{display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:13px 14px;border-radius:11px;border:1px solid rgba(255,255,255,.2);background:#0c1511;color:#fff;font-size:15px}.sb-card button{width:100%;margin-top:6px;padding:14px;border:0;border-radius:11px;background:linear-gradient(135deg,#f4db74,#d9b84f);color:#15130b;font-weight:800;cursor:pointer}.sb-card button:disabled{opacity:.6;cursor:wait}#sbMsg{min-height:18px;margin-top:10px;text-align:center;font-size:12px;color:#ff9b8f}
+/* Nasconde i controlli del vecchio GitHub/Gist senza cancellare i dati locali */
+#gistTokenLoginArea,#gist-token-input,#gist-id-input,#loginGistToken,#loginGistId,#gistTokenLoginErr,#syncModal{display:none!important}
+</style>
+
 
 <!-- ══ PORTASITO HUB ══ -->
 
@@ -31407,87 +31430,108 @@ self.addEventListener('fetch',e=>{
 
 </script>
 
-<!-- ═══════ SUPABASE PERSONAL SYNC (single-user) ═══════ -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-#sbGate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(circle at 20% 10%,#273c32 0,#09100d 48%,#050806 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#f4efe4}
-#sbGate.sb-hidden{display:none}.sb-card{width:min(390px,94vw);padding:28px 24px;border-radius:24px;background:rgba(16,25,20,.92);border:1px solid rgba(221,188,96,.28);box-shadow:0 30px 90px rgba(0,0,0,.55)}
-.sb-card h1{margin:0 0 6px;font-size:28px}.sb-card p{margin:0 0 20px;color:#b9b5aa;font-size:14px;line-height:1.45}.sb-card input{width:100%;box-sizing:border-box;margin:7px 0;padding:14px;border-radius:12px;border:1px solid rgba(255,255,255,.16);background:#0a0f0c;color:#fff;font-size:16px}.sb-card button{width:100%;margin-top:12px;padding:14px;border:0;border-radius:12px;background:linear-gradient(135deg,#e9ca78,#bc9840);font-weight:800;color:#15120a;font-size:15px;cursor:pointer}.sb-msg{min-height:20px;margin-top:12px;font-size:13px;color:#ef9b8f}.sb-status{position:fixed;right:12px;bottom:calc(12px + env(safe-area-inset-bottom));z-index:2147483646;padding:7px 11px;border-radius:999px;background:rgba(6,17,11,.86);border:1px solid rgba(61,214,128,.35);color:#7ee3a9;font:600 11px system-ui;pointer-events:none}
-/* Nasconde i controlli GitHub/Gist obsoleti */
-#loginGistToken,#loginGistId,#gistTokenLoginErr,#firebaseModal,#syncModal{display:none!important}
-label[for="loginGistToken"],label[for="loginGistId"]{display:none!important}
-</style>
-<div id="sbGate"><div class="sb-card"><h1>E-Wallet Cloud</h1><p>Accedi con l'utente creato in Supabase. I dati verranno sincronizzati automaticamente tra Mac, telefono e tablet.</p><input id="sbEmail" type="email" placeholder="Email" autocomplete="username"><input id="sbPassword" type="password" placeholder="Password" autocomplete="current-password"><button id="sbLoginBtn">Accedi e sincronizza</button><div id="sbMsg" class="sb-msg"></div></div></div>
-<div id="sbStatus" class="sb-status" style="display:none">☁︎ Supabase</div>
+
 <script>
 (function(){
+  'use strict';
   const SB_URL='https://qjevhdpxsuwjskksudcn.supabase.co';
   const SB_KEY='sb_publishable_PFQfg1zWZqfUstTvmuaQAQ_dzxEwe9c';
-  const sb=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
-  const gate=document.getElementById('sbGate'), msg=document.getElementById('sbMsg'), status=document.getElementById('sbStatus');
-  let user=null, applying=false, lastSent='', lastRemoteTs=0, timer=null;
-  const EXCLUDE_PREFIX=['sb-','supabase.'];
-  const EXCLUDE_KEYS=new Set(['ew_build','tc_build','gw_build','gw_ios_cache_ts']);
-  function allowed(k){return k && !EXCLUDE_KEYS.has(k) && !EXCLUDE_PREFIX.some(p=>k.startsWith(p));}
-  function snapshot(){const out={};for(let i=0;i<localStorage.length;i++){const k=localStorage.key(i);if(allowed(k))out[k]=localStorage.getItem(k);}return out;}
-  function stable(obj){const keys=Object.keys(obj).sort();const ordered={};keys.forEach(k=>ordered[k]=obj[k]);return JSON.stringify(ordered);}
-  function setStatus(text,bad){status.style.display='block';status.textContent=text;status.style.color=bad?'#ff9b91':'#7ee3a9';}
-  async function pullOrSeed(){
-    setStatus('☁︎ Sincronizzazione…');
-    const {data,error}=await sb.from('ewallet_data').select('data,updated_at').eq('user_id',user.id).maybeSingle();
-    if(error)throw error;
-    if(data && data.data && Object.keys(data.data).length){
-      lastRemoteTs=Date.parse(data.updated_at||0)||0;
-      applying=true;
-      const cloud=data.data;
-      Object.keys(cloud).forEach(k=>{if(allowed(k))localStorage.setItem(k,cloud[k]);});
-      applying=false; lastSent=stable(snapshot());
-      sessionStorage.setItem('sb_cloud_loaded','1');
-      setStatus('☁︎ Dati aggiornati');
-      setTimeout(()=>location.reload(),500);
-    }else{
-      await push(true); sessionStorage.setItem('sb_cloud_loaded','1'); setStatus('☁︎ Primo backup creato');
+  const CLOUD_TABLE='ewallet_data';
+  const META_KEY='ew_sb_last_sync';
+  const gate=document.getElementById('sbGate');
+  const msg=document.getElementById('sbMsg');
+  const email=document.getElementById('sbEmail');
+  const password=document.getElementById('sbPassword');
+  const button=document.getElementById('sbLoginBtn');
+  let client=null, currentUser=null, applyingCloud=false, saveTimer=null;
+
+  function setMessage(text, ok){
+    if(!msg) return;
+    msg.textContent=text||'';
+    msg.style.color=ok?'#8ce8ad':'#ff9b8f';
+  }
+  function isSecretOrInternalKey(key){
+    const k=String(key||'').toLowerCase();
+    return k===META_KEY || k.includes('supabase') || k.startsWith('sb-') ||
+      k.includes('gist_token') || k.includes('gisttoken') || k.includes('github_token') ||
+      k==='tc_ai_api_key' || k==='tc_ai_api_key_global';
+  }
+  function snapshot(){
+    const out={};
+    for(let i=0;i<localStorage.length;i++){
+      const k=localStorage.key(i);
+      if(k && !isSecretOrInternalKey(k)) out[k]=localStorage.getItem(k);
     }
+    return out;
   }
-  async function push(force){
-    if(!user||applying||!navigator.onLine)return;
-    const data=snapshot(), encoded=stable(data); if(!force&&encoded===lastSent)return;
-    const {data:row,error}=await sb.from('ewallet_data').upsert({user_id:user.id,data,updated_at:new Date().toISOString()},{onConflict:'user_id'}).select('updated_at').single();
-    if(error){setStatus('⚠ Sync non riuscito',true);throw error;} lastSent=encoded; lastRemoteTs=Date.parse(row?.updated_at||0)||Date.now(); setStatus('☁︎ Sincronizzato');
-  }
-  function disableGist(win){
+  function applySnapshot(data){
+    if(!data || typeof data!=='object') return;
+    applyingCloud=true;
     try{
-      win.fbPushToCloud=function(){schedulePush();}; win.gistPush=function(){return push(true);};
-      win.openFirebaseModal=function(){setStatus('☁︎ Supabase attivo');};
-      win.doManualLoginWithToken=function(){setStatus('☁︎ Usa il login Supabase');};
-      win.gistReady=true;
-      const b=win.document&&win.document.getElementById('cloudBadge');if(b){b.innerHTML='☁️ Supabase Sync ON';b.style.color='#34d27a';b.style.borderColor='rgba(52,210,122,.45)';b.style.background='rgba(52,210,122,.13)';}
-      ['loginGistToken','loginGistId','gistTokenLoginErr'].forEach(id=>{const el=win.document&&win.document.getElementById(id);if(el){const group=el.closest('.form-group');(group||el).style.display='none';}});
-      const buttons=win.document?Array.from(win.document.querySelectorAll('button')):[];buttons.filter(x=>/Gist|GitHub/i.test(x.textContent||'')).forEach(x=>x.style.display='none');
-    }catch(e){}
+      Object.keys(data).forEach(k=>{ if(!isSecretOrInternalKey(k)) localStorage.setItem(k, String(data[k])); });
+      localStorage.setItem(META_KEY, String(Date.now()));
+    } finally { applyingCloud=false; }
   }
-  function patchFrames(){document.querySelectorAll('iframe').forEach(f=>{try{disableGist(f.contentWindow);}catch(e){};f.addEventListener('load',()=>setTimeout(()=>disableGist(f.contentWindow),300),{once:false});});disableGist(window);}
-  let pushDelay; function schedulePush(){clearTimeout(pushDelay);pushDelay=setTimeout(()=>push(false).catch(()=>{}),1200);}
-  window.addEventListener('storage',schedulePush); window.addEventListener('online',()=>push(false).catch(()=>{}));
-  document.addEventListener('input',schedulePush,true); document.addEventListener('change',schedulePush,true); document.addEventListener('click',()=>setTimeout(schedulePush,200),true);
-  document.getElementById('sbLoginBtn').onclick=async()=>{msg.textContent='Accesso in corso…';const email=document.getElementById('sbEmail').value.trim(),password=document.getElementById('sbPassword').value;const {data,error}=await sb.auth.signInWithPassword({email,password});if(error){msg.textContent='Accesso non riuscito: '+error.message;return;}user=data.user;gate.classList.add('sb-hidden');msg.textContent='';try{await pullOrSeed();}catch(e){msg.textContent=e.message;gate.classList.remove('sb-hidden');}};
-  document.getElementById('sbPassword').addEventListener('keydown',e=>{if(e.key==='Enter')document.getElementById('sbLoginBtn').click();});
-  sb.auth.getSession().then(async({data})=>{if(data.session){user=data.session.user;gate.classList.add('sb-hidden');if(sessionStorage.getItem('sb_cloud_loaded')==='1'){lastSent=stable(snapshot());setStatus('☁︎ Supabase attivo');}else{try{await pullOrSeed();}catch(e){setStatus('⚠ '+e.message,true);}}}});
-  async function syncCycle(){
-    if(!user||applying||!navigator.onLine)return;
-    const localNow=stable(snapshot());
-    const localDirty=localNow!==lastSent;
-    const {data,error}=await sb.from('ewallet_data').select('data,updated_at').eq('user_id',user.id).maybeSingle();
-    if(error)return setStatus('⚠ Sync non riuscito',true);
-    const remoteTs=Date.parse(data?.updated_at||0)||0;
-    if(data&&remoteTs>lastRemoteTs&&!localDirty){
-      applying=true;Object.keys(data.data||{}).forEach(k=>{if(allowed(k))localStorage.setItem(k,data.data[k]);});applying=false;
-      lastRemoteTs=remoteTs;lastSent=stable(snapshot());setStatus('☁︎ Aggiornato dal cloud');setTimeout(()=>location.reload(),350);return;
+  async function pushNow(){
+    if(!client || !currentUser || applyingCloud) return;
+    const payload={user_id:currentUser.id,data:snapshot(),updated_at:new Date().toISOString()};
+    const {error}=await client.from(CLOUD_TABLE).upsert(payload,{onConflict:'user_id'});
+    if(error) throw error;
+    localStorage.setItem(META_KEY,String(Date.now()));
+  }
+  function schedulePush(){
+    if(applyingCloud || !currentUser) return;
+    clearTimeout(saveTimer);
+    saveTimer=setTimeout(()=>pushNow().catch(e=>console.error('Supabase sync:',e)),1200);
+  }
+  async function syncAfterLogin(){
+    const {data:row,error}=await client.from(CLOUD_TABLE).select('data,updated_at').eq('user_id',currentUser.id).maybeSingle();
+    if(error) throw error;
+    if(row && row.data && Object.keys(row.data).length){
+      applySnapshot(row.data);
+    } else {
+      await pushNow();
     }
-    if(localDirty)await push(false);
   }
-  setInterval(()=>{patchFrames();syncCycle().catch(()=>{});},5000);setTimeout(patchFrames,800);
-  window.EW_SUPABASE={client:sb,push:()=>push(true),logout:async()=>{await push(true);await sb.auth.signOut();location.reload();}};
+  function reveal(){ if(gate) gate.classList.add('sb-hidden'); }
+  async function login(){
+    const e=(email?.value||'').trim();
+    const p=password?.value||'';
+    if(!e||!p){setMessage('Inserisci email e password.');return;}
+    button.disabled=true; setMessage('Connessione in corso…',true);
+    try{
+      const {data,error}=await client.auth.signInWithPassword({email:e,password:p});
+      if(error) throw error;
+      currentUser=data.user;
+      await syncAfterLogin();
+      setMessage('Sincronizzazione completata.',true);
+      setTimeout(()=>location.reload(),350);
+    }catch(err){
+      console.error(err); setMessage(err?.message||'Accesso non riuscito.'); button.disabled=false;
+    }
+  }
+  async function boot(){
+    if(!window.supabase || typeof window.supabase.createClient!=='function'){
+      setMessage('Libreria Supabase non caricata. Controlla Internet e ricarica.');
+      return;
+    }
+    client=window.supabase.createClient(SB_URL,SB_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    button?.addEventListener('click',login);
+    password?.addEventListener('keydown',e=>{if(e.key==='Enter')login();});
+    const {data:{session}}=await client.auth.getSession();
+    if(session?.user){
+      currentUser=session.user;
+      try{await syncAfterLogin();reveal();}catch(e){console.error(e);setMessage('Errore sincronizzazione: '+(e.message||e));}
+    }
+    const nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem, nativeClear=Storage.prototype.clear;
+    Storage.prototype.setItem=function(k,v){nativeSet.call(this,k,v);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
+    Storage.prototype.removeItem=function(k){nativeRemove.call(this,k);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
+    Storage.prototype.clear=function(){nativeClear.call(this);if(this===localStorage)schedulePush();};
+    window.addEventListener('pagehide',()=>{if(currentUser)pushNow().catch(()=>{});});
+    window.addEventListener('online',schedulePush);
+    setInterval(schedulePush,30000);
+  }
+  if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();
 </script>
 
