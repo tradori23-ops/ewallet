@@ -1,50 +1,55 @@
-/* E-Wallet all-in-one — service worker (offline + online) */
-const CACHE = 'ewallet-supabase-direct-v1';
-const CORE  = ['./', './index.html'];
+/* E-Wallet — PWA cache v10 */
+const CACHE = 'ewallet-allinone-v10-gwfix';
+const CORE = ['./', './index.html', './ewallet.html'];
 
-self.addEventListener('install', e => {
+self.addEventListener('install', event => {
   self.skipWaiting();
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(CORE).catch(()=>{})));
+  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(CORE).catch(() => {})));
 });
 
-self.addEventListener('activate', e => {
-  e.waitUntil((async () => {
+self.addEventListener('activate', event => {
+  event.waitUntil((async () => {
     const keys = await caches.keys();
-    await Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)));
+    await Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)));
     await self.clients.claim();
   })());
 });
 
-self.addEventListener('fetch', e => {
-  const req = e.request;
-  if (req.method !== 'GET') return;                  // POST (Gist/EmailJS) -> rete
-  const isNav = req.mode === 'navigate' || req.destination === 'document';
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  if (request.method !== 'GET') return;
+  const url = new URL(request.url);
 
-  if (isNav) {
-    // network-first: online sempre aggiornato, offline dalla cache
-    e.respondWith((async () => {
+  // Do not intercept Supabase or external CDNs. Let the browser handle CORS normally.
+  if (url.origin !== self.location.origin) return;
+
+  const isNavigation = request.mode === 'navigate' || request.destination === 'document';
+  if (isNavigation) {
+    event.respondWith((async () => {
       try {
-        const fresh = await fetch(req);
-        const c = await caches.open(CACHE);
-        c.put('./index.html', fresh.clone()).catch(()=>{});
+        const fresh = await fetch(request, { cache: 'no-store' });
+        const cache = await caches.open(CACHE);
+        cache.put('./index.html', fresh.clone()).catch(() => {});
         return fresh;
       } catch (_) {
-        return (await caches.match(req)) || (await caches.match('./index.html')) || (await caches.match('./'));
+        return (await caches.match(request)) || (await caches.match('./index.html')) || (await caches.match('./'));
       }
     })());
-  } else {
-    // cache-first per font e altre risorse statiche
-    e.respondWith((async () => {
-      const cached = await caches.match(req);
-      if (cached) return cached;
-      try {
-        const fresh = await fetch(req);
-        const c = await caches.open(CACHE);
-        c.put(req, fresh.clone()).catch(()=>{});
-        return fresh;
-      } catch (_) {
-        return cached || Response.error();
-      }
-    })());
+    return;
   }
+
+  event.respondWith((async () => {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    try {
+      const fresh = await fetch(request);
+      if (fresh && fresh.status === 200) {
+        const cache = await caches.open(CACHE);
+        cache.put(request, fresh.clone()).catch(() => {});
+      }
+      return fresh;
+    } catch (_) {
+      return cached || Response.error();
+    }
+  })());
 });
