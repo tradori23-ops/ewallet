@@ -4422,7 +4422,7 @@ body.ios-device .btn-gold:hover {
   /* progress bars: keep small */
   [style*="height:3px"],[style*="height:4px"]{height:2px!important}
   /* hide interactive / decorative elements */
-  button,input,textarea,select,.calendar-nav{display:none!important}
+  /* print hide rule disabled: was affecting the live app */
   [style*="cursor:pointer"]{cursor:default!important}
   /* FOOTER */
   .pf{margin-top:12px;padding-top:8px;border-top:1.5px solid #c9a84c;
@@ -4432,7 +4432,7 @@ body.ios-device .btn-gold:hover {
   @page{@bottom-right{content:"Pag. " counter(page) " / " counter(pages);font-size:8px;color:#aaa}}
   @media print{
     body{padding:10mm 12mm}
-    button{display:none!important}
+    /* print button hide rule disabled */
   }
 
 /* ══ PRIVACY BLUR ══════════════════════════════════════════ */
@@ -5986,7 +5986,9 @@ nav.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-
 <div id="sbStatus" hidden>Cloud</div>
 <style>
 #sbGate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(circle at 20% 10%,#273c32 0,#09100d 48%,#050806 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#f4efe4}
-#sbGate.sb-hidden{display:none}.sb-card{width:min(390px,94vw);padding:28px 24px;border-radius:24px;background:rgba(16,25,20,.94);border:1px solid rgba(221,188,96,.35);box-shadow:0 30px 90px rgba(0,0,0,.6)}
+#sbGate.sb-hidden{display:none}
+#sbGate .sb-card input{display:block!important;visibility:visible!important;opacity:1!important}
+#sbGate .sb-card button{display:block!important;visibility:visible!important;opacity:1!important}.sb-card{width:min(390px,94vw);padding:28px 24px;border-radius:24px;background:rgba(16,25,20,.94);border:1px solid rgba(221,188,96,.35);box-shadow:0 30px 90px rgba(0,0,0,.6)}
 .sb-card h1{margin:0 0 8px;font-size:24px}.sb-card p{margin:0 0 18px;line-height:1.45;color:rgba(244,239,228,.72);font-size:13px}.sb-card input{display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:13px 14px;border-radius:11px;border:1px solid rgba(255,255,255,.2);background:#0c1511;color:#fff;font-size:15px}.sb-card button{width:100%;margin-top:6px;padding:14px;border:0;border-radius:11px;background:linear-gradient(135deg,#f4db74,#d9b84f);color:#15130b;font-weight:800;cursor:pointer}.sb-card button:disabled{opacity:.6;cursor:wait}#sbMsg{min-height:18px;margin-top:10px;text-align:center;font-size:12px;color:#ff9b8f}
 /* Nasconde i controlli del vecchio GitHub/Gist senza cancellare i dati locali */
 #gistTokenLoginArea,#gist-token-input,#gist-id-input,#loginGistToken,#loginGistId,#gistTokenLoginErr,#syncModal{display:none!important}
@@ -27146,7 +27148,7 @@ function printDetailModal(modalId) {
   /* progress bars: keep small */
   [style*="height:3px"],[style*="height:4px"]{height:2px!important}
   /* hide interactive / decorative elements */
-  button,input,textarea,select,.calendar-nav{display:none!important}
+  /* print hide rule disabled: was affecting the live app */
   [style*="cursor:pointer"]{cursor:default!important}
   /* FOOTER */
   .pf{margin-top:12px;padding-top:8px;border-top:1.5px solid #c9a84c;
@@ -27156,7 +27158,7 @@ function printDetailModal(modalId) {
   @page{@bottom-right{content:"Pag. " counter(page) " / " counter(pages);font-size:8px;color:#aaa}}
   @media print{
     body{padding:10mm 12mm}
-    button{display:none!important}
+    /* print button hide rule disabled */
   }
 
 /* ══ PRIVACY BLUR ══════════════════════════════════════════ */
