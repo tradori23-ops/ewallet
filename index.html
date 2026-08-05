@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260805-ew-v41-offlinegate';
+  var BUILD='20260805-ew-v42-nogist';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -270,6 +270,17 @@ body{
 </style>
 </head>
 <body>
+<script>window.__GIST_GUARD=`<script>(function(){try{
+var of=window.fetch;
+window.fetch=function(u){try{var s=(typeof u==='string'?u:(u&&u.url)||'');if(s.indexOf('api.github.com')>=0)return Promise.resolve(new Response('{"files":{}}',{status:200,headers:{'Content-Type':'application/json'}}));}catch(e){}return of.apply(this,arguments);};
+['gw_gist_token','tc_gist_token','gw_gist_id','tc_gist_id','gist_token'].forEach(function(k){try{localStorage.removeItem(k);}catch(e){}});
+var PH=['Connetti GitHub Gist','Accedi con Gist','Connetti Gist','recupera account','Sync cloud','Forza Push','carica account','GitHub Gist'];
+function mtc(t){t=t||'';for(var i=0;i<PH.length;i++){if(t.indexOf(PH[i])>=0)return true;}return false;}
+function hide(){try{var q=document.querySelectorAll('button,.fb-title,.lchip,[style*="z-index:10000"]');for(var i=0;i<q.length;i++){var el=q[i];if(mtc(el.textContent)){var m=el.closest('[style*="z-index:10000"]')||el.closest('.fb-modal')||el;if(m)m.style.display='none';}}}catch(e){}}
+var tm=null;function sched(){if(tm)return;tm=setTimeout(function(){tm=null;hide();},400);}
+if(document.readyState!=='loading')hide();else document.addEventListener('DOMContentLoaded',hide);
+try{new MutationObserver(sched).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}
+}catch(e){}})();<\/script>`;</script>
 <div id="sbGate" aria-live="polite">
   <div class="sb-card">
     <h1>E-Wallet Cloud</h1>
@@ -519,7 +530,7 @@ function openApp(which){
   loader.classList.remove('hide');
   if(!loaded[which]){
     frame.onload=function(){ loaded[which]=true; loader.classList.add('hide'); tryAutoLogin(which, frame); syncChrome(which, frame); injectSafe(frame); setTimeout(function(){injectSafe(frame);},250); setTimeout(function(){injectSafe(frame);},700); };
-    if(window.APP_HTML&&window.APP_HTML[which]){frame.srcdoc=window.APP_HTML[which];}else{frame.src=cfg.url;}
+    if(window.APP_HTML&&window.APP_HTML[which]){frame.srcdoc=window.APP_HTML[which].replace('<body>','<body>'+(window.__GIST_GUARD||''));}else{frame.src=cfg.url;}
   } else { setTimeout(()=>{loader.classList.add('hide'); syncChrome(which, frame);},120); }
   document.getElementById('hub').style.opacity='0';
   panel.classList.add('open');
