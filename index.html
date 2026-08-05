@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260805-ew-v55-wifi-oggitop';
+  var BUILD='20260805-ew-v56-jwtrefresh';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -685,7 +685,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
       const res=await fetch(url,Object.assign({},options||{},{signal:controller.signal}));
       const text=await res.text();
       let body=null; try{body=text?JSON.parse(text):null;}catch(_){body=text;}
-      if(!res.ok) throw new Error((body&&body.message)||(body&&body.msg)||(body&&body.error_description)||(body&&body.error)||('Errore HTTP '+res.status));
+      if(!res.ok){var _e=new Error((body&&body.message)||(body&&body.msg)||(body&&body.error_description)||(body&&body.error)||('Errore HTTP '+res.status));_e.status=res.status;throw _e;}
       return body;
     } finally {clearTimeout(timer);}
   }
@@ -709,10 +709,28 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
       body:JSON.stringify({email:e,password:p})
     });
   }
+  async function refreshSession(){
+    if(!session||!session.refresh_token) throw new Error('no-refresh');
+    var r=await api(SB_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+    if(!r||!r.access_token) throw new Error('refresh-failed');
+    session=r; localStorage.setItem(SESSION_KEY,JSON.stringify(session));
+  }
+  async function authApi(url,options){
+    try{ return await api(url,options); }
+    catch(err){
+      if(err&&err.status===401&&session&&session.refresh_token){
+        await refreshSession();
+        var o2=Object.assign({},options||{});
+        o2.headers=Object.assign({},(options&&options.headers)||{},{'Authorization':'Bearer '+session.access_token});
+        return await api(url,o2);
+      }
+      throw err;
+    }
+  }
   async function pushNow(){
     if(!session || !session.user || applyingCloud) return;
     const payload={user_id:session.user.id,data:snapshot(),updated_at:new Date().toISOString()};
-    await api(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',{
+    await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',{
       method:'POST',headers:Object.assign(authHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(payload)
     });
     localStorage.setItem(META_KEY,String(Date.now()));
@@ -723,7 +741,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
     saveTimer=setTimeout(function(){pushNow().catch(function(e){console.error('Supabase sync:',e);});},1200);
   }
   async function syncAfterLogin(){
-    const rows=await api(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
+    const rows=await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
       method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
     });
     const row=Array.isArray(rows)?rows[0]:null;
