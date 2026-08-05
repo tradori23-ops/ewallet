@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260804-ew-v40-supabase';
+  var BUILD='20260805-ew-v41-offlinegate';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -278,6 +278,7 @@ body{
     <input id="sbPassword" type="password" placeholder="Password" autocomplete="current-password">
     <button id="sbLoginBtn" type="button">Accedi e sincronizza</button>
     <div id="sbMsg"></div>
+    <button id="sbSkip" type="button" style="margin-top:12px;width:100%;padding:12px;border:1px solid rgba(255,255,255,.22);border-radius:11px;background:transparent;color:rgba(244,239,228,.82);font-weight:600;cursor:pointer">Continua offline (usa i dati su questo dispositivo)</button>
   </div>
 </div>
 <div id="sbStatus" hidden>Cloud</div>
@@ -661,6 +662,20 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
       return body;
     } finally {clearTimeout(timer);}
   }
+  function diagnose(err){
+    var m=(err&&err.message?String(err.message):"").toLowerCase();
+    if(m.indexOf("invalid login")>=0||m.indexOf("invalid_grant")>=0||m.indexOf("credentials")>=0)
+      return "Utente o password non validi. Crea l'utente in Supabase \u2192 Authentication \u2192 Users \u2192 Add user (attiva Auto Confirm).";
+    if(m.indexOf("does not exist")>=0||m.indexOf("relation")>=0||m.indexOf("42p01")>=0||m.indexOf("not find the table")>=0||m.indexOf("pgrst")>=0)
+      return "Manca la tabella 'ewallet_data'. Esegui la query SQL fornita nel pannello Supabase (SQL Editor).";
+    if(m.indexOf("api key")>=0||m.indexOf("apikey")>=0||m.indexOf("no api key")>=0||m.indexOf("jwt")>=0)
+      return "Chiave Supabase non accettata. Controlla che la publishable key e l'URL siano quelli del tuo progetto.";
+    if(m.indexOf("failed to fetch")>=0||m.indexOf("networkerror")>=0||m.indexOf("load failed")>=0||m.indexOf("abort")>=0)
+      return "Nessuna connessione al server Supabase (rete assente o URL errato). Puoi usare \"Continua offline\".";
+    if(m.indexOf("row-level")>=0||m.indexOf("permission")>=0||m.indexOf("policy")>=0||m.indexOf("403")>=0)
+      return "Permessi mancanti sulla tabella. Applica le policy RLS della query SQL fornita.";
+    return (err&&err.message?err.message:"Accesso non riuscito.")+" \u2014 se persiste, usa \"Continua offline\".";
+  }
   async function signIn(e,p){
     return api(SB_URL+'/auth/v1/token?grant_type=password',{
       method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
@@ -704,12 +719,14 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
       setTimeout(function(){location.reload();},450);
     }catch(err){
       console.error('Login Supabase:',err);
-      setMessage(err && err.message ? err.message : 'Accesso non riuscito.');
+      setMessage(diagnose(err));
       if(button){button.disabled=false;button.textContent='Accedi e sincronizza';}
     }
   }
   async function boot(){
     if(button) button.addEventListener('click',login);
+    var skip=document.getElementById('sbSkip');
+    if(skip) skip.addEventListener('click',function(){setMessage('Modalit\u00e0 offline: dati locali. Accedi quando vuoi per sincronizzare.',true);reveal();});
     if(password) password.addEventListener('keydown',function(e){if(e.key==='Enter')login();});
     try{session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){session=null;}
     if(session && session.access_token && session.user){
