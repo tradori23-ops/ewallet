@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260805-ew-v57-wifihijack';
+  var BUILD='20260807-ew-v58-hubelegant';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -152,6 +152,20 @@ body{
   opacity:0; visibility:hidden; transition:opacity .4s ease, visibility .4s;
 }
 #hub.show{ opacity:1; visibility:visible; }
+#hub::before{
+  content:''; position:absolute; inset:0; z-index:-1; pointer-events:none; opacity:.65;
+  background-image:
+    radial-gradient(circle, rgba(232,180,74,.55) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(232,180,74,.38) 1px, transparent 1.6px),
+    radial-gradient(circle, rgba(232,180,74,.24) 1px, transparent 1.6px);
+  background-size: 170px 170px, 230px 230px, 300px 300px;
+  background-position: 0 0, 55px 95px, 130px 30px;
+  animation: hubDust 70s linear infinite;
+}
+@keyframes hubDust{
+  from{ background-position: 0 0, 55px 95px, 130px 30px; }
+  to  { background-position: -170px 170px, 175px -135px, -170px 330px; }
+}
 .hub-head{ text-align:center; margin:auto 0 2px; }
 .hub-eyebrow{ font-size:11px; letter-spacing:5px; text-transform:uppercase; color:var(--gold); opacity:.8; margin-bottom:10px; }
 .hub-title{
@@ -202,9 +216,12 @@ body{
 #card-tc .card-mono{ color:#fff7e0; text-shadow:0 2px 10px rgba(0,0,0,.35); }
 #card-gw{ background:linear-gradient(135deg,#082619 0%,#1f6b46 15%,#3fd488 29%,#9bf0c4 37%,#2aa564 47%,#0f4a30 63%,#52df97 82%,#08301f 100%); }
 #card-gw .card-mono{ color:#eafff3; text-shadow:0 2px 10px rgba(0,0,0,.35); }
-.card.front{ transform:translateY(150px) scale(1) rotate(0deg); z-index:3; }
-.card.back { transform:translateY(20px) scale(.9) rotate(-4deg); z-index:2; opacity:.92; }
-.card.front:hover{ transform:translateY(144px) scale(1.015) rotate(0deg); }
+.card.front{ transform:translateY(150px) scale(1) rotate(0deg) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); z-index:3; }
+.card.back { transform:translateY(20px) scale(.9) rotate(-4deg) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); z-index:2; opacity:.92; }
+.card.front:hover{ transform:translateY(144px) scale(1.015) rotate(0deg) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); }
+/* ventaglio d'ingresso: le carte partono impilate e piatte, poi si aprono nella posizione normale */
+#hub:not(.show) .card{ transform:translateY(210px) scale(.82) rotate(0deg) !important; opacity:0 !important; }
+.card.back{ transition-delay:.09s; }
 
 .switcher{ display:inline-flex; gap:4px; margin:8px auto 0;
   background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:40px; padding:4px; backdrop-filter:blur(8px); }
@@ -517,7 +534,14 @@ function enterHub(skipped){
   setTimeout(()=>{ lg.style.display='none'; }, 400);
   document.getElementById('hub').classList.add('show');
   const u=JSON.parse(localStorage.getItem(EW_KEY)||'null');
-  document.getElementById('hubUser').innerHTML = (u&&u.name)?('Accesso: <b>'+u.name+'</b>'):'';
+  document.getElementById('hubUser').innerHTML = (u&&u.name)?(_ewGreeting()+' <b>'+u.name.split(' ')[0]+'</b>'):'';
+}
+function _ewGreeting(){
+  const h = new Date().getHours();
+  if(h < 6) return 'Nottambulo,';
+  if(h < 12) return 'Buongiorno,';
+  if(h < 18) return 'Buon pomeriggio,';
+  return 'Buonasera,';
 }
 function ewLock(){
   // blocca: dimentica la sessione condivisa e ricarica al gate (resetta gli iframe)
@@ -533,6 +557,32 @@ function bringFront(which){
   document.querySelectorAll('#switcher button').forEach(b=>b.classList.toggle('active', b.dataset.app===which));
 }
 function cardTap(which){ if(which!==frontApp){ bringFront(which); return; } openApp(which); }
+
+// tilt 3D delle carte: segue il puntatore/tocco, si assesta al rilascio
+(function(){
+  function pointFromEvent(e, r){
+    const t = (e.touches && e.touches[0]) || e;
+    return { x: (t.clientX - r.left) / r.width - 0.5, y: (t.clientY - r.top) / r.height - 0.5 };
+  }
+  function attachTilt(el){
+    if(!el) return;
+    const settle = () => { el.style.setProperty('--tx','0deg'); el.style.setProperty('--ty','0deg'); };
+    const move = (e) => {
+      const r = el.getBoundingClientRect();
+      const p = pointFromEvent(e, r);
+      el.style.setProperty('--ty', (p.x * 16).toFixed(2) + 'deg');
+      el.style.setProperty('--tx', (-p.y * 12).toFixed(2) + 'deg');
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerleave', settle);
+    el.addEventListener('pointerdown', move);
+    el.addEventListener('pointerup', settle);
+    el.addEventListener('touchmove', move, {passive:true});
+    el.addEventListener('touchend', settle);
+  }
+  attachTilt(document.getElementById('card-tc'));
+  attachTilt(document.getElementById('card-gw'));
+})();
 
 function readInset(side){var p=document.getElementById('saProbe');if(!p)return '0px';var cs=getComputedStyle(p);return (side==='bottom'?cs.paddingBottom:cs.paddingTop)||'0px';}
 function injectSafe(frame){try{var de=frame.contentWindow.document.documentElement;var topPx=parseFloat(readInset('top'))||0;de.style.setProperty('--sat',(topPx+50)+'px');de.style.setProperty('--sab',readInset('bottom'));}catch(e){}try{var st=frame.parentElement;if(st){var hh=st.clientHeight;if(hh>0){frame.style.top='0';frame.style.bottom='auto';frame.style.height=hh+'px';}}}catch(e){}}
