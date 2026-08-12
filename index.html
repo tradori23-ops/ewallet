@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260812-ew-v75-newapps';
+  var BUILD='20260812-ew-v76-gridfix2';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -805,6 +805,11 @@ function ewApplyFocusMode(win){
       '.grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;}'+
       '.grid-2>*,.summary-grid>*,.card{min-width:0!important;}'+
       '.summary-grid{grid-template-columns:repeat(auto-fit,minmax(0,1fr))!important;}'+
+      '@media (min-width:768px){'+
+        '[style*="grid-template-columns:1fr 1fr"],[style*="grid-template-columns: 1fr 1fr"]{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;}'+
+        '[style*="grid-template-columns:1fr 1fr 1fr"],[style*="grid-template-columns: 1fr 1fr 1fr"]{grid-template-columns:repeat(3,minmax(0,1fr))!important;}'+
+        '[style*="grid-template-columns:1fr 1fr 1fr 1fr"],[style*="grid-template-columns: 1fr 1fr 1fr 1fr"]{grid-template-columns:repeat(4,minmax(0,1fr))!important;}'+
+      '}'+
       'body.ew-hide-topactions .topbar-actions{display:none!important;}'+
       '#profileModal{background:var(--bg2,#0a1410)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;}'+
       '#profileModal>div{max-width:100%!important;width:100%!important;min-height:100vh!important;border-radius:0!important;margin:0!important;}';
