@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260811-ew-v70-logopulse';
+  var BUILD='20260812-ew-v71-launcher';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -294,6 +294,70 @@ body{
 .hub-lock{ box-shadow:inset 0 1px 0 rgba(255,255,255,.12) !important; }
 .wallet .card{ box-shadow:inset 0 1px 0 rgba(255,255,255,.32), 0 26px 60px -18px rgba(0,0,0,.7) !important; }
 .app-topbar{ -webkit-backdrop-filter:blur(24px) saturate(1.7); backdrop-filter:blur(24px) saturate(1.7); }
+
+/* ════════ EW LAUNCHER (home a icone, aperta dalla carta GoBank) ════════ */
+.ew-launcher,.ew-sublauncher{
+  position:fixed; inset:0; z-index:60;
+  background:var(--bg2);
+  opacity:0; visibility:hidden; pointer-events:none;
+  transition:opacity .25s ease;
+  overflow-y:auto;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.ew-launcher.open,.ew-sublauncher.open{ opacity:1; visibility:visible; pointer-events:auto; }
+.ew-topbar{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  padding:calc(env(safe-area-inset-top) + 14px) 20px 14px;
+  border-bottom:1px solid rgba(255,255,255,0.08);
+  position:sticky; top:0; background:var(--bg2); z-index:2;
+}
+.ew-brand{ display:flex; align-items:center; gap:10px; }
+.ew-brand-mark{
+  width:34px; height:34px; border-radius:10px;
+  background:linear-gradient(135deg,var(--wallet-teal),var(--wallet-teal-deep));
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bricolage Grotesque',sans-serif; font-weight:800; color:#fff; font-size:16px;
+}
+.ew-brand-name{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:15px; }
+.ew-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+.ew-abtn{
+  display:flex; align-items:center; gap:5px;
+  padding:7px 11px; border-radius:9px; font-size:11.5px; font-weight:600;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  color:var(--text); cursor:pointer; white-space:nowrap; font-family:inherit;
+}
+.ew-abtn.danger{ background:rgba(224,92,92,0.14); border-color:rgba(224,92,92,0.35); color:#f0a; }
+.ew-grid{
+  padding:20px; display:grid; grid-template-columns:1.3fr 1fr; gap:14px; max-width:900px; margin:0 auto;
+}
+@media(max-width:680px){ .ew-grid{ grid-template-columns:1fr; } }
+.ew-tile{
+  background:#0e1613; border:1px solid rgba(255,255,255,0.08); border-radius:16px;
+  padding:18px; min-height:96px; cursor:pointer;
+  display:flex; flex-direction:column; justify-content:space-between;
+  transition:transform .15s ease, border-color .15s ease;
+}
+.ew-tile:active{ transform:scale(0.98); }
+.ew-tile:hover{ border-color:rgba(201,168,76,0.4); }
+.ew-tile .ic{ width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:10px; }
+.ew-tile .lb{ font-size:14px; font-weight:700; }
+.ew-tile .sb{ font-size:10.5px; color:var(--muted); margin-top:2px; }
+.ew-tile.big{ grid-row:span 2; }
+.ew-tile.big .ic{ background:linear-gradient(135deg,var(--gold),#a4823a); }
+.ew-tile.wide{ grid-column:1 / -1; }
+.ew-right{ display:grid; grid-template-columns:1fr 1fr; gap:14px; grid-auto-rows:min-content; }
+.ic-impostazioni{ background:linear-gradient(135deg,#7b8794,#4a5560); }
+.ic-gestione{ background:linear-gradient(135deg,#ff7f2a,#c95e14); }
+.ic-banca{ background:linear-gradient(135deg,var(--wallet-teal),var(--wallet-teal-deep)); }
+.ic-altro{ background:linear-gradient(135deg,#8b6bd6,#5b3fa0); }
+.ew-sub-head{ padding:16px 20px 4px; max-width:900px; margin:0 auto; display:flex; align-items:center; gap:12px; }
+.ew-sub-back{
+  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--text);
+  border-radius:9px; padding:7px 12px; font-size:12.5px; cursor:pointer; font-family:inherit;
+}
+.ew-sub-title{ font-size:16px; font-weight:700; }
+.ew-sub-grid{ padding:14px 20px 30px; max-width:900px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+@media(max-width:520px){ .ew-sub-grid{ grid-template-columns:1fr; } }
 </style>
 <link rel="manifest" href="manifest.json"></head>
 <body>
@@ -420,6 +484,83 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
     <div class="hub-copy">© 2026/2027 TRAD.CLAB · E-WALLET</div>
   </div>
 </div>
+
+<!-- ════════ EW LAUNCHER (icone GoBank) ════════ -->
+<section class="ew-launcher" id="ewLauncher">
+  <div class="ew-topbar">
+    <div class="ew-brand">
+      <div class="ew-brand-mark">E</div>
+      <div class="ew-brand-name">TRAD.CLUB</div>
+    </div>
+    <div class="ew-actions">
+      <button class="ew-abtn" id="ewThemeBtn" onclick="launcherToggleTheme()">☀️ Giorno</button>
+      <button class="ew-abtn" onclick="ewLock()">🔒 Blocca</button>
+      <button class="ew-abtn" id="ewInstallBtn" onclick="launcherInstall()">📲 Installa</button>
+      <button class="ew-abtn" onclick="launcherOpenProfile()">👤 Utente</button>
+      <button class="ew-abtn" onclick="launcherResetMonth()">♻️ Reset</button>
+      <button class="ew-abtn danger" onclick="launcherResetYear()">🗑️ Cancella Anno</button>
+      <button class="ew-abtn" onclick="closeLauncher()">‹ Wallet</button>
+    </div>
+  </div>
+  <div class="ew-grid">
+    <div class="ew-tile big" onclick="openTcSection('dashboard')">
+      <div class="ic" style="background:linear-gradient(135deg,var(--gold),#a4823a);">📅</div>
+      <div><div class="lb">Calendario &amp; Dashboard</div><div class="sb">Panoramica, saldo, spese del mese</div></div>
+    </div>
+    <div class="ew-right">
+      <div class="ew-tile" onclick="launcherOpenProfile()">
+        <div class="ic ic-impostazioni">⚙️</div>
+        <div class="lb">Impostazioni</div>
+      </div>
+      <div class="ew-tile" onclick="launcherOpenSub('gestione')">
+        <div class="ic ic-gestione">🗂️</div>
+        <div class="lb">Gestione</div>
+      </div>
+      <div class="ew-tile wide" onclick="launcherOpenSub('banca')">
+        <div class="ic ic-banca">🏦</div>
+        <div><div class="lb">Banca</div><div class="sb">Conto corrente, import PDF</div></div>
+      </div>
+      <div class="ew-tile wide" onclick="launcherOpenSub('altro')">
+        <div class="ic ic-altro">✨</div>
+        <div><div class="lb">Altro</div><div class="sb">Calendario &amp; Note, Vacanze</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="ew-sublauncher" id="ewSubGestione">
+  <div class="ew-sub-head">
+    <button class="ew-sub-back" onclick="launcherBack()">‹ Home</button>
+    <div class="ew-sub-title">🗂️ Gestione</div>
+  </div>
+  <div class="ew-sub-grid">
+    <div class="ew-tile" onclick="openTcSection('aggiungiSpesa')"><div class="ic ic-gestione">➕</div><div class="lb">Aggiungi Spesa</div></div>
+    <div class="ew-tile" onclick="openTcSection('entrate')"><div class="ic ic-gestione">💰</div><div class="lb">Entrate</div></div>
+    <div class="ew-tile" onclick="openTcSection('speseFisse')"><div class="ic ic-gestione">🏠</div><div class="lb">Spese Fisse</div></div>
+  </div>
+</section>
+
+<section class="ew-sublauncher" id="ewSubBanca">
+  <div class="ew-sub-head">
+    <button class="ew-sub-back" onclick="launcherBack()">‹ Home</button>
+    <div class="ew-sub-title">🏦 Banca</div>
+  </div>
+  <div class="ew-sub-grid">
+    <div class="ew-tile" onclick="openTcSection('contocorrente')"><div class="ic ic-banca">💳</div><div class="lb">Conto Corrente</div></div>
+    <div class="ew-tile" onclick="openTcSection('documenti')"><div class="ic ic-banca">📁</div><div class="lb">Importa PDF &amp; Documenti</div></div>
+  </div>
+</section>
+
+<section class="ew-sublauncher" id="ewSubAltro">
+  <div class="ew-sub-head">
+    <button class="ew-sub-back" onclick="launcherBack()">‹ Home</button>
+    <div class="ew-sub-title">✨ Altro</div>
+  </div>
+  <div class="ew-sub-grid">
+    <div class="ew-tile" onclick="openTcSection('calendario')"><div class="ic ic-altro">🗓️</div><div class="lb">Calendario &amp; Note</div></div>
+    <div class="ew-tile" onclick="openTcSection('vacanze')"><div class="ic ic-altro">🏖️</div><div class="lb">Vacanze</div></div>
+  </div>
+</section>
 
 <!-- ════════ PANELS ════════ -->
 <section class="app-panel" id="panel-tc">
@@ -564,7 +705,80 @@ function bringFront(which){
   else { gw.className='card front'; tc.className='card back'; }
   document.querySelectorAll('#switcher button').forEach(b=>b.classList.toggle('active', b.dataset.app===which));
 }
-function cardTap(which){ if(which!==frontApp){ bringFront(which); return; } openApp(which); }
+function cardTap(which){
+  if(which!==frontApp){ bringFront(which); return; }
+  if(which==='tc'){ openLauncher(); return; }
+  openApp(which);
+}
+
+// ════════ EW LAUNCHER (home a icone di GoBank) ════════
+function openLauncher(){
+  document.getElementById('hub').style.opacity='0';
+  document.getElementById('ewLauncher').classList.add('open');
+}
+function closeLauncher(){
+  document.getElementById('ewLauncher').classList.remove('open');
+  document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
+  document.getElementById('hub').style.opacity='1';
+}
+function launcherOpenSub(name){
+  document.getElementById('ewLauncher').classList.remove('open');
+  document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
+  var map={gestione:'ewSubGestione', banca:'ewSubBanca', altro:'ewSubAltro'};
+  var el=document.getElementById(map[name]);
+  if(el) el.classList.add('open');
+}
+function launcherBack(){
+  document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
+  document.getElementById('ewLauncher').classList.add('open');
+}
+function ewRunInTc(fn){
+  var wasLoaded=loaded['tc'];
+  openApp('tc');
+  var run=function(){
+    try{
+      var f=document.getElementById('frame-tc');
+      if(f && f.contentWindow) fn(f.contentWindow);
+    }catch(e){}
+  };
+  if(wasLoaded){ setTimeout(run,60); }
+  else{
+    var f=document.getElementById('frame-tc');
+    var orig=f.onload;
+    f.onload=function(){ if(orig) orig(); setTimeout(run,300); };
+  }
+}
+function openTcSection(sectionId){
+  document.getElementById('ewLauncher').classList.remove('open');
+  document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
+  ewRunInTc(function(win){ if(typeof win.showSection==='function') win.showSection(sectionId); });
+}
+function launcherOpenProfile(){
+  document.getElementById('ewLauncher').classList.remove('open');
+  document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
+  ewRunInTc(function(win){ if(typeof win.openProfileModal==='function') win.openProfileModal(); });
+}
+function launcherResetMonth(){
+  ewRunInTc(function(win){ if(typeof win.resetMonth==='function') win.resetMonth(); });
+}
+function launcherResetYear(){
+  ewRunInTc(function(win){ if(typeof win.resetYear==='function') win.resetYear(); });
+}
+function launcherToggleTheme(){
+  var btn=document.getElementById('ewThemeBtn');
+  ewRunInTc(function(win){ if(typeof win.toggleTheme==='function') win.toggleTheme(); });
+  if(btn) btn.textContent = (btn.textContent.indexOf('Giorno')>=0) ? '🌙 Notte' : '☀️ Giorno';
+}
+window._ewDeferredPrompt=null;
+window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window._ewDeferredPrompt=e; });
+function launcherInstall(){
+  if(window._ewDeferredPrompt){
+    window._ewDeferredPrompt.prompt();
+    window._ewDeferredPrompt.userChoice.then(function(){ window._ewDeferredPrompt=null; });
+  } else {
+    alert('Per installare: usa il menu Condividi/Impostazioni del browser e scegli "Aggiungi a Home" / "Installa app".');
+  }
+}
 
 // tilt 3D delle carte: segue il puntatore/tocco, si assesta al rilascio
 (function(){
