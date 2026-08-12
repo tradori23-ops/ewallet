@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260812-ew-v72-focusglass';
+  var BUILD='20260812-ew-v75-newapps';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -545,13 +545,21 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <div class="ic ic-gestione">🗂️</div>
         <div class="lb">Gestione</div>
       </div>
+      <div class="ew-tile" onclick="openTcSection('settimanale')">
+        <div class="ic ic-altro">📅</div>
+        <div class="lb">Spese Settimanali</div>
+      </div>
+      <div class="ew-tile" onclick="openTcSection('calendario')">
+        <div class="ic ic-altro">🗓️</div>
+        <div class="lb">Calendario &amp; Note</div>
+      </div>
       <div class="ew-tile wide" onclick="launcherOpenSub('banca')">
         <div class="ic ic-banca">🏦</div>
         <div><div class="lb">Banca</div><div class="sb">Conto corrente, import PDF</div></div>
       </div>
-      <div class="ew-tile wide" onclick="launcherOpenSub('altro')">
+      <div class="ew-tile wide" onclick="openTcSection('vacanze')">
         <div class="ic ic-altro">✨</div>
-        <div><div class="lb">Altro</div><div class="sb">Calendario &amp; Note, Vacanze</div></div>
+        <div><div class="lb">Altro</div><div class="sb">Vacanze, ferie e permessi</div></div>
       </div>
     </div>
   </div>
@@ -580,16 +588,6 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
   </div>
 </section>
 
-<section class="ew-sublauncher" id="ewSubAltro">
-  <div class="ew-sub-head">
-    <button class="ew-sub-back" onclick="launcherBack()">‹ Home</button>
-    <div class="ew-sub-title">✨ Altro</div>
-  </div>
-  <div class="ew-sub-grid">
-    <div class="ew-tile" onclick="openTcSection('calendario')"><div class="ic ic-altro">🗓️</div><div class="lb">Calendario &amp; Note</div></div>
-    <div class="ew-tile" onclick="openTcSection('vacanze')"><div class="ic ic-altro">🏖️</div><div class="lb">Vacanze</div></div>
-  </div>
-</section>
 
 <!-- ════════ PANELS ════════ -->
 <section class="app-panel" id="panel-tc">
@@ -789,7 +787,7 @@ function closeLauncher(){
 function launcherOpenSub(name){
   document.getElementById('ewLauncher').classList.remove('open');
   document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
-  var map={gestione:'ewSubGestione', banca:'ewSubBanca', altro:'ewSubAltro'};
+  var map={gestione:'ewSubGestione', banca:'ewSubBanca'};
   var el=document.getElementById(map[name]);
   if(el) el.classList.add('open');
 }
@@ -803,8 +801,25 @@ function ewApplyFocusMode(win){
     var st=win.document.createElement('style');
     st.id='ewFocusStyle';
     st.textContent='.sidebar,.sidebar-overlay,.hamburger-btn,.topbar-fixed-logo{display:none!important;}'+
-      '.main-content{margin-left:0!important;width:100%!important;}';
+      '.main-content{margin-left:0!important;width:100%!important;max-width:100vw!important;box-sizing:border-box!important;overflow-x:hidden!important;}'+
+      '.grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;}'+
+      '.grid-2>*,.summary-grid>*,.card{min-width:0!important;}'+
+      '.summary-grid{grid-template-columns:repeat(auto-fit,minmax(0,1fr))!important;}'+
+      'body.ew-hide-topactions .topbar-actions{display:none!important;}'+
+      '#profileModal{background:var(--bg2,#0a1410)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;padding:0!important;}'+
+      '#profileModal>div{max-width:100%!important;width:100%!important;min-height:100vh!important;border-radius:0!important;margin:0!important;}';
     win.document.head.appendChild(st);
+    win.document.body.classList.add('ew-hide-topactions');
+    var orig=win.showSection;
+    if(typeof orig==='function'){
+      win.showSection=function(id,el){
+        orig(id,el);
+        try{
+          if(id==='dashboard') win.document.body.classList.remove('ew-hide-topactions');
+          else win.document.body.classList.add('ew-hide-topactions');
+        }catch(e){}
+      };
+    }
     win.__ewFocusApplied=true;
   }catch(e){}
 }
