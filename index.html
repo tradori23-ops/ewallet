@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260813-ew-v85-diarygrow';
+  var BUILD='20260813-ew-v86-sbbridge';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -1242,7 +1242,23 @@ function tryAutoLogin(which, frame){
 
 // ════════ BOOT ════════
 (function boot(){
-  const ewU=JSON.parse(localStorage.getItem(EW_KEY)||'null');
+  var ewU=JSON.parse(localStorage.getItem(EW_KEY)||'null');
+  // Se manca il profilo locale ma esiste una sessione Supabase valida, la colleghiamo qui —
+  // questa funzione gira PRIMA dello script Supabase più sotto nel file, quindi è l'unico punto
+  // in cui il controllo può davvero vedere la sessione in tempo per evitare "Scegli profilo".
+  if(!(ewU && ewU.email)){
+    try{
+      var sbSess=JSON.parse(localStorage.getItem('ew_sb_session_v2')||'null');
+      if(sbSess && sbSess.access_token && sbSess.user && sbSess.user.email){
+        var sbEmail=sbSess.user.email.trim();
+        if(sbEmail){
+          ewU={email:sbEmail, name:sbEmail};
+          localStorage.setItem(EW_KEY, JSON.stringify(ewU));
+          localStorage.setItem('gw_current', sbEmail);
+        }
+      }
+    }catch(_){}
+  }
   if(ewU && ewU.email){ enterHub(); }   // sessione già attiva → direttamente all'hub
   else { renderProfiles(); }             // mostra il gate
 })();
@@ -1259,6 +1275,19 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
   const CLOUD_TABLE='ewallet_data';
   const SESSION_KEY='ew_sb_session_v2';
   const META_KEY='ew_sb_last_sync';
+  // Collega SUBITO (sincrono, non aspetta DOMContentLoaded) la sessione Supabase al gate locale
+  // della shell ('ew_user') — quel controllo gira PRIMA che questo script arrivi al proprio boot()
+  // asincrono più sotto, quindi farlo solo lì arriva sempre troppo tardi.
+  try{
+    var _swSess=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
+    if(_swSess && _swSess.access_token && _swSess.user && _swSess.user.email){
+      var _swEmail0=_swSess.user.email.trim();
+      if(_swEmail0){
+        localStorage.setItem('ew_user', JSON.stringify({email:_swEmail0, name:_swEmail0}));
+        localStorage.setItem('gw_current', _swEmail0);
+      }
+    }
+  }catch(_){}
   const gate=document.getElementById('sbGate');
   const msg=document.getElementById('sbMsg');
   const email=document.getElementById('sbEmail');
