@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260813-ew-v87-syncconflict';
+  var BUILD='20260813-ew-v88-neverblocks';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -669,10 +669,9 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
     <div class="ew-syncpanel-row"><span>Account</span><span id="ewSyncPanelEmail">—</span></div>
     <div class="ew-syncpanel-row"><span>Ultima sincronizzazione</span><span id="ewSyncPanelLast">—</span></div>
     <div id="ewConflictBox" style="display:none;">
-      <div class="ew-conflict-msg">⚠️ Un altro dispositivo ha sincronizzato dopo l'ultima volta che hai visto tu. Scegli quale versione tenere:</div>
+      <div class="ew-conflict-msg">ℹ️ Un altro dispositivo aveva sincronizzato nel frattempo. Le tue modifiche qui sono comunque state salvate normalmente — nessun dato perso.</div>
       <div class="ew-conflict-actions">
-        <button class="ew-conflict-btn" onclick="ewResolveConflict('cloud')">☁️ Usa quella del cloud</button>
-        <button class="ew-conflict-btn primary" onclick="ewResolveConflict('local')">📱 Usa questa (locale)</button>
+        <button class="ew-conflict-btn primary" onclick="ewDismissConflict()">✓ Ho capito</button>
       </div>
     </div>
     <button class="ew-syncpanel-syncbtn" id="ewSyncNowBtn" onclick="ewManualSync()">🔄 Sincronizza ora</button>
@@ -855,7 +854,7 @@ function ewUpdateSyncBtn(){
   if(!btn) return;
   var online=navigator.onLine;
   if(window._ewSyncConflict){
-    btn.textContent='⚠️ Conflitto';
+    btn.textContent='ℹ️ Nota sync';
     btn.classList.remove('offline');
     btn.classList.add('conflict');
     return;
@@ -910,6 +909,12 @@ function ewResolveConflict(which){
   var fn = which==='cloud' ? window._ewPullCloud : window._ewForceSync;
   if(typeof fn!=='function') return;
   Promise.resolve(fn()).then(function(){ ewOpenSyncPanel(); }).catch(function(){});
+}
+function ewDismissConflict(){
+  window._ewSyncConflict=null;
+  var box=document.getElementById('ewConflictBox');
+  if(box) box.style.display='none';
+  ewUpdateSyncBtn();
 }
 var EW_MONEY_QUOTES=[
   {q:'Non è povero chi possiede poco, ma chi desidera sempre di più.', a:'Seneca'},
@@ -1438,23 +1443,35 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
       try{ window.dispatchEvent(new CustomEvent('ew-sync-conflict-clear')); }catch(_){}
     }
   }
+  let pushInFlight=null;
   async function pushNow(force){
     if(!session || !session.user || applyingCloud) return;
-    if(!force){
+    // Un solo push alla volta: se ce n'è già uno in corso, questa chiamata aspetta e riusa
+    // lo stesso risultato invece di partire in parallelo (altrimenti due controlli-conflitto
+    // possono incrociarsi e creare un falso allarme anche senza nessun conflitto reale).
+    if(pushInFlight) return pushInFlight;
+    pushInFlight=(async()=>{
       try{
-        const known=localStorage.getItem(KNOWN_KEY);
-        const serverNow=await checkServerUpdatedAt();
-        if(known && serverNow && serverNow!==known){ setConflict(serverNow); return; }
-      }catch(e){ /* controllo conflitto non riuscito (offline?): procede come prima, meglio che bloccare tutto */ }
-    }
-    const nowIso=new Date().toISOString();
-    const payload={user_id:session.user.id,data:snapshot(),updated_at:nowIso};
-    await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',{
-      method:'POST',headers:Object.assign(authHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(payload)
-    });
-    localStorage.setItem(META_KEY,String(Date.now()));
-    localStorage.setItem(KNOWN_KEY,nowIso);
-    clearConflict();
+        // Il controllo NON blocca più il salvataggio — i dati di questo dispositivo vanno
+        // sempre salvati per primi (non si perde mai una modifica locale). Se un altro
+        // dispositivo aveva sincronizzato nel frattempo, lo segnaliamo solo come avviso.
+        if(!force){
+          try{
+            const known=localStorage.getItem(KNOWN_KEY);
+            const serverNow=await checkServerUpdatedAt();
+            if(known && serverNow && serverNow!==known){ setConflict(serverNow); }
+          }catch(e){ /* controllo non riuscito (offline?): si prosegue comunque col salvataggio */ }
+        }
+        const nowIso=new Date().toISOString();
+        const payload={user_id:session.user.id,data:snapshot(),updated_at:nowIso};
+        await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',{
+          method:'POST',headers:Object.assign(authHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(payload)
+        });
+        localStorage.setItem(META_KEY,String(Date.now()));
+        localStorage.setItem(KNOWN_KEY,nowIso);
+      } finally { pushInFlight=null; }
+    })();
+    return pushInFlight;
   }
   async function pullCloudNow(){
     const rows=await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
