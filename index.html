@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260813-ew-v83-syncstatus';
+  var BUILD='20260813-ew-v85-diarygrow';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -355,6 +355,11 @@ body.ew-day .ew-quote cite{ color:var(--gold); }
 .ew-greeting-clock{ font-size:15px; font-weight:700; color:var(--gold-bright); font-variant-numeric:tabular-nums; }
 .ew-quote{ margin-top:12px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; line-height:1.5; color:var(--muted); }
 .ew-quote cite{ display:block; font-style:normal; font-size:12px; font-weight:700; margin-top:6px; color:var(--gold-bright); }
+.ew-diary{ margin-top:14px; padding:14px 16px; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); flex:1; display:flex; flex-direction:column; min-height:0; }
+.ew-diary-top{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--gold-bright); display:flex; align-items:center; gap:6px; flex-shrink:0; }
+.ew-diary-top span#ewDiaryTime{ margin-left:auto; font-weight:600; text-transform:none; letter-spacing:0; color:var(--muted); }
+.ew-diary-text{ margin-top:8px; font-size:15px; line-height:1.65; color:var(--text); white-space:pre-wrap; overflow-y:auto; }
+body.ew-day .ew-diary{ background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.07); }
 .ew-abtn{
   display:flex; align-items:center; gap:5px;
   padding:7px 11px; border-radius:9px; font-size:11.5px; font-weight:600;
@@ -403,6 +408,7 @@ body.ew-day .ew-syncpanel-close{ background:rgba(0,0,0,0.05); border-color:rgba(
 .ew-preview{
   margin-top:14px; padding:14px 16px; border-radius:14px;
   background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+  flex:1; display:flex; flex-direction:column;
 }
 .ew-preview .ew-date{ font-size:22px; font-weight:800; color:var(--gold-bright); text-transform:capitalize; }
 .ew-preview .ew-stats{ display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
@@ -580,6 +586,10 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             <div class="ew-greeting-clock" id="ewGreetingClock">—</div>
           </div>
           <div class="ew-quote" id="ewGreetingQuote">—<cite id="ewGreetingQuoteAuthor"></cite></div>
+        </div>
+        <div class="ew-diary" id="ewDiaryBox" style="display:none;">
+          <div class="ew-diary-top"><span id="ewDiaryMood">📔</span> Diario di oggi <span id="ewDiaryTime"></span></div>
+          <div class="ew-diary-text" id="ewDiaryText"></div>
         </div>
         <div class="ew-stats">
           <div><div class="ew-stat-label">Rimanenza</div><div class="ew-stat-val" id="ewPreviewRim" style="color:var(--green);">—</div></div>
@@ -974,6 +984,27 @@ function ewUpdateDashPreview(){
         } else {
           vacTarget.textContent='—';
           if(vacLabelTarget) vacLabelTarget.textContent='Vacanza in corso';
+        }
+      }catch(e){}
+    }
+    // Diario di oggi: legge la voce reale (stessa struttura dati usata dalla sezione Diario)
+    var diaryBox=document.getElementById('ewDiaryBox');
+    if(diaryBox && typeof win.getWeekStartDate==='function' && typeof win.getDiarioEntries==='function'){
+      try{
+        var todayStr2=win.localDateStr?win.localDateStr(new Date()):new Date().toISOString().slice(0,10);
+        var wStart=win.getWeekStartDate();
+        var entries=win.getDiarioEntries(wStart)||[];
+        var todayEntry=entries.find(function(e){return e.date===todayStr2;});
+        if(todayEntry){
+          var moodEl=document.getElementById('ewDiaryMood');
+          var timeEl=document.getElementById('ewDiaryTime');
+          var textEl=document.getElementById('ewDiaryText');
+          if(moodEl) moodEl.textContent=todayEntry.mood||'📔';
+          if(timeEl) timeEl.textContent=todayEntry.createdAt ? new Date(todayEntry.createdAt).toTimeString().slice(0,5) : '';
+          if(textEl) textEl.textContent=todayEntry.text||'';
+          diaryBox.style.display='block';
+        } else {
+          diaryBox.style.display='none';
         }
       }catch(e){}
     }
