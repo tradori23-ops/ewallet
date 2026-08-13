@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260812-ew-v79-gobank-autologin';
+  var BUILD='20260813-ew-v81-viaggiferie';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -328,6 +328,33 @@ body{
 }
 .ew-brand-name{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:15px; }
 .ew-actions{ display:flex; gap:6px; flex-wrap:wrap; }
+/* ── Tema chiaro launcher (toggle Giorno/Notte) ── */
+body.ew-day{ --text:#20281f; --muted:rgba(32,40,31,0.6); }
+body.ew-day .ew-launcher,body.ew-day .ew-sublauncher{
+  background:
+    radial-gradient(circle at 12% 10%, rgba(201,168,76,0.22) 0%, transparent 42%),
+    radial-gradient(circle at 88% 6%, rgba(10,168,143,0.20) 0%, transparent 46%),
+    radial-gradient(circle at 20% 92%, rgba(139,92,246,0.14) 0%, transparent 50%),
+    radial-gradient(circle at 90% 88%, rgba(52,210,122,0.16) 0%, transparent 48%),
+    linear-gradient(160deg,#f6f3ea 0%,#eef2ec 55%,#e9edf5 100%);
+}
+body.ew-day .ew-topbar{ border-bottom:1px solid rgba(0,0,0,0.08); }
+body.ew-day .ew-tile{ background:rgba(255,255,255,0.62); border:1px solid rgba(0,0,0,0.08); box-shadow:0 8px 24px rgba(60,50,20,0.08); }
+body.ew-day .ew-abtn{ background:rgba(255,255,255,0.55); border:1px solid rgba(0,0,0,0.1); }
+body.ew-day .ew-abtn.danger{ color:#c0392b; }
+body.ew-day .ew-greeting{ background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.07); }
+body.ew-day .ew-quote{ color:rgba(32,40,31,0.72); }
+body.ew-day .ew-quote cite{ color:var(--gold); }
+/* ── Saluto + orario + frase sul denaro (riempie lo spazio nel tile grande) ── */
+.ew-greeting{
+  margin-top:14px; padding:16px 18px; border-radius:14px;
+  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
+}
+.ew-greeting-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+.ew-greeting-hello{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:19px; }
+.ew-greeting-clock{ font-size:15px; font-weight:700; color:var(--gold-bright); font-variant-numeric:tabular-nums; }
+.ew-quote{ margin-top:12px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; line-height:1.5; color:var(--muted); }
+.ew-quote cite{ display:block; font-style:normal; font-size:12px; font-weight:700; margin-top:6px; color:var(--gold-bright); }
 .ew-abtn{
   display:flex; align-items:center; gap:5px;
   padding:7px 11px; border-radius:9px; font-size:11.5px; font-weight:600;
@@ -530,6 +557,13 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
       </div>
       <div class="ew-preview" id="ewDashPreview">
         <div class="ew-date" id="ewPreviewDate">—</div>
+        <div class="ew-greeting" id="ewGreeting">
+          <div class="ew-greeting-top">
+            <div class="ew-greeting-hello" id="ewGreetingHello">—</div>
+            <div class="ew-greeting-clock" id="ewGreetingClock">—</div>
+          </div>
+          <div class="ew-quote" id="ewGreetingQuote">—<cite id="ewGreetingQuoteAuthor"></cite></div>
+        </div>
         <div class="ew-stats">
           <div><div class="ew-stat-label">Rimanenza</div><div class="ew-stat-val" id="ewPreviewRim" style="color:var(--green);">—</div></div>
           <div><div class="ew-stat-label">Spese mese</div><div class="ew-stat-val" id="ewPreviewSpese" style="color:var(--gold);">—</div></div>
@@ -560,8 +594,8 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <div><div class="lb">Banca</div><div class="sb">Conto corrente, import PDF</div></div>
       </div>
       <div class="ew-tile wide" onclick="openTcSection('vacanze')">
-        <div class="ic ic-altro">✨</div>
-        <div><div class="lb">Altro</div><div class="sb">Vacanze, ferie e permessi</div></div>
+        <div class="ic ic-altro">🧳</div>
+        <div><div class="lb">Viaggi e Ferie</div><div class="sb">Permessi e giorni liberi</div></div>
       </div>
     </div>
   </div>
@@ -746,6 +780,64 @@ function openLauncher(){
   document.getElementById('ewLauncher').classList.add('open');
   ewShowTodayLabel();
   ewPreloadDashboardPreview();
+  ewInitTheme();
+  ewInitGreeting();
+}
+var EW_MONEY_QUOTES=[
+  {q:'Non è povero chi possiede poco, ma chi desidera sempre di più.', a:'Seneca'},
+  {q:'La vera ricchezza sta nel desiderare poco, non nel possedere molto.', a:'Epitteto'},
+  {q:'Chi non si accontenta di poco, non si accontenta di nulla.', a:'Socrate'},
+  {q:'Il denaro è un buon servitore, ma un pessimo padrone.', a:'Francesco Bacone'},
+  {q:'Bada alle piccole spese: una piccola falla può affondare una grande nave.', a:'Benjamin Franklin'},
+  {q:'Guadagna ciò che ti serve, non rincorrere ciò che desideri soltanto.', a:'Proverbio latino'},
+  {q:'Chi teme di perdere qualcosa, in fondo teme di perdere se stesso.', a:'Marco Aurelio'},
+  {q:'Meglio poco con ordine, che molto con disordine.', a:'Proverbio'}
+];
+function ewGreetingWords(h){
+  if(h>=5&&h<12) return ['🌅','Buongiorno'];
+  if(h>=12&&h<17) return ['☀️','Buon pomeriggio'];
+  if(h>=17&&h<21) return ['🌆','Buonasera'];
+  return ['🌙','Buonanotte'];
+}
+function ewUpdateClock(){
+  var hEl=document.getElementById('ewGreetingHello'), cEl=document.getElementById('ewGreetingClock');
+  if(!hEl||!cEl) return;
+  var now=new Date(), gw=ewGreetingWords(now.getHours());
+  var u=JSON.parse(localStorage.getItem(EW_KEY)||'null');
+  var name=(u&&u.name)?(', '+u.name.split(' ')[0]):'';
+  hEl.textContent=gw[0]+' '+gw[1]+name;
+  cEl.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+}
+function ewInitGreeting(){
+  ewUpdateClock();
+  if(!window._ewClockTimer) window._ewClockTimer=setInterval(ewUpdateClock,15000);
+  var qEl=document.getElementById('ewGreetingQuote'), aEl=document.getElementById('ewGreetingQuoteAuthor');
+  if(qEl && aEl){
+    var pick=EW_MONEY_QUOTES[Math.floor(Math.random()*EW_MONEY_QUOTES.length)];
+    qEl.firstChild ? (qEl.firstChild.textContent='“'+pick.q+'”') : qEl.insertBefore(document.createTextNode('“'+pick.q+'”'), aEl);
+    aEl.textContent='— '+pick.a;
+  }
+}
+function ewInitTheme(){
+  var saved=localStorage.getItem('tc_theme');
+  var isDay=(saved==='light');
+  document.body.classList.toggle('ew-day', isDay);
+  var btn=document.getElementById('ewThemeBtn');
+  if(btn) btn.textContent = isDay ? '☀️ Giorno' : '🌙 Notte';
+}
+function launcherToggleTheme(){
+  var btn=document.getElementById('ewThemeBtn');
+  var goingDay=!document.body.classList.contains('ew-day');
+  document.body.classList.toggle('ew-day', goingDay);
+  localStorage.setItem('tc_theme', goingDay?'light':'dark');
+  if(btn) btn.textContent = goingDay ? '☀️ Giorno' : '🌙 Notte';
+  // Sincronizza silenziosamente GoBank se già caricato in background, senza uscire dal launcher
+  try{
+    var f=document.getElementById('frame-tc');
+    if(f && loaded['tc'] && f.contentWindow && typeof f.contentWindow.loadTheme==='function'){
+      f.contentWindow.loadTheme();
+    }
+  }catch(e){}
 }
 function ewShowTodayLabel(){
   var el=document.getElementById('ewPreviewDate');
@@ -906,11 +998,6 @@ function launcherResetMonth(){
 }
 function launcherResetYear(){
   ewRunInTc(function(win){ if(typeof win.resetYear==='function') win.resetYear(); });
-}
-function launcherToggleTheme(){
-  var btn=document.getElementById('ewThemeBtn');
-  ewRunInTc(function(win){ if(typeof win.toggleTheme==='function') win.toggleTheme(); });
-  if(btn) btn.textContent = (btn.textContent.indexOf('Giorno')>=0) ? '🌙 Notte' : '☀️ Giorno';
 }
 window._ewDeferredPrompt=null;
 window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); window._ewDeferredPrompt=e; });
