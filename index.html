@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260813-ew-v88-neverblocks';
+  var BUILD='20260813-ew-v91-keepalive';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -360,6 +360,15 @@ body.ew-day .ew-quote cite{ color:var(--gold); }
 .ew-diary-top span#ewDiaryTime{ margin-left:auto; font-weight:600; text-transform:none; letter-spacing:0; color:var(--muted); }
 .ew-diary-text{ margin-top:8px; font-size:15px; line-height:1.65; color:var(--text); white-space:pre-wrap; overflow-y:auto; }
 body.ew-day .ew-diary{ background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.07); }
+.ew-vacspese{ margin-top:14px; padding:14px 16px; border-radius:14px; background:rgba(167,139,250,0.07); border:1px solid rgba(167,139,250,0.22); }
+.ew-vacspese .ew-diary-top{ color:#a78bfa; }
+.ew-vacspese-item{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-top:1px solid rgba(255,255,255,0.07); font-size:13.5px; }
+.ew-vacspese-item:first-of-type{ border-top:none; margin-top:8px; }
+.ew-vacspese-item .vs-what{ color:var(--text); }
+.ew-vacspese-item .vs-where{ color:var(--muted); font-size:11.5px; }
+.ew-vacspese-item .vs-amt{ color:#a78bfa; font-weight:700; white-space:nowrap; }
+body.ew-day .ew-vacspese{ background:rgba(167,139,250,0.08); border-color:rgba(167,139,250,0.25); }
+body.ew-day .ew-vacspese-item{ border-top-color:rgba(0,0,0,0.07); }
 .ew-abtn{
   display:flex; align-items:center; gap:5px;
   padding:7px 11px; border-radius:9px; font-size:11.5px; font-weight:600;
@@ -599,6 +608,10 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <div class="ew-diary" id="ewDiaryBox" style="display:none;">
           <div class="ew-diary-top"><span id="ewDiaryMood">📔</span> Diario di oggi <span id="ewDiaryTime"></span></div>
           <div class="ew-diary-text" id="ewDiaryText"></div>
+        </div>
+        <div class="ew-vacspese" id="ewVacSpeseBox" style="display:none;">
+          <div class="ew-diary-top">🧳 Spese vacanza di oggi</div>
+          <div id="ewVacSpeseList"></div>
         </div>
         <div class="ew-stats">
           <div><div class="ew-stat-label">Rimanenza</div><div class="ew-stat-val" id="ewPreviewRim" style="color:var(--green);">—</div></div>
@@ -1031,9 +1044,27 @@ function ewUpdateDashPreview(){
           var dest=upcoming.location||'Viaggio';
           vacTarget.textContent='€'+tot.toFixed(2).replace('.',',');
           if(vacLabelTarget) vacLabelTarget.textContent='Spese · '+dest;
+          // Voci di oggi nella vacanza in corso (causale/luogo/ora/importo reali, non ricalcolati)
+          var vsBox=document.getElementById('ewVacSpeseBox');
+          var vsList=document.getElementById('ewVacSpeseList');
+          if(vsBox && vsList){
+            var todayVs=(upcoming.spese||[]).filter(function(s){return s.data===todayStr;});
+            if(todayVs.length){
+              var vsEsc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+              vsList.innerHTML=todayVs.map(function(s){
+                var amt='€'+(s.importoEUR!=null?s.importoEUR:(s.importo||0)).toFixed(2).replace('.',',');
+                var where=s.luogo?(' · '+vsEsc(s.luogo)):'';
+                var when=s.ora?(vsEsc(s.ora)+where):where.replace(' · ','');
+                return '<div class="ew-vacspese-item"><span class="vs-what">'+vsEsc(s.causale||'—')+'<br><span class="vs-where">'+when+'</span></span><span class="vs-amt">'+amt+'</span></div>';
+              }).join('');
+              vsBox.style.display='block';
+            } else { vsBox.style.display='none'; }
+          }
         } else {
           vacTarget.textContent='—';
           if(vacLabelTarget) vacLabelTarget.textContent='Vacanza in corso';
+          var vsBox2=document.getElementById('ewVacSpeseBox');
+          if(vsBox2) vsBox2.style.display='none';
         }
       }catch(e){}
     }
@@ -1369,7 +1400,19 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
     if(!data || typeof data!=='object') return;
     applyingCloud=true;
     try{
-      Object.keys(data).forEach(function(k){if(!isSecretOrInternalKey(k)) localStorage.setItem(k,String(data[k]));});
+      Object.keys(data).forEach(function(k){
+        if(isSecretOrInternalKey(k)) return;
+        // I contatori "_version" (tc_version, tc_<email>_version, ecc.) contano i salvataggi fatti:
+        // devono solo salire. Se lo snapshot del cloud ne porta uno più basso di quello già presente
+        // su questo dispositivo (es. cloud non aggiornato da un po'), si tiene il più alto dei due
+        // invece di farlo regredire — altrimenti il numero mostrato sembra tornare indietro nel tempo.
+        if(/_version$/.test(k)){
+          var incoming=parseInt(data[k],10);
+          var current=parseInt(localStorage.getItem(k)||'0',10);
+          if(!isNaN(incoming) && !isNaN(current) && incoming<current) return;
+        }
+        localStorage.setItem(k,String(data[k]));
+      });
       localStorage.setItem(META_KEY,String(Date.now()));
       if(knownUpdatedAt) localStorage.setItem(KNOWN_KEY,knownUpdatedAt);
     } finally { applyingCloud=false; }
@@ -1444,7 +1487,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
     }
   }
   let pushInFlight=null;
-  async function pushNow(force){
+  async function pushNow(force,keepalive){
     if(!session || !session.user || applyingCloud) return;
     // Un solo push alla volta: se ce n'è già uno in corso, questa chiamata aspetta e riusa
     // lo stesso risultato invece di partire in parallelo (altrimenti due controlli-conflitto
@@ -1464,9 +1507,14 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
         }
         const nowIso=new Date().toISOString();
         const payload={user_id:session.user.id,data:snapshot(),updated_at:nowIso};
-        await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',{
-          method:'POST',headers:Object.assign(authHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:JSON.stringify(payload)
-        });
+        var _bodyStr=JSON.stringify(payload);
+        // In chiusura pagina (pagehide) il fetch normale rischia di essere interrotto a metà dal
+        // browser prima di completarsi — keepalive lo lascia proseguire in background. Ha un limite
+        // di dimensione (~64KB): se il salvataggio è troppo grande, si prova comunque senza, meglio
+        // un tentativo normale che nessun tentativo.
+        var _opts={method:'POST',headers:Object.assign(authHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:_bodyStr};
+        if(keepalive && _bodyStr.length<60000) _opts.keepalive=true;
+        await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',_opts);
         localStorage.setItem(META_KEY,String(Date.now()));
         localStorage.setItem(KNOWN_KEY,nowIso);
       } finally { pushInFlight=null; }
@@ -1530,7 +1578,8 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
     Storage.prototype.setItem=function(k,v){nativeSet.call(this,k,v);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
     Storage.prototype.removeItem=function(k){nativeRemove.call(this,k);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
     Storage.prototype.clear=function(){nativeClear.call(this);if(this===localStorage)schedulePush();};
-    window.addEventListener('pagehide',function(){if(session)pushNow().catch(function(){});});
+    window.addEventListener('pagehide',function(){if(session)pushNow(true,true).catch(function(){});});
+    document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&session)pushNow(true,true).catch(function(){});});
     window.addEventListener('online',schedulePush);
     window.addEventListener('storage',schedulePush);
     setInterval(schedulePush,30000);
