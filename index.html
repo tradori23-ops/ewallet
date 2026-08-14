@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260814-ew-v93-mapsgeoloc';
+  var BUILD='20260814-ew-v95-quickadd';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -361,7 +361,9 @@ body.ew-day .ew-quote cite{ color:var(--gold); }
 .ew-diary-text{ margin-top:8px; font-size:15px; line-height:1.65; color:var(--text); white-space:pre-wrap; overflow-y:auto; }
 body.ew-day .ew-diary{ background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.07); }
 .ew-vacspese{ margin-top:14px; padding:14px 16px; border-radius:14px; background:rgba(167,139,250,0.07); border:1px solid rgba(167,139,250,0.22); }
-.ew-vacspese .ew-diary-top{ color:#a78bfa; }
+.ew-vacspese .ew-diary-top{ color:#a78bfa; position:relative; }
+.ew-card-close{ position:absolute; right:0; top:-2px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); color:var(--muted); width:22px; height:22px; border-radius:7px; font-size:11px; cursor:pointer; line-height:1; }
+body.ew-day .ew-card-close{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.12); }
 .ew-vacspese-item{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-top:1px solid rgba(255,255,255,0.07); font-size:13.5px; }
 .ew-vacspese-item:first-of-type{ border-top:none; margin-top:8px; }
 .ew-vacspese-item .vs-what{ color:var(--text); }
@@ -384,6 +386,19 @@ body.ew-day .ew-vacspese-item{ border-top-color:rgba(0,0,0,0.07); }
 body.ew-day .ew-mapsection{ background:rgba(255,255,255,0.5); border-color:rgba(0,0,0,0.08); }
 body.ew-day .ew-mapkey-row input{ background:rgba(255,255,255,0.7); border-color:rgba(0,0,0,0.12); color:#20281f; }
 body.ew-day .ew-map-refresh{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.12); color:#20281f; }
+.ew-qa-field{ flex:1; margin-top:10px; position:relative; }
+.ew-qa-field label{ display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+.ew-qa-field input{ width:100%; padding:10px 12px; border-radius:9px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); color:var(--text); font-size:13px; font-family:inherit; box-sizing:border-box; }
+.ew-qa-row{ display:flex; gap:12px; }
+#ewQaPlaceResults{ position:absolute; top:100%; left:0; right:0; z-index:20; background:var(--bg2); border:1px solid rgba(255,255,255,0.16); border-radius:9px; margin-top:3px; max-height:180px; overflow-y:auto; display:none; }
+.ew-qa-result{ padding:9px 12px; font-size:12.5px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); }
+.ew-qa-result:last-child{ border-bottom:none; }
+.ew-qa-result:hover{ background:rgba(255,255,255,0.06); }
+#ewQaMsg{ font-size:12px; margin-top:8px; text-align:center; }
+body.ew-day .ew-qa-field input{ background:rgba(255,255,255,0.7); border-color:rgba(0,0,0,0.12); color:#20281f; }
+body.ew-day #ewQaPlaceResults{ background:#fdfbf5; border-color:rgba(0,0,0,0.12); }
+body.ew-day .ew-qa-result{ border-bottom-color:rgba(0,0,0,0.06); }
+body.ew-day .ew-qa-result:hover{ background:rgba(0,0,0,0.05); }
 .ew-abtn{
   display:flex; align-items:center; gap:5px;
   padding:7px 11px; border-radius:9px; font-size:11.5px; font-weight:600;
@@ -625,7 +640,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
           <div class="ew-diary-text" id="ewDiaryText"></div>
         </div>
         <div class="ew-vacspese" id="ewVacSpeseBox" style="display:none;">
-          <div class="ew-diary-top" id="ewVacSpeseTitle">🧳 Spese vacanza di oggi</div>
+          <div class="ew-diary-top" id="ewVacSpeseTitle"><span id="ewVacSpeseTitleTxt">🧳 Spese vacanza di oggi</span><button class="ew-card-close" onclick="ewDismissVacSpese()" title="Nascondi">✕</button></div>
           <div id="ewVacSpeseList"></div>
         </div>
         <div class="ew-stats">
@@ -681,6 +696,26 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <div id="ewMapKeyMsg"></div>
       </div>
       <div id="ewMapContainer" style="display:none;"></div>
+      <div id="ewQuickAddWrap" style="display:none;">
+        <button class="ew-map-refresh" id="ewQuickAddToggle" onclick="ewToggleQuickAdd()" style="margin-top:12px;">➕ Aggiungi spesa qui</button>
+        <div id="ewQuickAddForm" style="display:none;">
+          <div class="ew-qa-field">
+            <label>Luogo</label>
+            <input type="text" id="ewQaPlaceSearch" placeholder="Cerca un posto..." autocomplete="off" oninput="ewSearchPlace(this.value)">
+            <div id="ewQaPlaceResults"></div>
+          </div>
+          <div class="ew-qa-row">
+            <div class="ew-qa-field"><label>Causale</label><input type="text" id="ewQaCausale" placeholder="Es. Pranzo"></div>
+            <div class="ew-qa-field"><label>Importo (€)</label><input type="number" id="ewQaImporto" placeholder="0,00" step="0.01"></div>
+          </div>
+          <div class="ew-qa-row">
+            <div class="ew-qa-field"><label>Data</label><input type="date" id="ewQaData"></div>
+            <div class="ew-qa-field"><label>Ora</label><input type="time" id="ewQaOra"></div>
+          </div>
+          <button class="btn-gold-ew" id="ewQaSubmit" onclick="ewQuickAddExpense()" style="width:100%;margin-top:6px;">Aggiungi spesa</button>
+          <div id="ewQaMsg"></div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -965,6 +1000,25 @@ function ewDismissConflict(){
   if(box) box.style.display='none';
   ewUpdateSyncBtn();
 }
+function ewDismissVacSpese(){
+  var box=document.getElementById('ewVacSpeseBox');
+  var win=document.getElementById('frame-tc')?document.getElementById('frame-tc').contentWindow:null;
+  try{
+    if(win && typeof win.getVacanze==='function'){
+      var todayStr=win.localDateStr?win.localDateStr(new Date()):new Date().toISOString().slice(0,10);
+      var vac=win.getVacanze()||[];
+      var upcoming=vac.filter(function(v){return v.dataFine>=todayStr;}).sort(function(a,b){return (a.dataInizio||'').localeCompare(b.dataInizio||'');})[0];
+      if(upcoming){
+        var dates=(upcoming.spese||[]).map(function(s){return s.data;}).filter(Boolean).sort();
+        var lastDate=dates.length?dates[dates.length-1]:null;
+        var sameDay=(upcoming.spese||[]).filter(function(s){return s.data===lastDate;});
+        var last=sameDay.length?sameDay.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');})[0]:null;
+        if(last) localStorage.setItem('ew_vacspese_dismiss_id', String(last.id));
+      }
+    }
+  }catch(e){}
+  if(box) box.style.display='none';
+}
 // ════════ MAPPA DELLE SPESE ════════
 function ewSaveMapKey(){
   var input=document.getElementById('ewMapKeyInput');
@@ -976,7 +1030,7 @@ function ewSaveMapKey(){
   ewInitMap(true);
 }
 function ewGeocodePlace(placeName, callback){
-  var cacheKey='ew_geocache_'+placeName;
+  var cacheKey='ew_geocache_'+placeName.trim().toLowerCase();
   var cached=null;
   try{ cached=JSON.parse(localStorage.getItem(cacheKey)||'null'); }catch(e){}
   if(cached && cached.lat!=null){ callback(cached.lat, cached.lon); return; }
@@ -994,28 +1048,33 @@ function ewGeocodePlace(placeName, callback){
       .catch(function(){ callback(null,null); });
   }catch(e){ callback(null,null); }
 }
-function ewCollectMapPoints(win, callback){
+function ewCollectMapPoints(win, forceRefresh, callback){
   var points=[];
   try{
     var exp=(typeof win.getExpenses==='function')?(win.getExpenses()||[]):[];
-    exp.forEach(function(e){ if(e.lat!=null && e.lon!=null) points.push({lat:e.lat, lon:e.lon, label:(e.desc||e.cat||'Spesa'), sub:(e.date||'')}); });
+    exp.forEach(function(e){ if(e.lat!=null && e.lon!=null) points.push({lat:e.lat, lon:e.lon, label:(e.desc||e.cat||'Spesa'), amt:e.amount, sub:(e.date||''), luogo:(e.luogo||'')}); });
   }catch(e){}
   var vac=[];
   try{ vac=(typeof win.getVacanze==='function')?(win.getVacanze()||[]):[]; }catch(e){}
   var toGeocode=[];
   vac.forEach(function(v){ (v.spese||[]).forEach(function(s){
-    if(s.lat!=null && s.lon!=null) points.push({lat:s.lat, lon:s.lon, label:(s.causale||'Spesa'), sub:(s.data||'')});
+    if(forceRefresh){ delete s.lat; delete s.lon; } // ricalcola con la ricerca migliorata invece di tenere per sempre coordinate sbagliate
+    if(s.lat!=null && s.lon!=null) points.push({lat:s.lat, lon:s.lon, label:(s.causale||'Spesa'), amt:(s.importoEUR!=null?s.importoEUR:s.importo), sub:(s.data||''), luogo:(s.luogo||'')});
     else if(s.luogo) toGeocode.push({s:s, v:v});
   }); });
+  if(forceRefresh){ try{ win.saveVacanze(vac); }catch(e){} }
   if(!toGeocode.length){ callback(points); return; }
   var i=0;
   function next(){
     if(i>=toGeocode.length){ callback(points); return; }
     var item=toGeocode[i]; i++;
-    ewGeocodePlace(item.s.luogo, function(lat,lon){
+    // Aggiungo la destinazione del viaggio alla ricerca ("Suceva, Romania" invece del solo "Suceva") —
+    // altrimenti un nome di luogo corto/ambiguo può risolvere in un posto completamente diverso nel mondo.
+    var query=item.s.luogo + (item.v.location ? (', '+item.v.location) : '');
+    ewGeocodePlace(query, function(lat,lon){
       if(lat!=null){
         item.s.lat=lat; item.s.lon=lon;
-        points.push({lat:lat, lon:lon, label:(item.s.causale||'Spesa'), sub:(item.s.data||'')});
+        points.push({lat:lat, lon:lon, label:(item.s.causale||'Spesa'), amt:(item.s.importoEUR!=null?item.s.importoEUR:item.s.importo), sub:(item.s.data||''), luogo:(item.s.luogo||'')});
         try{ win.saveVacanze(vac); }catch(e){}
       }
       setTimeout(next, 250); // rispetta il limite di 1 richiesta/sec del servizio gratuito di geocoding
@@ -1037,6 +1096,8 @@ function ewInitMap(forceRefresh){
   if(formEl) formEl.style.display='none';
   if(containerEl) containerEl.style.display='block';
   if(refreshBtn) refreshBtn.style.display='inline-block';
+  var qaWrap=document.getElementById('ewQuickAddWrap');
+  if(qaWrap) qaWrap.style.display='block';
   var win=document.getElementById('frame-tc')?document.getElementById('frame-tc').contentWindow:null;
   if(!win || !win.getExpenses){
     // GoBank non è ancora caricato in background: riprova tra poco
@@ -1044,15 +1105,25 @@ function ewInitMap(forceRefresh){
     return;
   }
   function buildMap(){
-    ewCollectMapPoints(win, function(points){
+    ewCollectMapPoints(win, !!forceRefresh, function(points){
       var container=document.getElementById('ewMapContainer');
       if(!container) return;
       if(!points.length){ container.innerHTML='<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px;">Nessuna spesa con luogo salvato ancora. Aggiungine una nuova (il luogo si rileva da solo) o modifica una spesa di vacanza con un luogo.</div>'; return; }
       var map=new google.maps.Map(container, { zoom:6, center:{lat:points[0].lat, lng:points[0].lon}, mapId:'DEMO_MAP_ID' });
       var bounds=new google.maps.LatLngBounds();
+      var infoWin=new google.maps.InfoWindow();
+      var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
       points.forEach(function(p){
         var pos={lat:p.lat, lng:p.lon};
-        new google.maps.Marker({ position:pos, map:map, title:p.label+(p.sub?(' · '+p.sub):'') });
+        var marker=new google.maps.Marker({ position:pos, map:map, title:p.label+(p.sub?(' · '+p.sub):'') });
+        var amtTxt = p.amt!=null ? ('€'+Number(p.amt).toFixed(2).replace('.',',')) : '';
+        var html='<div style="font-family:sans-serif;font-size:13px;min-width:140px;">'+
+          '<div style="font-weight:700;margin-bottom:3px;">'+esc(p.label)+'</div>'+
+          (amtTxt?('<div style="color:#c9a84c;font-weight:700;">'+amtTxt+'</div>'):'')+
+          (p.luogo?('<div style="color:#666;margin-top:2px;">📍 '+esc(p.luogo)+'</div>'):'')+
+          (p.sub?('<div style="color:#999;font-size:11px;margin-top:2px;">'+esc(p.sub)+'</div>'):'')+
+        '</div>';
+        marker.addListener('click', function(){ infoWin.setContent(html); infoWin.open(map, marker); });
         bounds.extend(pos);
       });
       if(points.length>1) map.fitBounds(bounds);
@@ -1070,6 +1141,84 @@ function ewInitMap(forceRefresh){
     if(container) container.innerHTML='<div style="padding:30px;text-align:center;color:#f28b8b;font-size:13px;">Chiave non valida o errore di caricamento. Controlla di averla incollata giusta.</div>';
   };
   document.head.appendChild(script);
+}
+var ewQaSelectedPlace=null;
+var ewQaSearchTimer=null;
+function ewToggleQuickAdd(){
+  var form=document.getElementById('ewQuickAddForm');
+  var isOpen=form.style.display==='block';
+  form.style.display=isOpen?'none':'block';
+  if(!isOpen){
+    var d=document.getElementById('ewQaData'), t=document.getElementById('ewQaOra');
+    if(d && !d.value) d.value=new Date().toISOString().slice(0,10);
+    if(t && !t.value) t.value=new Date().toTimeString().slice(0,5);
+  }
+}
+function ewSearchPlace(q){
+  clearTimeout(ewQaSearchTimer);
+  var results=document.getElementById('ewQaPlaceResults');
+  ewQaSelectedPlace=null;
+  if(!q || q.trim().length<3){ results.style.display='none'; results.innerHTML=''; return; }
+  ewQaSearchTimer=setTimeout(function(){
+    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5')
+      .then(function(r){ return r.json(); })
+      .then(function(list){
+        if(!Array.isArray(list) || !list.length){ results.innerHTML='<div class="ew-qa-result" style="color:var(--muted);">Nessun risultato</div>'; results.style.display='block'; return; }
+        window._ewQaResults=list;
+        var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+        results.innerHTML=list.map(function(r,i){
+          var name=(r.display_name||'').split(',').slice(0,3).join(',');
+          return '<div class="ew-qa-result" onclick="ewSelectPlaceByIndex('+i+')">'+esc(name)+'</div>';
+        }).join('');
+        results.style.display='block';
+      })
+      .catch(function(){ results.style.display='none'; });
+  }, 450); // rispetta il limite di 1 richiesta/sec del servizio gratuito
+}
+function ewSelectPlaceByIndex(i){
+  var r=(window._ewQaResults||[])[i];
+  if(!r) return;
+  var name=(r.display_name||'').split(',').slice(0,3).join(',');
+  ewQaSelectedPlace={lat:parseFloat(r.lat), lon:parseFloat(r.lon), name:name};
+  document.getElementById('ewQaPlaceSearch').value=name;
+  document.getElementById('ewQaPlaceResults').style.display='none';
+}
+function ewQuickAddExpense(){
+  var msg=document.getElementById('ewQaMsg');
+  var causale=(document.getElementById('ewQaCausale').value||'').trim();
+  var importo=parseFloat((document.getElementById('ewQaImporto').value||'').replace(',','.'));
+  var data=document.getElementById('ewQaData').value;
+  var ora=document.getElementById('ewQaOra').value;
+  if(!importo || importo<=0){ if(msg) msg.textContent='Inserisci un importo valido.'; return; }
+  if(!data) data=new Date().toISOString().slice(0,10);
+  var win=document.getElementById('frame-tc')?document.getElementById('frame-tc').contentWindow:null;
+  if(!win || !win.getExpenses){ if(msg) msg.textContent='Attendi il caricamento, riprova tra un attimo.'; return; }
+  var luogo=ewQaSelectedPlace?ewQaSelectedPlace.name:(document.getElementById('ewQaPlaceSearch').value||'').trim();
+  var lat=ewQaSelectedPlace?ewQaSelectedPlace.lat:null, lon=ewQaSelectedPlace?ewQaSelectedPlace.lon:null;
+  var todayStr=win.localDateStr?win.localDateStr(new Date()):new Date().toISOString().slice(0,10);
+  var vac=(typeof win.getVacanze==='function')?(win.getVacanze()||[]):[];
+  var upcoming=vac.filter(function(v){return v.dataFine>=todayStr && v.dataInizio<=todayStr;})[0];
+  var nowIso=new Date().toISOString();
+  if(upcoming){
+    // Vacanza in corso: la spesa si aggiunge lì, esattamente come dalla Carta Spese di Viaggio —
+    // così compare subito anche nella sezione Viaggi e Ferie, nessun sistema parallelo.
+    if(!upcoming.spese) upcoming.spese=[];
+    upcoming.spese.push({ id:Date.now().toString()+Math.random().toString(36).slice(2,7), importo:importo, valuta:'EUR', importoEUR:importo, pay:'contanti', causale:causale||'—', luogo:luogo, ora:ora, data:data, lat:lat, lon:lon, createdAt:nowIso });
+    win.saveVacanze(vac);
+  } else {
+    // Nessuna vacanza in corso: va nelle spese normali di tutti i giorni, come dal form "Aggiungi Spesa"
+    var exp=win.getExpenses()||[];
+    exp.push({ id:Date.now(), cat:'extra', amount:importo, desc:causale||'—', pay:'contanti', date:data, source:'manuale', lat:lat, lon:lon, luogo:luogo, createdAt:nowIso });
+    win.saveExpenses(exp);
+  }
+  try{ if(typeof win.bumpVersion==='function') win.bumpVersion(); }catch(e){}
+  document.getElementById('ewQaCausale').value='';
+  document.getElementById('ewQaImporto').value='';
+  document.getElementById('ewQaPlaceSearch').value='';
+  ewQaSelectedPlace=null;
+  if(msg){ msg.textContent='✅ Spesa aggiunta'; setTimeout(function(){msg.textContent='';},2000); }
+  ewUpdateDashPreview();
+  ewInitMap(false);
 }
 var EW_MONEY_QUOTES=[
   {q:'Non è povero chi possiede poco, ma chi desidera sempre di più.', a:'Seneca'},
@@ -1195,9 +1344,13 @@ function ewUpdateDashPreview(){
             var vsAllDates=(upcoming.spese||[]).map(function(s){return s.data;}).filter(Boolean).sort();
             var vsLastDate=vsAllDates.length?vsAllDates[vsAllDates.length-1]:null;
             var todayVs=vsLastDate?(upcoming.spese||[]).filter(function(s){return s.data===vsLastDate;}):[];
-            var vsTitleEl=document.getElementById('ewVacSpeseTitle');
+            var vsTitleEl=document.getElementById('ewVacSpeseTitleTxt');
             if(vsTitleEl) vsTitleEl.textContent = '🧳 Spese vacanza · '+(vsLastDate===todayStr ? 'oggi' : (vsLastDate?vsLastDate.split('-').reverse().slice(0,2).join('/'):''));
-            if(todayVs.length){
+            var lastItem=todayVs.length?todayVs.slice().sort(function(a,b){return (b.createdAt||'').localeCompare(a.createdAt||'');})[0]:null;
+            var dismissedId=localStorage.getItem('ew_vacspese_dismiss_id');
+            if(lastItem && dismissedId===String(lastItem.id)){
+              vsBox.style.display='none';
+            } else if(todayVs.length){
               var vsEsc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
               vsList.innerHTML=todayVs.map(function(s){
                 var amt='€'+(s.importoEUR!=null?s.importoEUR:(s.importo||0)).toFixed(2).replace('.',',');
