@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260815-ew-v98-poifix-layout';
+  var BUILD='20260815-ew-v99-poirobust';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -1138,18 +1138,31 @@ function ewInitMap(forceRefresh){
       map.addListener('click', function(event){
         if(!event.placeId) return;
         event.stop();
-        var svc=ewGetPlacesService();
-        svc.getDetails({ placeId:event.placeId, fields:['name','geometry'] }, function(place, status){
-          if(status!==google.maps.places.PlacesServiceStatus.OK || !place || !place.geometry) return;
-          if(confirm('Vuoi aggiungere una spesa per "'+place.name+'"?')){
-            ewQaSelectedPlace={lat:place.geometry.location.lat(), lon:place.geometry.location.lng(), name:place.name};
-            var search=document.getElementById('ewQaPlaceSearch'); if(search) search.value=place.name;
+        // Le coordinate vengono SEMPRE dal click stesso, mai da una chiamata a parte — così funziona
+        // comunque anche se il resto (nome del posto via Google) non va a buon fine per qualunque motivo.
+        var lat=event.latLng.lat(), lon=event.latLng.lng();
+        var proceed=function(name){
+          var label=name||('Posizione '+lat.toFixed(4)+','+lon.toFixed(4));
+          if(confirm('Vuoi aggiungere una spesa per "'+label+'"?')){
+            ewQaSelectedPlace={lat:lat, lon:lon, name:label};
+            var search=document.getElementById('ewQaPlaceSearch'); if(search) search.value=label;
             var form=document.getElementById('ewQuickAddForm');
             if(form && form.style.display!=='block') ewToggleQuickAdd();
             var imp=document.getElementById('ewQaImporto');
             if(imp){ imp.focus(); imp.scrollIntoView({behavior:'smooth', block:'center'}); }
           }
-        });
+        };
+        var gotName=false;
+        try{
+          var svc=ewGetPlacesService();
+          svc.getDetails({ placeId:event.placeId, fields:['name'] }, function(place, status){
+            if(status===google.maps.places.PlacesServiceStatus.OK && place && place.name){ gotName=true; proceed(place.name); }
+            else if(!gotName){ ewReverseGeocode(lat, lon, function(n){ if(!gotName){ gotName=true; proceed(n); } }); }
+          });
+        }catch(e){ ewReverseGeocode(lat, lon, function(n){ if(!gotName){ gotName=true; proceed(n); } }); }
+        // Se Google Places non risponde affatto entro un attimo (chiave che non copre quella funzione,
+        // rete lenta, ecc.) si procede comunque col nome trovato via geocodifica, invece di restare bloccati.
+        setTimeout(function(){ if(!gotName){ gotName=true; ewReverseGeocode(lat, lon, proceed); } }, 2500);
       });
     });
   }
