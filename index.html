@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260814-ew-v95-quickadd';
+  var BUILD='20260814-ew-v96-placessearch';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -1110,6 +1110,7 @@ function ewInitMap(forceRefresh){
       if(!container) return;
       if(!points.length){ container.innerHTML='<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px;">Nessuna spesa con luogo salvato ancora. Aggiungine una nuova (il luogo si rileva da solo) o modifica una spesa di vacanza con un luogo.</div>'; return; }
       var map=new google.maps.Map(container, { zoom:6, center:{lat:points[0].lat, lng:points[0].lon}, mapId:'DEMO_MAP_ID' });
+      window._ewMapInstance=map;
       var bounds=new google.maps.LatLngBounds();
       var infoWin=new google.maps.InfoWindow();
       var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
@@ -1135,7 +1136,7 @@ function ewInitMap(forceRefresh){
   window._ewMapsLoadCallbacks=[buildMap];
   window._ewMapsReady=function(){ (window._ewMapsLoadCallbacks||[]).forEach(function(f){f();}); };
   var script=document.createElement('script');
-  script.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&callback=_ewMapsReady';
+  script.src='https://maps.googleapis.com/maps/api/js?key='+encodeURIComponent(key)+'&libraries=places&callback=_ewMapsReady';
   script.onerror=function(){
     var container=document.getElementById('ewMapContainer');
     if(container) container.innerHTML='<div style="padding:30px;text-align:center;color:#f28b8b;font-size:13px;">Chiave non valida o errore di caricamento. Controlla di averla incollata giusta.</div>';
@@ -1160,20 +1161,48 @@ function ewSearchPlace(q){
   ewQaSelectedPlace=null;
   if(!q || q.trim().length<3){ results.style.display='none'; results.innerHTML=''; return; }
   ewQaSearchTimer=setTimeout(function(){
-    fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5')
-      .then(function(r){ return r.json(); })
-      .then(function(list){
-        if(!Array.isArray(list) || !list.length){ results.innerHTML='<div class="ew-qa-result" style="color:var(--muted);">Nessun risultato</div>'; results.style.display='block'; return; }
-        window._ewQaResults=list;
-        var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-        results.innerHTML=list.map(function(r,i){
-          var name=(r.display_name||'').split(',').slice(0,3).join(',');
-          return '<div class="ew-qa-result" onclick="ewSelectPlaceByIndex('+i+')">'+esc(name)+'</div>';
-        }).join('');
-        results.style.display='block';
-      })
-      .catch(function(){ results.style.display='none'; });
-  }, 450); // rispetta il limite di 1 richiesta/sec del servizio gratuito
+    if(window.google && window.google.maps && window.google.maps.places){
+      ewSearchPlaceGoogle(q, results);
+    } else {
+      ewSearchPlaceNominatim(q, results);
+    }
+  }, 400);
+}
+function ewGetPlacesService(){
+  if(window._ewMapInstance) return new google.maps.places.PlacesService(window._ewMapInstance);
+  if(!window._ewPlacesHiddenDiv){ window._ewPlacesHiddenDiv=document.createElement('div'); }
+  return new google.maps.places.PlacesService(window._ewPlacesHiddenDiv);
+}
+function ewSearchPlaceGoogle(q, results){
+  var svc=ewGetPlacesService();
+  svc.textSearch({ query:q }, function(list, status){
+    if(status!==google.maps.places.PlacesServiceStatus.OK || !list || !list.length){
+      ewSearchPlaceNominatim(q, results); // Google non ha trovato nulla: provo comunque con l'altro servizio
+      return;
+    }
+    window._ewQaResults=list.slice(0,5).map(function(r){
+      return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):'') };
+    });
+    ewRenderPlaceResults(results);
+  });
+}
+function ewSearchPlaceNominatim(q, results){
+  fetch('https://nominatim.openstreetmap.org/search?format=json&q='+encodeURIComponent(q)+'&limit=5')
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      if(!Array.isArray(list) || !list.length){ results.innerHTML='<div class="ew-qa-result" style="color:var(--muted);">Nessun risultato</div>'; results.style.display='block'; return; }
+      window._ewQaResults=list;
+      ewRenderPlaceResults(results);
+    })
+    .catch(function(){ results.style.display='none'; });
+}
+function ewRenderPlaceResults(results){
+  var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+  results.innerHTML=(window._ewQaResults||[]).map(function(r,i){
+    var name=(r.display_name||'').split(',').slice(0,3).join(',');
+    return '<div class="ew-qa-result" onclick="ewSelectPlaceByIndex('+i+')">'+esc(name)+'</div>';
+  }).join('');
+  results.style.display='block';
 }
 function ewSelectPlaceByIndex(i){
   var r=(window._ewQaResults||[])[i];
