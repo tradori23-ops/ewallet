@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260814-ew-v96-placessearch';
+  var BUILD='20260814-ew-v97-poitap-currency';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -703,10 +703,10 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             <label>Luogo</label>
             <input type="text" id="ewQaPlaceSearch" placeholder="Cerca un posto..." autocomplete="off" oninput="ewSearchPlace(this.value)">
             <div id="ewQaPlaceResults"></div>
-          </div>
-          <div class="ew-qa-row">
+          </<div class="ew-qa-row">
             <div class="ew-qa-field"><label>Causale</label><input type="text" id="ewQaCausale" placeholder="Es. Pranzo"></div>
-            <div class="ew-qa-field"><label>Importo (€)</label><input type="number" id="ewQaImporto" placeholder="0,00" step="0.01"></div>
+            <div class="ew-qa-field" style="max-width:100px;"><label>Importo</label><input type="number" id="ewQaImporto" placeholder="0,00" step="0.01"></div>
+            <div class="ew-qa-field" style="max-width:84px;"><label>Valuta</label><select id="ewQaValuta" style="width:100%;padding:10px 6px;border-radius:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);color:var(--text);font-size:13px;font-family:inherit;box-sizing:border-box;"><option value="EUR">€ EUR</option><option value="GBP">£ GBP</option><option value="RON">RON</option><option value="USD">$ USD</option><option value="CHF">CHF</option></select></div>
           </div>
           <div class="ew-qa-row">
             <div class="ew-qa-field"><label>Data</label><input type="date" id="ewQaData"></div>
@@ -1108,26 +1108,50 @@ function ewInitMap(forceRefresh){
     ewCollectMapPoints(win, !!forceRefresh, function(points){
       var container=document.getElementById('ewMapContainer');
       if(!container) return;
-      if(!points.length){ container.innerHTML='<div style="padding:30px;text-align:center;color:var(--muted);font-size:13px;">Nessuna spesa con luogo salvato ancora. Aggiungine una nuova (il luogo si rileva da solo) o modifica una spesa di vacanza con un luogo.</div>'; return; }
-      var map=new google.maps.Map(container, { zoom:6, center:{lat:points[0].lat, lng:points[0].lon}, mapId:'DEMO_MAP_ID' });
+      var center=points.length?{lat:points[0].lat, lng:points[0].lon}:{lat:41.9028, lng:12.4964};
+      var map=new google.maps.Map(container, { zoom:points.length?6:5, center:center, mapId:'DEMO_MAP_ID' });
       window._ewMapInstance=map;
-      var bounds=new google.maps.LatLngBounds();
-      var infoWin=new google.maps.InfoWindow();
       var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-      points.forEach(function(p){
-        var pos={lat:p.lat, lng:p.lon};
-        var marker=new google.maps.Marker({ position:pos, map:map, title:p.label+(p.sub?(' · '+p.sub):'') });
-        var amtTxt = p.amt!=null ? ('€'+Number(p.amt).toFixed(2).replace('.',',')) : '';
-        var html='<div style="font-family:sans-serif;font-size:13px;min-width:140px;">'+
-          '<div style="font-weight:700;margin-bottom:3px;">'+esc(p.label)+'</div>'+
-          (amtTxt?('<div style="color:#c9a84c;font-weight:700;">'+amtTxt+'</div>'):'')+
-          (p.luogo?('<div style="color:#666;margin-top:2px;">📍 '+esc(p.luogo)+'</div>'):'')+
-          (p.sub?('<div style="color:#999;font-size:11px;margin-top:2px;">'+esc(p.sub)+'</div>'):'')+
-        '</div>';
-        marker.addListener('click', function(){ infoWin.setContent(html); infoWin.open(map, marker); });
-        bounds.extend(pos);
+      if(points.length){
+        var bounds=new google.maps.LatLngBounds();
+        var infoWin=new google.maps.InfoWindow();
+        points.forEach(function(p){
+          var pos={lat:p.lat, lng:p.lon};
+          var marker=new google.maps.Marker({ position:pos, map:map, title:p.label+(p.sub?(' · '+p.sub):'') });
+          var amtTxt = p.amt!=null ? ('€'+Number(p.amt).toFixed(2).replace('.',',')) : '';
+          var html='<div style="font-family:sans-serif;font-size:13px;min-width:140px;">'+
+            '<div style="font-weight:700;margin-bottom:3px;">'+esc(p.label)+'</div>'+
+            (amtTxt?('<div style="color:#c9a84c;font-weight:700;">'+amtTxt+'</div>'):'')+
+            (p.luogo?('<div style="color:#666;margin-top:2px;">📍 '+esc(p.luogo)+'</div>'):'')+
+            (p.sub?('<div style="color:#999;font-size:11px;margin-top:2px;">'+esc(p.sub)+'</div>'):'')+
+          '</div>';
+          marker.addListener('click', function(){ infoWin.setContent(html); infoWin.open(map, marker); });
+          bounds.extend(pos);
+        });
+        if(points.length>1) map.fitBounds(bounds);
+      }
+      // Tocco diretto su un ristorante/bar mostrato dalla mappa stessa: propone subito di
+      // registrare una spesa lì, senza dover cercare nulla — vale solo per locali di cibo/bevande,
+      // toccare un negozio o un museo qualsiasi lascia il comportamento normale della mappa.
+      map.addListener('click', function(event){
+        if(!event.placeId) return;
+        event.stop();
+        var svc=ewGetPlacesService();
+        svc.getDetails({ placeId:event.placeId, fields:['name','types','geometry'] }, function(place, status){
+          if(status!==google.maps.places.PlacesServiceStatus.OK || !place) return;
+          var foodTypes=['restaurant','bar','cafe','meal_takeaway','meal_delivery','food','bakery'];
+          var isFood=(place.types||[]).some(function(t){return foodTypes.indexOf(t)!==-1;});
+          if(!isFood) return;
+          if(confirm('Vuoi aggiungere una spesa per "'+place.name+'"?')){
+            ewQaSelectedPlace={lat:place.geometry.location.lat(), lon:place.geometry.location.lng(), name:place.name};
+            var search=document.getElementById('ewQaPlaceSearch'); if(search) search.value=place.name;
+            var form=document.getElementById('ewQuickAddForm');
+            if(form && form.style.display!=='block') ewToggleQuickAdd();
+            var imp=document.getElementById('ewQaImporto');
+            if(imp){ imp.focus(); imp.scrollIntoView({behavior:'smooth', block:'center'}); }
+          }
+        });
       });
-      if(points.length>1) map.fitBounds(bounds);
     });
   }
   if(window.google && window.google.maps){ buildMap(); return; }
@@ -1212,10 +1236,11 @@ function ewSelectPlaceByIndex(i){
   document.getElementById('ewQaPlaceSearch').value=name;
   document.getElementById('ewQaPlaceResults').style.display='none';
 }
-function ewQuickAddExpense(){
+async function ewQuickAddExpense(){
   var msg=document.getElementById('ewQaMsg');
   var causale=(document.getElementById('ewQaCausale').value||'').trim();
   var importo=parseFloat((document.getElementById('ewQaImporto').value||'').replace(',','.'));
+  var valuta=document.getElementById('ewQaValuta').value||'EUR';
   var data=document.getElementById('ewQaData').value;
   var ora=document.getElementById('ewQaOra').value;
   if(!importo || importo<=0){ if(msg) msg.textContent='Inserisci un importo valido.'; return; }
@@ -1224,6 +1249,17 @@ function ewQuickAddExpense(){
   if(!win || !win.getExpenses){ if(msg) msg.textContent='Attendi il caricamento, riprova tra un attimo.'; return; }
   var luogo=ewQaSelectedPlace?ewQaSelectedPlace.name:(document.getElementById('ewQaPlaceSearch').value||'').trim();
   var lat=ewQaSelectedPlace?ewQaSelectedPlace.lat:null, lon=ewQaSelectedPlace?ewQaSelectedPlace.lon:null;
+  var submitBtn=document.getElementById('ewQaSubmit');
+  if(submitBtn){ submitBtn.disabled=true; submitBtn.textContent='Converto…'; }
+  // Stessa conversione valuta reale della Carta Spese di Viaggio — mai ricalcolata a mano
+  var importoEUR=importo;
+  try{
+    if(valuta!=='EUR' && typeof win._vacFetchFxRates==='function' && typeof win._vacConvertToEUR==='function'){
+      var rates=await win._vacFetchFxRates();
+      importoEUR=win._vacConvertToEUR(importo, valuta, rates);
+    }
+  }catch(e){}
+  if(submitBtn){ submitBtn.disabled=false; submitBtn.textContent='Aggiungi spesa'; }
   var todayStr=win.localDateStr?win.localDateStr(new Date()):new Date().toISOString().slice(0,10);
   var vac=(typeof win.getVacanze==='function')?(win.getVacanze()||[]):[];
   var upcoming=vac.filter(function(v){return v.dataFine>=todayStr && v.dataInizio<=todayStr;})[0];
@@ -1232,12 +1268,13 @@ function ewQuickAddExpense(){
     // Vacanza in corso: la spesa si aggiunge lì, esattamente come dalla Carta Spese di Viaggio —
     // così compare subito anche nella sezione Viaggi e Ferie, nessun sistema parallelo.
     if(!upcoming.spese) upcoming.spese=[];
-    upcoming.spese.push({ id:Date.now().toString()+Math.random().toString(36).slice(2,7), importo:importo, valuta:'EUR', importoEUR:importo, pay:'contanti', causale:causale||'—', luogo:luogo, ora:ora, data:data, lat:lat, lon:lon, createdAt:nowIso });
+    upcoming.spese.push({ id:Date.now().toString()+Math.random().toString(36).slice(2,7), importo:importo, valuta:valuta, importoEUR:importoEUR, pay:'contanti', causale:causale||'—', luogo:luogo, ora:ora, data:data, lat:lat, lon:lon, createdAt:nowIso });
     win.saveVacanze(vac);
   } else {
     // Nessuna vacanza in corso: va nelle spese normali di tutti i giorni, come dal form "Aggiungi Spesa"
+    // (che non gestisce valute estere) — salvato già convertito in euro.
     var exp=win.getExpenses()||[];
-    exp.push({ id:Date.now(), cat:'extra', amount:importo, desc:causale||'—', pay:'contanti', date:data, source:'manuale', lat:lat, lon:lon, luogo:luogo, createdAt:nowIso });
+    exp.push({ id:Date.now(), cat:'extra', amount:importoEUR, desc:causale||'—', pay:'contanti', date:data, source:'manuale', lat:lat, lon:lon, luogo:luogo, createdAt:nowIso });
     win.saveExpenses(exp);
   }
   try{ if(typeof win.bumpVersion==='function') win.bumpVersion(); }catch(e){}
