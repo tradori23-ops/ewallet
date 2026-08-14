@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260814-ew-v97-poitap-currency';
+  var BUILD='20260815-ew-v98-poifix-layout';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -703,7 +703,8 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             <label>Luogo</label>
             <input type="text" id="ewQaPlaceSearch" placeholder="Cerca un posto..." autocomplete="off" oninput="ewSearchPlace(this.value)">
             <div id="ewQaPlaceResults"></div>
-          </<div class="ew-qa-row">
+          </div>
+          <div class="ew-qa-row">
             <div class="ew-qa-field"><label>Causale</label><input type="text" id="ewQaCausale" placeholder="Es. Pranzo"></div>
             <div class="ew-qa-field" style="max-width:100px;"><label>Importo</label><input type="number" id="ewQaImporto" placeholder="0,00" step="0.01"></div>
             <div class="ew-qa-field" style="max-width:84px;"><label>Valuta</label><select id="ewQaValuta" style="width:100%;padding:10px 6px;border-radius:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);color:var(--text);font-size:13px;font-family:inherit;box-sizing:border-box;"><option value="EUR">€ EUR</option><option value="GBP">£ GBP</option><option value="RON">RON</option><option value="USD">$ USD</option><option value="CHF">CHF</option></select></div>
@@ -1108,8 +1109,9 @@ function ewInitMap(forceRefresh){
     ewCollectMapPoints(win, !!forceRefresh, function(points){
       var container=document.getElementById('ewMapContainer');
       if(!container) return;
+      container.innerHTML=''; // evita di impilare più mappe nello stesso spazio se questa funzione gira più di una volta (es. riaprendo il launcher, o toccando "Aggiorna")
       var center=points.length?{lat:points[0].lat, lng:points[0].lon}:{lat:41.9028, lng:12.4964};
-      var map=new google.maps.Map(container, { zoom:points.length?6:5, center:center, mapId:'DEMO_MAP_ID' });
+      var map=new google.maps.Map(container, { zoom:points.length?6:5, center:center });
       window._ewMapInstance=map;
       var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
       if(points.length){
@@ -1137,11 +1139,8 @@ function ewInitMap(forceRefresh){
         if(!event.placeId) return;
         event.stop();
         var svc=ewGetPlacesService();
-        svc.getDetails({ placeId:event.placeId, fields:['name','types','geometry'] }, function(place, status){
-          if(status!==google.maps.places.PlacesServiceStatus.OK || !place) return;
-          var foodTypes=['restaurant','bar','cafe','meal_takeaway','meal_delivery','food','bakery'];
-          var isFood=(place.types||[]).some(function(t){return foodTypes.indexOf(t)!==-1;});
-          if(!isFood) return;
+        svc.getDetails({ placeId:event.placeId, fields:['name','geometry'] }, function(place, status){
+          if(status!==google.maps.places.PlacesServiceStatus.OK || !place || !place.geometry) return;
           if(confirm('Vuoi aggiungere una spesa per "'+place.name+'"?')){
             ewQaSelectedPlace={lat:place.geometry.location.lat(), lon:place.geometry.location.lng(), name:place.name};
             var search=document.getElementById('ewQaPlaceSearch'); if(search) search.value=place.name;
