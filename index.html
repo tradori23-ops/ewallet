@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260815-ew-v99-poirobust';
+  var BUILD='20260815-ew-v100-geoprecise';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -1145,7 +1145,7 @@ function ewInitMap(forceRefresh){
           var label=name||('Posizione '+lat.toFixed(4)+','+lon.toFixed(4));
           if(confirm('Vuoi aggiungere una spesa per "'+label+'"?')){
             ewQaSelectedPlace={lat:lat, lon:lon, name:label};
-            var search=document.getElementById('ewQaPlaceSearch'); if(search) search.value=label;
+            var search=document.getElementById('ewQaPlaceSearch'); if(search){ search.value=label; search.select(); }
             var form=document.getElementById('ewQuickAddForm');
             if(form && form.style.display!=='block') ewToggleQuickAdd();
             var imp=document.getElementById('ewQaImporto');
@@ -1558,11 +1558,14 @@ function ewApplyFocusMode(win){
 }
 function ewReverseGeocode(lat, lon, callback){
   try{
-    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon+'&zoom=16&addressdetails=1')
+    fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lon+'&zoom=18&addressdetails=1&namedetails=1')
       .then(function(r){ return r.json(); })
       .then(function(data){
         var a=data && data.address;
-        var name = a ? (a.attraction||a.shop||a.amenity||a.suburb||a.village||a.town||a.city||a.municipality||'') : '';
+        var nd=data && data.namedetails;
+        // Prova prima il nome proprio del punto esatto (namedetails/name, es. "Oldies"), poi le
+        // categorie di business più comuni, solo alla fine scende a città/comune come ultima risorsa.
+        var name = (nd && nd.name) || (a ? (a.attraction||a.shop||a.amenity||a.tourism||a.leisure||a.office||a.cafe||a.restaurant||a.suburb||a.village||a.town||a.city||a.municipality||'') : '');
         callback(name || (data && data.display_name ? data.display_name.split(',').slice(0,2).join(',') : ''));
       })
       .catch(function(){ callback(''); });
