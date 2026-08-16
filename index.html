@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260815-ew-v100-geoprecise';
+  var BUILD='20260816-ew-v101-namefix';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -1754,6 +1754,19 @@ function tryAutoLogin(which, frame){
 // ════════ BOOT ════════
 (function boot(){
   var ewU=JSON.parse(localStorage.getItem(EW_KEY)||'null');
+  // Corregge un profilo già salvato dove, per mancanza del nome vero al momento del collegamento,
+  // era stato usato l'indirizzo email come nome (mostrato come "Buon pomeriggio, xxx@yyy.it").
+  // Ora che tc_users è presente, si aggiorna una volta sola col nome vero se lo trova.
+  if(ewU && ewU.email && ewU.name===ewU.email){
+    try{
+      var tcUsersFix=JSON.parse(localStorage.getItem('tc_users')||'[]');
+      var matchFix=Array.isArray(tcUsersFix)?tcUsersFix.find(function(u){return u && u.email && u.email.trim().toLowerCase()===ewU.email.toLowerCase();}):null;
+      if(matchFix && matchFix.name && matchFix.name!==ewU.email){
+        ewU={email:ewU.email, name:matchFix.name};
+        localStorage.setItem(EW_KEY, JSON.stringify(ewU));
+      }
+    }catch(_){}
+  }
   // Se manca il profilo locale ma esiste una sessione Supabase valida, la colleghiamo qui —
   // questa funzione gira PRIMA dello script Supabase più sotto nel file, quindi è l'unico punto
   // in cui il controllo può davvero vedere la sessione in tempo per evitare "Scegli profilo".
@@ -1763,7 +1776,13 @@ function tryAutoLogin(which, frame){
       if(sbSess && sbSess.access_token && sbSess.user && sbSess.user.email){
         var sbEmail=sbSess.user.email.trim();
         if(sbEmail){
-          ewU={email:sbEmail, name:sbEmail};
+          var realName=sbEmail;
+          try{
+            var tcUsers=JSON.parse(localStorage.getItem('tc_users')||'[]');
+            var match=Array.isArray(tcUsers)?tcUsers.find(function(u){return u && u.email && u.email.trim().toLowerCase()===sbEmail.toLowerCase();}):null;
+            if(match && match.name) realName=match.name;
+          }catch(_){}
+          ewU={email:sbEmail, name:realName};
           localStorage.setItem(EW_KEY, JSON.stringify(ewU));
           localStorage.setItem('gw_current', sbEmail);
         }
@@ -1787,19 +1806,9 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
   const SESSION_KEY='ew_sb_session_v2';
   const META_KEY='ew_sb_last_sync';
   const KNOWN_KEY='ew_sb_known_updated_at';
-  // Collega SUBITO (sincrono, non aspetta DOMContentLoaded) la sessione Supabase al gate locale
-  // della shell ('ew_user') — quel controllo gira PRIMA che questo script arrivi al proprio boot()
-  // asincrono più sotto, quindi farlo solo lì arriva sempre troppo tardi.
-  try{
-    var _swSess=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');
-    if(_swSess && _swSess.access_token && _swSess.user && _swSess.user.email){
-      var _swEmail0=_swSess.user.email.trim();
-      if(_swEmail0){
-        localStorage.setItem('ew_user', JSON.stringify({email:_swEmail0, name:_swEmail0}));
-        localStorage.setItem('gw_current', _swEmail0);
-      }
-    }
-  }catch(_){}
+  // Nota: il collegamento sessione→profilo locale vive ora SOLO nella funzione BOOT esterna
+  // (gira prima di questo script, quindi è l'unico punto in cui il controllo di avvio della shell
+  // può vederlo in tempo) — qui non serve più ripeterlo.
   const gate=document.getElementById('sbGate');
   const msg=document.getElementById('sbMsg');
   const email=document.getElementById('sbEmail');
