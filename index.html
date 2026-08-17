@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260817-ew-v115-openinghours';
+  var BUILD='20260817-ew-v116-poicard';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -454,6 +454,16 @@ body.ew-day .ew-mapkey-row input{ background:rgba(255,255,255,0.7); border-color
 body.ew-day .ew-map-refresh{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.12); color:#20281f; }
 .ew-qa-field{ flex:1; margin-top:10px; position:relative; }
 .ew-qa-field label{ display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+.ew-poi-confirm-back{ position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9998; }
+.ew-poi-confirm{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9999;
+  background:#1c1c2e; border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:20px;
+  width:min(340px,88vw); box-shadow:0 20px 50px rgba(0,0,0,.5); color:#eee; font-family:'DM Sans',sans-serif; }
+.ew-poi-confirm-title{ font-size:15px; font-weight:700; margin-bottom:10px; line-height:1.4; }
+.ew-poi-confirm-hours{ font-size:12.5px; color:#aaa; background:rgba(255,255,255,.05); border-radius:10px; padding:10px 12px; margin-bottom:14px; line-height:1.6; }
+.ew-poi-confirm-actions{ display:flex; gap:10px; justify-content:flex-end; }
+.ew-poi-confirm-actions button{ border:none; border-radius:20px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; }
+.ew-poi-no{ background:rgba(255,255,255,.08); color:#ccc; }
+.ew-poi-yes{ background:var(--gold,#c9a84c); color:#1a1a1a; }
 .ew-qa-quickchips{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
 .ew-qa-quickchips button{ background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.35); color:var(--gold,#c9a84c); border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s; white-space:nowrap; }
 .ew-qa-quickchips button:hover{ background:rgba(201,168,76,0.22); }
@@ -1305,28 +1315,53 @@ function ewInitMap(forceRefresh){
         // Le coordinate vengono SEMPRE dal click stesso, mai da una chiamata a parte — così funziona
         // comunque anche se il resto (nome del posto via Google) non va a buon fine per qualunque motivo.
         var lat=event.latLng.lat(), lon=event.latLng.lng();
-        var proceed=function(name){
-          var label=name||('Posizione '+lat.toFixed(4)+','+lon.toFixed(4));
-          if(confirm('Vuoi aggiungere una spesa per "'+label+'"?')){
+        var placeId=event.placeId;
+        var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+        var showConfirmCard=function(label, hoursHtml){
+          var old=document.getElementById('ewPoiConfirm'); if(old) old.remove();
+          var back=document.createElement('div'); back.id='ewPoiConfirmBack'; back.className='ew-poi-confirm-back';
+          var card=document.createElement('div'); card.id='ewPoiConfirm'; card.className='ew-poi-confirm';
+          card.innerHTML =
+            '<div class="ew-poi-confirm-title">Vuoi aggiungere una spesa per "'+esc(label)+'"?</div>' +
+            (hoursHtml||'') +
+            '<div class="ew-poi-confirm-actions"><button type="button" class="ew-poi-no">Annulla</button><button type="button" class="ew-poi-yes">Sì, aggiungi</button></div>';
+          document.body.appendChild(back);
+          document.body.appendChild(card);
+          var close=function(){ back.remove(); card.remove(); };
+          back.onclick=close;
+          card.querySelector('.ew-poi-no').onclick=close;
+          card.querySelector('.ew-poi-yes').onclick=function(){
+            close();
             ewQaSelectedPlace={lat:lat, lon:lon, name:label};
             var search=document.getElementById('ewQaPlaceSearch'); if(search){ search.value=label; search.select(); }
             var form=document.getElementById('ewQuickAddForm');
             if(form && form.style.display!=='block') ewToggleQuickAdd();
             var imp=document.getElementById('ewQaImporto');
             if(imp){ imp.focus(); imp.scrollIntoView({behavior:'smooth', block:'center'}); }
-          }
+          };
         };
         var gotName=false;
+        var finish=function(name, place){
+          if(gotName) return; gotName=true;
+          var label=name||('Posizione '+lat.toFixed(4)+','+lon.toFixed(4));
+          var hoursHtml='';
+          if(place && place.opening_hours && place.opening_hours.weekday_text){
+            var openNow=place.opening_hours.open_now;
+            var badge = openNow===true ? '<span style="color:#4caf82;font-weight:700;">Aperto ora</span>' : (openNow===false ? '<span style="color:#e05c5c;font-weight:700;">Chiuso ora</span>' : '');
+            hoursHtml = '<div class="ew-poi-confirm-hours">'+(badge?badge+'<br>':'')+place.opening_hours.weekday_text.map(esc).join('<br>')+'</div>';
+          }
+          showConfirmCard(label, hoursHtml);
+        };
         try{
           var svc=ewGetPlacesService();
-          svc.getDetails({ placeId:event.placeId, fields:['name'] }, function(place, status){
-            if(status===google.maps.places.PlacesServiceStatus.OK && place && place.name){ gotName=true; proceed(place.name); }
-            else if(!gotName){ ewReverseGeocode(lat, lon, function(n){ if(!gotName){ gotName=true; proceed(n); } }); }
+          svc.getDetails({ placeId:placeId, fields:['name','opening_hours'] }, function(place, status){
+            if(status===google.maps.places.PlacesServiceStatus.OK && place && place.name){ finish(place.name, place); }
+            else if(!gotName){ ewReverseGeocode(lat, lon, function(n){ finish(n, null); }); }
           });
-        }catch(e){ ewReverseGeocode(lat, lon, function(n){ if(!gotName){ gotName=true; proceed(n); } }); }
+        }catch(e){ ewReverseGeocode(lat, lon, function(n){ finish(n, null); }); }
         // Se Google Places non risponde affatto entro un attimo (chiave che non copre quella funzione,
         // rete lenta, ecc.) si procede comunque col nome trovato via geocodifica, invece di restare bloccati.
-        setTimeout(function(){ if(!gotName){ gotName=true; ewReverseGeocode(lat, lon, proceed); } }, 2500);
+        setTimeout(function(){ if(!gotName){ ewReverseGeocode(lat, lon, function(n){ finish(n, null); }); } }, 2500);
       });
     });
   }
