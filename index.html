@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260817-ew-v113-nearbysearch';
+  var BUILD='20260817-ew-v115-openinghours';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -860,8 +860,9 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <div id="ewQuickAddForm" style="display:none;">
           <div class="ew-qa-field">
             <label>Luogo</label>
-            <input type="text" id="ewQaPlaceSearch" placeholder="Cerca un posto..." autocomplete="off" oninput="ewSearchPlace(this.value)">
+            <input type="text" id="ewQaPlaceSearch" placeholder="Cerca un posto e premi Invio..." autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();ewSearchPlace(this.value);}">
             <div class="ew-qa-quickchips">
+              <button type="button" onclick="ewSearchPlace(document.getElementById('ewQaPlaceSearch').value)">🔍 Cerca</button>
               <button type="button" onclick="ewQuickNearby('restaurant')">🍽️ Ristoranti vicini</button>
               <button type="button" onclick="ewQuickNearby('bar')">🍺 Bar vicini</button>
             </div>
@@ -1355,11 +1356,19 @@ function ewToggleQuickAdd(){
   }
 }
 function ewSearchPlace(q){
-  clearTimeout(ewQaSearchTimer);
   var results=document.getElementById('ewQaPlaceResults');
   ewQaSelectedPlace=null;
   if(!q || q.trim().length<3){ results.style.display='none'; results.innerHTML=''; return; }
-  ewQaSearchTimer=setTimeout(function(){
+  // Ricerca solo su richiesta esplicita (Invio o pulsante), mai mentre si digita: Nominatim vieta
+  // esplicitamente la ricerca automatica "a ogni tasto" nelle sue regole d'uso, e con troppe
+  // richieste ravvicinate blocca temporaneamente chi le manda. Rispetto anche il limite di
+  // massimo 1 richiesta al secondo imposto dalle loro regole.
+  var now = Date.now();
+  var wait = Math.max(0, 1100 - (now - (window._ewLastSearchAt||0)));
+  window._ewLastSearchAt = now + wait;
+  results.innerHTML = '<div style="padding:8px 4px;color:var(--muted);font-size:12px;">Cerco\\u2026</div>';
+  results.style.display='block';
+  setTimeout(function(){
     if(window.google && window.google.maps && window.google.maps.places){
       ewSearchPlaceGoogle(q, results);
     } else {
@@ -1373,8 +1382,14 @@ function ewQuickNearby(kind){
   var label = kind==='restaurant' ? 'Ristoranti vicini' : 'Bar vicini';
   if(input) input.value = label;
   ewQaSelectedPlace=null;
+  var now = Date.now();
+  var wait = Math.max(0, 1100 - (now - (window._ewLastSearchAt||0)));
+  window._ewLastSearchAt = now + wait;
   results.innerHTML = '<div style="padding:8px 4px;color:var(--muted);font-size:12px;">Cerco '+label.toLowerCase()+'\\u2026</div>';
   results.style.display='block';
+  setTimeout(function(){ ewQuickNearbyGo(kind, results); }, wait);
+}
+function ewQuickNearbyGo(kind, results){
   var center = window._ewMapInstance ? window._ewMapInstance.getCenter() : null;
   if(window.google && window.google.maps && window.google.maps.places){
     var svc=ewGetPlacesService();
@@ -1386,7 +1401,7 @@ function ewQuickNearby(kind){
         return;
       }
       window._ewQaResults=list.slice(0,6).map(function(r){
-        return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):'') };
+        return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), place_id:r.place_id||null, display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):'') };
       });
       ewRenderPlaceResults(results);
     });
@@ -1421,7 +1436,7 @@ function ewSearchPlaceGoogle(q, results){
       return;
     }
     window._ewQaResults=list.slice(0,5).map(function(r){
-      return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):'') };
+      return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):''), place_id:r.place_id||null };
     });
     ewRenderPlaceResults(results);
   });
@@ -1451,6 +1466,30 @@ function ewSelectPlaceByIndex(i){
   ewQaSelectedPlace={lat:parseFloat(r.lat), lon:parseFloat(r.lon), name:name};
   document.getElementById('ewQaPlaceSearch').value=name;
   document.getElementById('ewQaPlaceResults').style.display='none';
+  ewShowOpeningHours(r.place_id);
+}
+function ewShowOpeningHours(placeId){
+  var el=document.getElementById('ewQaHours');
+  if(el){ el.remove(); }
+  // Mostra SOLO gli orari di apertura reali (dato ufficiale di Google Places). Il "livello di
+  // affollamento" in tempo reale non è un dato che Google mette a disposizione tramite API
+  // pubblica, quindi non viene mostrato — meglio nessun dato che un dato inventato.
+  if(!placeId || !(window.google && window.google.maps && window.google.maps.places)) return;
+  try{
+    var svc=ewGetPlacesService();
+    svc.getDetails({ placeId:placeId, fields:['opening_hours'] }, function(place, status){
+      if(status!==google.maps.places.PlacesServiceStatus.OK || !place || !place.opening_hours || !place.opening_hours.weekday_text) return;
+      var wrap=document.createElement('div');
+      wrap.id='ewQaHours';
+      wrap.style.cssText='margin-top:8px;padding:10px 12px;background:rgba(255,255,255,0.05);border-radius:10px;font-size:12px;color:var(--muted);';
+      var openNow = place.opening_hours.open_now;
+      var badge = openNow===true ? '<span style="color:#4caf82;font-weight:700;">Aperto ora</span>' : (openNow===false ? '<span style="color:#e05c5c;font-weight:700;">Chiuso ora</span>' : '');
+      var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+      wrap.innerHTML = (badge?badge+'<br>':'') + place.opening_hours.weekday_text.map(function(d){ return esc(d); }).join('<br>');
+      var searchField=document.getElementById('ewQaPlaceSearch');
+      if(searchField && searchField.parentNode) searchField.parentNode.insertBefore(wrap, searchField.nextSibling);
+    });
+  }catch(e){ /* nessun dato disponibile: nessun problema, semplicemente non si mostra nulla */ }
 }
 async function ewQuickAddExpense(){
   var msg=document.getElementById('ewQaMsg');
