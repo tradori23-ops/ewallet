@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260817-ew-v116-poicard';
+  var BUILD='20260818-ew-v118-pastspending';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -880,7 +880,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
           </div>
           <div class="ew-qa-row">
             <div class="ew-qa-field"><label>Causale</label><input type="text" id="ewQaCausale" placeholder="Es. Pranzo"></div>
-            <div class="ew-qa-field" style="max-width:100px;"><label>Importo</label><input type="number" id="ewQaImporto" placeholder="0,00" step="0.01"></div>
+            <div class="ew-qa-field" style="max-width:100px;"><label>Importo</label><input type="text" inputmode="decimal" id="ewQaImporto" placeholder="0,00"></div>
             <div class="ew-qa-field" style="max-width:84px;"><label>Valuta</label><select id="ewQaValuta" style="width:100%;padding:10px 6px;border-radius:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);color:var(--text);font-size:13px;font-family:inherit;box-sizing:border-box;"><option value="EUR">€ EUR</option><option value="GBP">£ GBP</option><option value="RON">RON</option><option value="USD">$ USD</option><option value="CHF">CHF</option></select></div>
           </div>
           <div class="ew-qa-row">
@@ -1350,7 +1350,8 @@ function ewInitMap(forceRefresh){
             var badge = openNow===true ? '<span style="color:#4caf82;font-weight:700;">Aperto ora</span>' : (openNow===false ? '<span style="color:#e05c5c;font-weight:700;">Chiuso ora</span>' : '');
             hoursHtml = '<div class="ew-poi-confirm-hours">'+(badge?badge+'<br>':'')+place.opening_hours.weekday_text.map(esc).join('<br>')+'</div>';
           }
-          showConfirmCard(label, hoursHtml);
+          var spendingHtml=ewRenderPastSpendingHtml(ewFindPastSpending(label));
+          showConfirmCard(label, hoursHtml+spendingHtml);
         };
         try{
           var svc=ewGetPlacesService();
@@ -1501,30 +1502,85 @@ function ewSelectPlaceByIndex(i){
   ewQaSelectedPlace={lat:parseFloat(r.lat), lon:parseFloat(r.lon), name:name};
   document.getElementById('ewQaPlaceSearch').value=name;
   document.getElementById('ewQaPlaceResults').style.display='none';
-  ewShowOpeningHours(r.place_id);
+  ewShowOpeningHours(r.place_id, name);
 }
-function ewShowOpeningHours(placeId){
+function ewFindPastSpending(placeName){
+  // Cerca tra le spese normali E quelle di vacanza (due strutture dati diverse, stesso
+  // criterio) tutte le voci salvate con lo stesso identico luogo — indipendentemente
+  // dalla data, così mostra sia "oggi" (se presente) sia tutte le volte precedenti insieme.
+  // Confronto solo sulla parte prima della virgola: la ricerca testuale include spesso la
+  // città nel nome ("Smash Daddy, Câmpulung"), mentre le spese salvate hanno solo il nome
+  // del locale ("Smash Daddy") — un confronto esatto sull'intera stringa li mancherebbe.
+  if(!placeName) return [];
+  var win=document.getElementById('frame-tc') ? document.getElementById('frame-tc').contentWindow : null;
+  if(!win) return [];
+  var core=function(t){ return String(t||'').split(',')[0].trim().toLowerCase(); };
+  var target=core(placeName);
+  if(!target) return [];
+  var results=[];
+  try{
+    (win.getExpenses ? win.getExpenses() : []).forEach(function(e){
+      if(e.luogo && core(e.luogo)===target){
+        results.push({ causale:e.desc||'—', importo:e.amount, data:e.date });
+      }
+    });
+  }catch(e){}
+  try{
+    (win.getVacanze ? win.getVacanze() : []).forEach(function(v){
+      (v.spese||[]).forEach(function(s){
+        if(s.luogo && core(s.luogo)===target){
+          results.push({ causale:s.causale||'—', importo:(s.importoEUR!=null?s.importoEUR:s.importo), data:s.data });
+        }
+      });
+    });
+  }catch(e){}
+  results.sort(function(a,b){ return (b.data||'').localeCompare(a.data||''); });
+  return results;
+}
+function ewRenderPastSpendingHtml(list){
+  if(!list.length) return '';
+  var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+  var CAP=5;
+  var todayStr=new Date().toISOString().slice(0,10);
+  var rows=list.slice(0,CAP).map(function(s){
+    var isToday = s.data===todayStr;
+    var dLabel = isToday ? 'Oggi' : (s.data ? s.data.split('-').reverse().slice(0,2).join('/') : '—');
+    var amt='€'+Number(s.importo||0).toFixed(2).replace('.',',');
+    return '<div>'+(isToday?'<b>':'')+esc(dLabel)+(isToday?'</b>':'')+': '+esc(s.causale)+' — <b>'+amt+'</b></div>';
+  }).join('');
+  var extra = list.length>CAP ? '<div style="opacity:.7;margin-top:2px;">+'+(list.length-CAP)+' altre</div>' : '';
+  return '<div class="ew-poi-spending"><div style="font-weight:700;margin-bottom:4px;">💰 Spese qui</div>'+rows+extra+'</div>';
+}
+function ewShowOpeningHours(placeId, placeName){
   var el=document.getElementById('ewQaHours');
   if(el){ el.remove(); }
-  // Mostra SOLO gli orari di apertura reali (dato ufficiale di Google Places). Il "livello di
-  // affollamento" in tempo reale non è un dato che Google mette a disposizione tramite API
-  // pubblica, quindi non viene mostrato — meglio nessun dato che un dato inventato.
-  if(!placeId || !(window.google && window.google.maps && window.google.maps.places)) return;
+  var buildAndShow=function(hoursHtml){
+    var spendingHtml=ewRenderPastSpendingHtml(ewFindPastSpending(placeName));
+    if(!hoursHtml && !spendingHtml) return;
+    var wrap=document.createElement('div');
+    wrap.id='ewQaHours';
+    wrap.style.cssText='margin-top:8px;padding:10px 12px;background:rgba(255,255,255,0.05);border-radius:10px;font-size:12px;color:var(--muted);';
+    wrap.innerHTML = hoursHtml + spendingHtml;
+    var searchField=document.getElementById('ewQaPlaceSearch');
+    if(searchField && searchField.parentNode) searchField.parentNode.insertBefore(wrap, searchField.nextSibling);
+  };
+  // Le spese passate arrivano SEMPRE (dati dell'app, non dipendono da Google) — gli orari
+  // solo se Google Places risponde utilmente con questa chiave, altrimenti si mostra
+  // comunque il resto invece di restare senza nulla.
+  if(!placeId || !(window.google && window.google.maps && window.google.maps.places)){ buildAndShow(''); return; }
   try{
     var svc=ewGetPlacesService();
     svc.getDetails({ placeId:placeId, fields:['opening_hours'] }, function(place, status){
-      if(status!==google.maps.places.PlacesServiceStatus.OK || !place || !place.opening_hours || !place.opening_hours.weekday_text) return;
-      var wrap=document.createElement('div');
-      wrap.id='ewQaHours';
-      wrap.style.cssText='margin-top:8px;padding:10px 12px;background:rgba(255,255,255,0.05);border-radius:10px;font-size:12px;color:var(--muted);';
-      var openNow = place.opening_hours.open_now;
-      var badge = openNow===true ? '<span style="color:#4caf82;font-weight:700;">Aperto ora</span>' : (openNow===false ? '<span style="color:#e05c5c;font-weight:700;">Chiuso ora</span>' : '');
-      var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
-      wrap.innerHTML = (badge?badge+'<br>':'') + place.opening_hours.weekday_text.map(function(d){ return esc(d); }).join('<br>');
-      var searchField=document.getElementById('ewQaPlaceSearch');
-      if(searchField && searchField.parentNode) searchField.parentNode.insertBefore(wrap, searchField.nextSibling);
+      var hoursHtml='';
+      if(status===google.maps.places.PlacesServiceStatus.OK && place && place.opening_hours && place.opening_hours.weekday_text){
+        var openNow = place.opening_hours.open_now;
+        var badge = openNow===true ? '<span style="color:#4caf82;font-weight:700;">Aperto ora</span>' : (openNow===false ? '<span style="color:#e05c5c;font-weight:700;">Chiuso ora</span>' : '');
+        var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
+        hoursHtml = (badge?badge+'<br>':'') + place.opening_hours.weekday_text.map(function(d){ return esc(d); }).join('<br>') + '<br>';
+      }
+      buildAndShow(hoursHtml);
     });
-  }catch(e){ /* nessun dato disponibile: nessun problema, semplicemente non si mostra nulla */ }
+  }catch(e){ buildAndShow(''); }
 }
 async function ewQuickAddExpense(){
   var msg=document.getElementById('ewQaMsg');
