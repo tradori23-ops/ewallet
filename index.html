@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260820-ew-v121-placeinfocard';
+  var BUILD='20260820-ew-v122-gpscenter';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -857,6 +857,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
       <div class="ew-mapsection-head">
         <span>🗺️ Mappa delle spese</span>
         <button class="ew-map-refresh" id="ewMapRefreshBtn" onclick="ewInitMap(true)" style="display:none;">↻ Aggiorna</button>
+        <button class="ew-map-refresh" id="ewMapLocateBtn" onclick="ewCenterOnMe()" style="display:none;">📍 Centra su di me</button>
       </div>
       <div id="ewMapKeyForm">
         <p>Per vedere le tue spese su una mappa vera serve una chiave gratuita di Google ("Maps Demo Key" — nessuna carta richiesta).</p>
@@ -1278,6 +1279,8 @@ function ewInitMap(forceRefresh){
   if(formEl) formEl.style.display='none';
   if(containerEl) containerEl.style.display='block';
   if(refreshBtn) refreshBtn.style.display='inline-block';
+  var locateBtn=document.getElementById('ewMapLocateBtn');
+  if(locateBtn) locateBtn.style.display='inline-block';
   var qaWrap=document.getElementById('ewQuickAddWrap');
   if(qaWrap) qaWrap.style.display='block';
   var win=document.getElementById('frame-tc')?document.getElementById('frame-tc').contentWindow:null;
@@ -1494,6 +1497,31 @@ function ewGetPlacesService(){
   if(window._ewMapInstance) return new google.maps.places.PlacesService(window._ewMapInstance);
   if(!window._ewPlacesHiddenDiv){ window._ewPlacesHiddenDiv=document.createElement('div'); }
   return new google.maps.places.PlacesService(window._ewPlacesHiddenDiv);
+}
+function ewCenterOnMe(){
+  var btn=document.getElementById('ewMapLocateBtn');
+  if(!navigator.geolocation){
+    if(btn){ var old=btn.textContent; btn.textContent='GPS non disponibile su questo dispositivo'; setTimeout(function(){btn.textContent=old;},2500); }
+    return;
+  }
+  if(btn) btn.textContent='📍 Localizzazione…';
+  navigator.geolocation.getCurrentPosition(function(pos){
+    var here=new google.maps.LatLng(pos.coords.latitude, pos.coords.longitude);
+    if(window._ewMapInstance){
+      window._ewMapInstance.setCenter(here);
+      window._ewMapInstance.setZoom(16);
+      // Marker azzurro tipo "sei qui", separato dai marker delle spese — rimosso e ricreato
+      // a ogni centratura invece di accumularsi se l'utente preme il pulsante più volte.
+      if(window._ewMeMarker) window._ewMeMarker.setMap(null);
+      window._ewMeMarker=new google.maps.Marker({
+        position:here, map:window._ewMapInstance, title:'Sei qui',
+        icon:{ path:google.maps.SymbolPath.CIRCLE, scale:8, fillColor:'#4285F4', fillOpacity:1, strokeColor:'#fff', strokeWeight:2 }
+      });
+    }
+    if(btn) btn.textContent='📍 Centra su di me';
+  }, function(err){
+    if(btn){ btn.textContent='Posizione non disponibile — controlla i permessi'; setTimeout(function(){btn.textContent='📍 Centra su di me';},3000); }
+  }, { enableHighAccuracy:true, timeout:8000 });
 }
 function ewSearchPlaceGoogle(q, results){
   var svc=ewGetPlacesService();
