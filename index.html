@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260820-ew-v124-typeprice';
+  var BUILD='20260820-ew-v125-bestmatch';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -1402,7 +1402,7 @@ function ewInitMap(forceRefresh){
           // locale diverso ma vicino mappato leggermente altrove (causa del nome sbagliato visto).
           svc.nearbySearch({ location:event.latLng, radius:40 }, function(results, status){
             if(status===google.maps.places.PlacesServiceStatus.OK && results && results.length){
-              var match = results.filter(function(r){ return r.place_id===placeId; })[0] || results[0];
+              var match = ewPickBestMatch(results, placeId);
               if(match && match.name){ finish(match.name, match); return; }
             }
             if(!gotName){ ewReverseGeocode(lat, lon, function(n){ finish(n, null); }); }
@@ -1506,6 +1506,24 @@ function ewQuickNearbyNominatim(kind, center, results){
     window._ewQaResults=(data||[]).map(function(r){ return {lat:parseFloat(r.lat), lon:parseFloat(r.lon), display_name:r.display_name}; });
     ewRenderPlaceResults(results);
   }).catch(function(){ results.innerHTML='<div style="padding:8px 4px;color:var(--muted);font-size:12px;">Ricerca non riuscita.</div>'; });
+}
+function ewPickBestMatch(results, wantedId){
+  // A volte Google ha più voci per lo stesso locale reale (una scheda vecchia/duplicata povera
+  // di dati accanto a quella corrente e completa) — se quella trovata per id esatto non ha
+  // nemmeno una valutazione, e nella stessa risposta c'è un'altra voce con nome simile che INVECE
+  // ha una valutazione, probabilmente è lo stesso posto: preferisco quella più completa.
+  var exact = results.filter(function(r){ return r.place_id===wantedId; })[0];
+  var base = exact || results[0];
+  if(base && !base.rating && base.name){
+    var baseCore = base.name.trim().toLowerCase();
+    var richer = results.filter(function(r){
+      if(r===base || !r.rating || !r.name) return false;
+      var rCore = r.name.trim().toLowerCase();
+      return rCore.indexOf(baseCore)!==-1 || baseCore.indexOf(rCore)!==-1;
+    }).sort(function(a,b){ return (b.user_ratings_total||0)-(a.user_ratings_total||0); })[0];
+    if(richer) return richer;
+  }
+  return base;
 }
 function ewGetPlacesService(){
   if(window._ewMapInstance) return new google.maps.places.PlacesService(window._ewMapInstance);
@@ -1650,7 +1668,7 @@ function ewShowOpeningHours(placeId, placeName, lat, lon){
     svc.nearbySearch({ location:loc, radius:40 }, function(results, status){
       var hoursHtml='';
       var place = (status===google.maps.places.PlacesServiceStatus.OK && results && results.length)
-        ? (results.filter(function(r){ return r.place_id===placeId; })[0] || results[0]) : null;
+        ? ewPickBestMatch(results, placeId) : null;
       if(place && place.opening_hours){
         var openNow=place.opening_hours.open_now;
         var badge = openNow===true ? '<span style="color:#4caf82;font-weight:700;">Aperto ora</span>' : (openNow===false ? '<span style="color:#e05c5c;font-weight:700;">Chiuso ora</span>' : '');
