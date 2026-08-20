@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260818-ew-v119-nearbysearch-fix';
+  var BUILD='20260820-ew-v120-listhours';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -471,9 +471,13 @@ body.ew-day .ew-map-refresh{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,
 .ew-qa-field input{ width:100%; padding:10px 12px; border-radius:9px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); color:var(--text); font-size:13px; font-family:inherit; box-sizing:border-box; }
 .ew-qa-row{ display:flex; gap:12px; }
 #ewQaPlaceResults{ position:absolute; top:100%; left:0; right:0; z-index:20; background:var(--bg2); border:1px solid rgba(255,255,255,0.16); border-radius:9px; margin-top:3px; max-height:180px; overflow-y:auto; display:none; }
-.ew-qa-result{ padding:9px 12px; font-size:12.5px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); }
+.ew-qa-result{ padding:9px 12px; font-size:12.5px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
 .ew-qa-result:last-child{ border-bottom:none; }
 .ew-qa-result:hover{ background:rgba(255,255,255,0.06); }
+.ew-qa-result>span:first-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ew-qa-openbadge{ flex-shrink:0; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; }
+.ew-qa-openbadge.open{ background:rgba(76,175,130,0.18); color:#4caf82; }
+.ew-qa-openbadge.closed{ background:rgba(224,92,92,0.18); color:#e05c5c; }
 #ewQaMsg{ font-size:12px; margin-top:8px; text-align:center; }
 body.ew-day .ew-qa-field input{ background:rgba(255,255,255,0.7); border-color:rgba(0,0,0,0.12); color:#20281f; }
 body.ew-day #ewQaPlaceResults{ background:#fdfbf5; border-color:rgba(0,0,0,0.12); }
@@ -1449,7 +1453,7 @@ function ewQuickNearbyGo(kind, results){
         return;
       }
       window._ewQaResults=list.slice(0,6).map(function(r){
-        return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), place_id:r.place_id||null, display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):'') };
+        return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), place_id:r.place_id||null, openNow:(r.opening_hours?r.opening_hours.open_now:null), display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):'') };
       });
       ewRenderPlaceResults(results);
     });
@@ -1484,7 +1488,7 @@ function ewSearchPlaceGoogle(q, results){
       return;
     }
     window._ewQaResults=list.slice(0,5).map(function(r){
-      return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):''), place_id:r.place_id||null };
+      return { lat:r.geometry.location.lat(), lon:r.geometry.location.lng(), display_name:(r.name||'')+(r.formatted_address?(', '+r.formatted_address):''), place_id:r.place_id||null, openNow:(r.opening_hours?r.opening_hours.open_now:null) };
     });
     ewRenderPlaceResults(results);
   });
@@ -1503,7 +1507,8 @@ function ewRenderPlaceResults(results){
   var esc=function(t){return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');};
   results.innerHTML=(window._ewQaResults||[]).map(function(r,i){
     var name=(r.display_name||'').split(',').slice(0,3).join(',');
-    return '<div class="ew-qa-result" onclick="ewSelectPlaceByIndex('+i+')">'+esc(name)+'</div>';
+    var statusHtml = r.openNow===true ? '<span class="ew-qa-openbadge open">Aperto</span>' : (r.openNow===false ? '<span class="ew-qa-openbadge closed">Chiuso</span>' : '');
+    return '<div class="ew-qa-result" onclick="ewSelectPlaceByIndex('+i+')"><span>'+esc(name)+'</span>'+statusHtml+'</div>';
   }).join('');
   results.style.display='block';
 }
