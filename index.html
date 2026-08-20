@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260820-ew-v122-gpscenter';
+  var BUILD='20260820-ew-v124-typeprice';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -461,6 +461,7 @@ body.ew-day .ew-map-refresh{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,
 .ew-poi-photo{ width:calc(100% + 40px); margin:-20px -20px 12px -20px; height:150px; background-size:cover; background-position:center; border-radius:16px 16px 0 0; }
 .ew-poi-confirm-title{ font-size:16px; font-weight:700; margin-bottom:6px; line-height:1.4; }
 .ew-poi-rating{ font-size:13px; margin-bottom:4px; }
+.ew-poi-meta{ font-size:12px; color:#999; margin-bottom:4px; }
 .ew-poi-address{ font-size:12px; color:#999; margin-bottom:10px; }
 .ew-poi-confirm-hours{ font-size:12.5px; color:#aaa; background:rgba(255,255,255,.05); border-radius:10px; padding:10px 12px; margin-bottom:14px; line-height:1.6; }
 .ew-poi-confirm-actions{ display:flex; gap:10px; justify-content:flex-end; }
@@ -1338,14 +1339,27 @@ function ewInitMap(forceRefresh){
           if(place && place.rating){
             ratingHtml='<div class="ew-poi-rating">\u2b50 '+place.rating.toFixed(1)+(place.user_ratings_total?(' <span style="opacity:.6;">('+place.user_ratings_total+')</span>'):'')+'</div>';
           }
+          var TYPE_LABELS={restaurant:'Ristorante',cafe:'Caff\u00e8',bar:'Bar',bakery:'Fornaio',lodging:'Alloggio',meal_takeaway:'Da asporto',night_club:'Locale notturno',supermarket:'Supermercato',store:'Negozio',shopping_mall:'Centro commerciale'};
+          var metaHtml='';
+          if(place && place.types && place.types.length){
+            var t=place.types.filter(function(x){ return TYPE_LABELS[x]; })[0];
+            var typeLabel = t ? TYPE_LABELS[t] : place.types[0].replace(/_/g,' ').replace(/\b\w/g, function(c){return c.toUpperCase();});
+            var priceLabel = (place.price_level!=null) ? (' \u00b7 '+Array(place.price_level+1).join('\u20ac')) : '';
+            metaHtml='<div class="ew-poi-meta">'+esc(typeLabel)+priceLabel+'</div>';
+          }
           var addressHtml='';
           var addr = place && (place.vicinity || place.formatted_address);
           if(addr){ addressHtml='<div class="ew-poi-address">\ud83d\udccd '+esc(addr)+'</div>'; }
+          var noExtra='';
+          if(!photoUrl && !ratingHtml && !addressHtml && !hoursHtml && !metaHtml){
+            noExtra='<div style="font-size:12px;color:#888;font-style:italic;margin-bottom:10px;">Nessuna informazione aggiuntiva disponibile su Google per questo locale.</div>';
+          }
           card.innerHTML =
             (photoUrl?('<div class="ew-poi-photo" style="background-image:url(\''+photoUrl+'\')"></div>'):'') +
             '<div class="ew-poi-confirm-title">'+esc(label)+'</div>' +
+            metaHtml +
             ratingHtml + addressHtml +
-            (hoursHtml||'') +
+            (hoursHtml||'') + noExtra +
             '<div class="ew-poi-confirm-actions"><button type="button" class="ew-poi-no">Chiudi</button><button type="button" class="ew-poi-yes">\u2795 Aggiungi spesa qui</button></div>';
           document.body.appendChild(back);
           document.body.appendChild(card);
