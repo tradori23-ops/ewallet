@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260820-ew-v125-bestmatch';
+  var BUILD='20260911-ew-v126';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -844,6 +844,11 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
       <div class="ew-tile" onclick="openTcSection('calendario')">
         <div class="ic ic-altro">🗓️</div>
         <div class="lb">Calendario &amp; Note</div>
+      </div>
+      <div class="ew-tile" onclick="openTcSection('grafici')" style="border:1.5px solid rgba(74,232,122,0.3);position:relative;">
+        <div style="position:absolute;top:6px;right:6px;background:#4ae87a;color:#0a1a08;font-size:8px;font-weight:700;padding:1px 5px;border-radius:6px;">NEW</div>
+        <div class="ic ic-altro">📊</div>
+        <div class="lb" style="color:#4ae87a;">Grafici</div>
       </div>
       <div class="ew-tile wide" onclick="launcherOpenSub('banca')">
         <div class="ic ic-banca">🏦</div>
