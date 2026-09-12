@@ -30453,10 +30453,9 @@ self.addEventListener('fetch',e=>{
     if(password) password.addEventListener('keydown',function(e){if(e.key==='Enter')login();});
     try{session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){session=null;}
     if(session && session.access_token && session.user){
-      try{await syncAfterLogin();reveal();}catch(e){
-        console.warn('Sessione non valida o sync fallita:',e);
-        localStorage.removeItem(SESSION_KEY); session=null;
-        setMessage('Sessione scaduta: accedi di nuovo.');
+      reveal();
+      try{await syncAfterLogin();}catch(e){
+        console.warn('Sync di avvio non riuscita (sessione locale comunque valida):',e);
       }
     }
     const nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem, nativeClear=Storage.prototype.clear;
