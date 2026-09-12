@@ -30390,39 +30390,16 @@ self.addEventListener('fetch',e=>{
   function authHeaders(){
     return {'apikey':SB_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'};
   }
-  async function rawFetch(url, options){
+  async function api(url, options){
     const controller=new AbortController();
     const timer=setTimeout(function(){controller.abort();},15000);
     try{
       const res=await fetch(url,Object.assign({},options||{},{signal:controller.signal}));
       const text=await res.text();
       let body=null; try{body=text?JSON.parse(text):null;}catch(_){body=text;}
-      return {ok:res.ok, status:res.status, body:body};
+      if(!res.ok) throw new Error((body&&body.message)||(body&&body.msg)||(body&&body.error_description)||(body&&body.error)||('Errore HTTP '+res.status));
+      return body;
     } finally {clearTimeout(timer);}
-  }
-  async function refreshSession(){
-    if(!session || !session.refresh_token) throw new Error('SESSION_EXPIRED');
-    const r=await rawFetch(SB_URL+'/auth/v1/token?grant_type=refresh_token',{
-      method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},
-      body:JSON.stringify({refresh_token:session.refresh_token})
-    });
-    if(!r.ok || !r.body || !r.body.access_token) throw new Error('SESSION_EXPIRED');
-    session=Object.assign({},session,r.body);
-    localStorage.setItem(SESSION_KEY,JSON.stringify(session));
-    return session;
-  }
-  async function api(url, options, _retried){
-    const r=await rawFetch(url, options);
-    if(r.status===401 && !_retried){
-      await refreshSession(); // lancia SESSION_EXPIRED se il refresh fallisce davvero
-      const retryOptions=Object.assign({}, options||{});
-      if(retryOptions.headers && retryOptions.headers.Authorization){
-        retryOptions.headers=Object.assign({}, retryOptions.headers, {Authorization:'Bearer '+session.access_token});
-      }
-      return api(url, retryOptions, true);
-    }
-    if(!r.ok) throw new Error((r.body&&r.body.message)||(r.body&&r.body.msg)||(r.body&&r.body.error_description)||(r.body&&r.body.error)||('Errore HTTP '+r.status));
-    return r.body;
   }
   async function signIn(e,p){
     return api(SB_URL+'/auth/v1/token?grant_type=password',{
@@ -30438,18 +30415,10 @@ self.addEventListener('fetch',e=>{
     });
     localStorage.setItem(META_KEY,String(Date.now()));
   }
-  function handleSessionExpired(e){
-    if(!e || e.message!=='SESSION_EXPIRED') return false;
-    console.warn('Sessione scaduta anche dopo il tentativo di refresh:',e);
-    localStorage.removeItem(SESSION_KEY); session=null;
-    if(gate) gate.classList.remove('sb-hidden');
-    setMessage('Sessione scaduta: accedi di nuovo.');
-    return true;
-  }
   function schedulePush(){
     if(applyingCloud || !session) return;
     clearTimeout(saveTimer);
-    saveTimer=setTimeout(function(){pushNow().catch(function(e){console.error('Supabase sync:',e);handleSessionExpired(e);});},1200);
+    saveTimer=setTimeout(function(){pushNow().catch(function(e){console.error('Supabase sync:',e);});},1200);
   }
   async function syncAfterLogin(){
     const rows=await api(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
@@ -30486,7 +30455,7 @@ self.addEventListener('fetch',e=>{
     if(session && session.access_token && session.user){
       reveal();
       try{await syncAfterLogin();}catch(e){
-        if(!handleSessionExpired(e)) console.warn('Sync di avvio non riuscita (sessione locale comunque valida):',e);
+        console.warn('Sync di avvio non riuscita (sessione locale comunque valida):',e);
       }
     }
     const nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem, nativeClear=Storage.prototype.clear;
