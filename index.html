@@ -619,8 +619,15 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
     <p>Accedi con il tuo account Supabase. I dati restano sincronizzati tra Mac, telefono e tablet.</p>
     <input id="sbEmail" type="email" placeholder="Email" autocomplete="username">
     <input id="sbPassword" type="password" placeholder="Password" autocomplete="current-password">
+    <button type="button" id="sbForgotBtn" style="background:transparent;border:none;color:rgba(244,239,228,.7);font-size:13px;text-decoration:underline;cursor:pointer;padding:6px 0 2px;text-align:left">Password dimenticata?</button>
     <button id="sbLoginBtn" type="button">Accedi e sincronizza</button>
     <div id="sbMsg"></div>
+    <div id="sbRecoverBox" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)">
+      <p style="margin:0 0 10px;font-size:13px;color:rgba(244,239,228,.85)">Imposta una nuova password per il tuo account.</p>
+      <input id="sbNewPass1" type="password" placeholder="Nuova password" autocomplete="new-password">
+      <input id="sbNewPass2" type="password" placeholder="Ripeti nuova password" autocomplete="new-password" style="margin-top:8px">
+      <button id="sbRecoverBtn" type="button" style="margin-top:10px">Salva nuova password</button>
+    </div>
     <button id="sbSkip" type="button" style="margin-top:12px;width:100%;padding:12px;border:1px solid rgba(255,255,255,.22);border-radius:11px;background:transparent;color:rgba(244,239,228,.82);font-weight:600;cursor:pointer">Continua offline (usa i dati su questo dispositivo)</button>
   </div>
 </div>
@@ -2421,6 +2428,37 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
     else await pushNow(true);
   }
   function reveal(){if(gate) gate.classList.add('sb-hidden');}
+  async function requestPasswordReset(){
+    const e=(email&&email.value||'').trim();
+    if(!e){setMessage('Scrivi la tua email qui sopra, poi tocca di nuovo "Password dimenticata?".');return;}
+    setMessage('Invio email in corso…',true);
+    try{
+      var redirectTo=location.origin+location.pathname;
+      await api(SB_URL+'/auth/v1/recover?redirect_to='+encodeURIComponent(redirectTo),{method:'POST',headers:{'apikey':SB_KEY,'Content-Type':'application/json'},body:JSON.stringify({email:e})});
+      setMessage('Controlla la tua email: ti abbiamo mandato un link per reimpostare la password.',true);
+    }catch(err){
+      console.error('Richiesta reset password:',err);
+      setMessage('Non sono riuscito a inviare l\'email. Riprova tra poco.');
+    }
+  }
+  async function completePasswordRecovery(accessToken){
+    const p1=document.getElementById('sbNewPass1').value;
+    const p2=document.getElementById('sbNewPass2').value;
+    if(!p1||p1.length<6){setMessage('La password deve avere almeno 6 caratteri.');return;}
+    if(p1!==p2){setMessage('Le due password non coincidono.');return;}
+    const btn=document.getElementById('sbRecoverBtn');
+    if(btn){btn.disabled=true;btn.textContent='Salvataggio…';}
+    try{
+      await api(SB_URL+'/auth/v1/user',{method:'PUT',headers:{'apikey':SB_KEY,'Authorization':'Bearer '+accessToken,'Content-Type':'application/json'},body:JSON.stringify({password:p1})});
+      history.replaceState(null,'',location.pathname+location.search);
+      document.getElementById('sbRecoverBox').style.display='none';
+      setMessage('Password aggiornata! Ora accedi con quella nuova.',true);
+    }catch(err){
+      console.error('Impostazione nuova password:',err);
+      setMessage('Non sono riuscito a salvare la nuova password. Chiedi un nuovo link.');
+      if(btn){btn.disabled=false;btn.textContent='Salva nuova password';}
+    }
+  }
   async function login(){
     const e=(email&&email.value||'').trim();
     const p=password&&password.value||'';
@@ -2442,9 +2480,19 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
   }
   async function boot(){
     if(button) button.addEventListener('click',login);
+    var forgotBtn=document.getElementById('sbForgotBtn');
+    if(forgotBtn) forgotBtn.addEventListener('click',requestPasswordReset);
     var skip=document.getElementById('sbSkip');
     if(skip) skip.addEventListener('click',function(){setMessage('Modalit\u00e0 offline: dati locali. Accedi quando vuoi per sincronizzare.',true);reveal();});
     if(password) password.addEventListener('keydown',function(e){if(e.key==='Enter')login();});
+    var hashParams=new URLSearchParams(location.hash.replace(/^#/,''));
+    if(hashParams.get('type')==='recovery' && hashParams.get('access_token')){
+      var recoveryToken=hashParams.get('access_token');
+      document.getElementById('sbRecoverBox').style.display='block';
+      document.getElementById('sbRecoverBtn').addEventListener('click',function(){completePasswordRecovery(recoveryToken);});
+      setMessage('Inserisci la tua nuova password qui sotto.',true);
+      return;
+    }
     try{session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){session=null;}
     if(session && session.access_token && session.user){
       reveal();
