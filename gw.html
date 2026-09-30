@@ -1,0 +1,2608 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
+<script>
+(function(){
+  var BUILD='20260808-gw-v53-audit-calgrid-safearea';
+  try{window.GW_BUILD=BUILD;}catch(e){}
+  try{
+    var qp=new URLSearchParams(location.search);
+    if(qp.has('force_update')){
+      history.replaceState({}, '', location.pathname);
+      localStorage.removeItem('gw_build');
+      if('caches' in window) caches.keys().then(k=>k.forEach(c=>caches.delete(c)));
+      if('serviceWorker' in navigator){
+        navigator.serviceWorker.getRegistrations().then(function(rs){
+          Promise.all(rs.map(function(r){return r.unregister();})).then(function(){location.reload(true);});
+        }).catch(function(){location.reload(true);});
+      } else location.reload(true);
+    }
+  }catch(e){}
+  var stored='';try{stored=localStorage.getItem('gw_build')||'';}catch(e){}
+  if(stored!==BUILD){
+    try{localStorage.setItem('gw_build',BUILD);}catch(e){}
+    if(stored && 'serviceWorker' in navigator){
+      navigator.serviceWorker.getRegistrations().then(function(rs){
+        Promise.all(rs.map(function(r){return r.unregister();})).then(function(){
+          if('caches' in window){caches.keys().then(function(ks){Promise.all(ks.map(function(k){return caches.delete(k);})).then(function(){location.reload(true);});});}
+          else location.reload(true);
+        });
+      }).catch(function(){});
+    }
+  }
+})();
+</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#13231b">
+<title>GoWork — Gestione Orari</title>
+<!-- ═══ PWA ═══ -->
+<link rel="manifest" href="manifest.json">
+<link rel="icon" type="image/png" href="favicon-64.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="512x512" href="icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="GoWork">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f2ec; --bg2:#ebe8df; --card:#fffdf8; --ink:#16191c; --muted:#6b6f6a;
+  --line:#e2ddd0; --line2:#d6d0c0;
+  --go:#1f9d63; --go-soft:#e4f4ea; --go-deep:#14633f;
+  --pausa:#e08a17; --pausa-soft:#fbeed6;
+  --ferie:#0c87c4; --ferie-soft:#dcf0fa;
+  --rol:#7a5cf0; --rol-soft:#ece6fd;
+  --permr:#d8457e; --permr-soft:#fbe2ee;
+  --permn:#6b7280; --permn-soft:#eceef1;
+  --out:#9aa0a0;
+  --shadow:0 1px 2px rgba(20,30,25,.04),0 8px 24px -12px rgba(20,30,25,.18);
+  --radius:22px;
+  --glass:rgba(255,255,255,.55);
+  --glass-2:rgba(255,255,255,.40);
+  --glass-brd:rgba(255,255,255,.66);
+  --glass-hi:inset 0 1px 0 rgba(255,255,255,.9), inset 0 0 0 .5px rgba(255,255,255,.32);
+  --glass-sh:0 1px 2px rgba(20,30,25,.05), 0 18px 42px -20px rgba(20,30,25,.34);
+  --blur:22px;
+}
+html[data-theme="dark"]{
+  --bg:#101316; --bg2:#0b0d10; --card:#181c20; --ink:#eef1ee; --muted:#9aa19c;
+  --line:#262b30; --line2:#323840;
+  --go:#34c27d; --go-soft:#15281f; --go-deep:#9ff0c4;
+  --pausa:#f0a23a; --pausa-soft:#2c2110;
+  --ferie:#3fb0ec; --ferie-soft:#0e2433;
+  --rol:#a791f7; --rol-soft:#1d1733;
+  --permr:#f1689f; --permr-soft:#321325;
+  --permn:#9aa19c; --permn-soft:#20262b;
+  --out:#5b6168;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 14px 30px -16px rgba(0,0,0,.6);
+  --glass:rgba(32,38,46,.55);
+  --glass-2:rgba(32,38,46,.40);
+  --glass-brd:rgba(255,255,255,.13);
+  --glass-hi:inset 0 1px 0 rgba(255,255,255,.16);
+  --glass-sh:0 1px 2px rgba(0,0,0,.4), 0 22px 50px -22px rgba(0,0,0,.7);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;height:100%}
+body{
+  font-family:'Manrope',system-ui,sans-serif;background:var(--bg);color:var(--ink);
+  line-height:1.5;height:100%;overflow:hidden;
+  background-image:
+    radial-gradient(60vw 52vh at 6% -8%, var(--go-soft), transparent 60%),
+    radial-gradient(56vw 46vh at 102% 2%, var(--ferie-soft), transparent 58%),
+    radial-gradient(52vw 42vh at 50% 110%, var(--rol-soft), transparent 60%),
+    radial-gradient(46vw 40vh at 96% 88%, var(--permr-soft), transparent 62%);
+  background-attachment:fixed;
+}
+h1,h2,h3,.display{font-family:'Bricolage Grotesque',sans-serif;letter-spacing:-.02em;font-weight:700;margin:0}
+.mono{font-family:'JetBrains Mono',monospace;font-variant-numeric:tabular-nums}
+.app{max-width:560px;margin:0 auto;height:100%;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:var(--sat,env(safe-area-inset-top)) 16px calc(124px + var(--sab,env(safe-area-inset-bottom))) 16px}
+
+/* ===== Schermi larghi (desktop / iPad): riempi lo spazio ===== */
+@media(min-width:768px){
+  .app{max-width:1200px;padding-left:28px;padding-right:28px}
+  header{padding-top:26px}
+  .view.active{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+  .view.active>.card{margin-bottom:0}
+  .view.active>.clockcard,
+  .view.active>.fullspan{grid-column:1 / -1}
+}
+@media(min-width:1180px){
+  .app{max-width:1800px}
+  .view.active{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .view.active>.clockcard,.view.active>.fullspan{grid-column:1 / -1}
+}
+
+/* Header */
+header{display:flex;align-items:center;justify-content:space-between;padding:20px 4px 12px}
+.brand{display:flex;align-items:center;gap:10px}
+.hlogo{width:44px;height:44px;object-fit:contain;flex:none}
+.havatar{width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--go),var(--go-deep));color:#fff;display:grid;place-items:center;font-family:'Bricolage Grotesque';font-weight:800;font-size:16px;cursor:pointer;background-size:cover;background-position:center;flex:none;box-shadow:var(--shadow);transition:.15s}
+.havatar:active{transform:scale(.92)}
+html[data-theme="dark"] .havatar{color:#06140d}
+.logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,var(--go),var(--go-deep));display:grid;place-items:center;color:#fff;font-family:'Bricolage Grotesque';font-weight:800;font-size:20px;box-shadow:var(--shadow)}
+html[data-theme="dark"] .logo{color:#06140d}
+.brand b{font-family:'Bricolage Grotesque';font-size:22px;font-weight:800}
+.brand small{display:block;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;margin-top:-3px}
+.icbtn{width:40px;height:40px;border:1px solid var(--line);background:var(--card);border-radius:12px;display:grid;place-items:center;cursor:pointer;color:var(--ink);font-size:18px;transition:.15s}
+.icbtn:active{transform:scale(.94)}
+
+/* Cards */
+.card{background:var(--glass);-webkit-backdrop-filter:blur(var(--blur)) saturate(1.8);backdrop-filter:blur(var(--blur)) saturate(1.8);border:1px solid var(--glass-brd);border-radius:var(--radius);box-shadow:var(--glass-hi),var(--glass-sh);padding:18px;margin-bottom:14px}
+.card h2{font-size:16px;margin-bottom:2px}
+.card .sub{color:var(--muted);font-size:13px;margin-bottom:12px}
+
+/* Today / Clock */
+.clockcard{text-align:center;padding-top:26px;padding-bottom:24px;position:relative;overflow:hidden}
+.statuspill{display:inline-flex;align-items:center;gap:8px;padding:7px 16px;border-radius:999px;font-weight:700;font-size:13px;letter-spacing:.03em;text-transform:uppercase}
+.dot{width:9px;height:9px;border-radius:50%}
+.s-out{background:var(--bg2);color:var(--muted)} .s-out .dot{background:var(--out)}
+.s-in{background:var(--go-soft);color:var(--go-deep)} .s-in .dot{background:var(--go);animation:pulse 1.6s infinite}
+.s-pausa{background:var(--pausa-soft);color:var(--pausa)} .s-pausa .dot{background:var(--pausa);animation:pulse 1.6s infinite}
+.s-trasf{background:rgba(47,111,237,.14);color:#2f6fed} .s-trasf .dot{background:#2f6fed;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.8)}}
+.bigtime{font-family:'JetBrains Mono';font-weight:700;font-size:clamp(46px,16vw,68px);letter-spacing:-.03em;margin:14px 0 2px;line-height:1}
+.bigdate{font-family:'DM Sans',sans-serif;font-weight:600;font-size:13.5px;letter-spacing:.5px;color:var(--muted);margin:8px 0 -8px;text-transform:none}
+.bigtime small{font-size:.4em;color:var(--muted);font-weight:500}
+.clocksub{color:var(--muted);font-size:14px;margin-bottom:20px}
+.clocksub b{color:var(--ink)}
+.worktoday{font-family:'JetBrains Mono';font-weight:700;font-size:18px;color:var(--go);margin:2px 0 0;letter-spacing:.01em}
+.btnrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+.btn{border:none;border-radius:16px;padding:15px 22px;font-family:'Manrope';font-weight:700;font-size:16px;cursor:pointer;transition:.15s;display:inline-flex;align-items:center;gap:9px}
+.btn:active{transform:scale(.96)}
+.btn-go{background:var(--go);color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 8px 22px -6px var(--go)}
+html[data-theme="dark"] .btn-go{color:#06140d}
+.btn-stop{background:var(--ink);color:var(--card)}
+.btn-pausa{background:var(--pausa-soft);color:var(--pausa);border:1px solid var(--pausa)}
+.btn-trasf{background:rgba(47,111,237,.14);color:#2f6fed;border:1px solid #2f6fed}
+.btn-ghost{background:var(--glass-2);-webkit-backdrop-filter:blur(14px) saturate(1.6);backdrop-filter:blur(14px) saturate(1.6);color:var(--ink);border:1px solid var(--glass-brd);box-shadow:var(--glass-hi)}
+.btn-block{width:100%;justify-content:center}
+.btn-sm{padding:9px 14px;font-size:14px;border-radius:11px}
+
+/* Day stats grid */
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:18px}
+.stat{background:var(--bg2);border-radius:14px;padding:12px 8px;text-align:center}
+.stat .v{font-family:'JetBrains Mono';font-weight:700;font-size:19px}
+.stat .l{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:3px}
+.pos{color:var(--go)} .neg{color:var(--permr)}
+
+/* Balances */
+.balgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.bal{border-radius:14px;padding:14px;border:1px solid var(--line);position:relative;overflow:hidden}
+.bal .lab{font-size:12px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;display:flex;align-items:center;gap:7px}
+.bal .lab i{width:8px;height:8px;border-radius:3px;display:inline-block}
+.bal .big{font-family:'JetBrains Mono';font-weight:700;font-size:28px;margin:6px 0 0}
+.bal .small{font-size:12px;color:var(--muted)}
+.bal.ferie{background:var(--ferie-soft)} .bal.ferie .lab i{background:var(--ferie)}
+.bal.rol{background:var(--rol-soft)} .bal.rol .lab i{background:var(--rol)}
+.bal.permr{background:var(--permr-soft)} .bal.permr .lab i{background:var(--permr)}
+.bal.permn{background:var(--permn-soft)} .bal.permn .lab i{background:var(--permn)}
+
+/* Lists */
+.row{display:flex;align-items:center;gap:12px;padding:13px 4px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:none}
+.row .tag{width:6px;align-self:stretch;border-radius:6px;flex:none}
+.row .main{flex:1;min-width:0}
+.row .t1{font-weight:600;font-size:14.5px}
+.row .t2{color:var(--muted);font-size:12.5px;margin-top:1px}
+.row .amt{font-family:'JetBrains Mono';font-weight:700;font-size:15px;text-align:right;white-space:nowrap}
+.row .amt small{display:block;font-size:11px;color:var(--muted);font-weight:500}
+.chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-block}
+.empty{text-align:center;color:var(--muted);padding:28px 10px;font-size:14px}
+.empty .em{font-size:32px;display:block;margin-bottom:8px;opacity:.7}
+
+.cedRow{border-bottom:1px solid var(--line)}
+.cedRow:last-child{border-bottom:none}
+.cedHead{width:100%;display:flex;align-items:center;justify-content:space-between;padding:13px 4px;background:none;border:none;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.cedChev{font-size:10px;color:var(--muted);flex:none;margin-left:10px}
+.cedGrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:0 4px 16px}
+.cedLbl{font-size:11px;color:var(--muted)}
+.cedVal{font-size:15px;font-weight:700;margin-top:2px}
+.cedDelta{font-size:11px;display:block;margin-top:2px}
+
+/* ===== Calendario ===== */
+.caldow{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin-bottom:6px}
+.caldow span{text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;overflow:hidden;white-space:nowrap;min-width:0;display:block}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.calcell{min-height:60px;border:1px solid var(--line);border-radius:11px;padding:5px 3px;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:1px;transition:.12s;background:var(--card);overflow:hidden;position:relative}
+.calcell:active{transform:scale(.95)}
+.calcell.empty{border:none;background:none;cursor:default}
+.calcell.oggi{border-color:var(--go);box-shadow:inset 0 0 0 1px var(--go)}
+.calcell.festivo .cd{color:var(--permr)}
+.calcell .cd{font-size:13px;font-weight:700;font-family:'JetBrains Mono'}
+.calcell .ch{font-size:9px;color:var(--go);font-family:'JetBrains Mono';font-weight:700;margin-top:1px}
+.caldots{display:flex;gap:2px;margin-top:auto;flex-wrap:wrap;justify-content:center;padding-bottom:1px}
+.caldots i{width:5px;height:5px;border-radius:50%;display:inline-block}
+.callbl{font-size:8px;line-height:1.12;font-weight:700;text-align:center;width:100%;padding:0 1px;margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
+.callegend{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-top:14px;font-size:11px;color:var(--muted)}
+.callegend i{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;vertical-align:middle}
+@media(min-width:880px){.calcell .cd{font-size:15px}.calcell .ch{font-size:11px}}
+.mnav b{font-family:'Bricolage Grotesque';font-size:18px;text-transform:capitalize}
+
+/* Nav bar */
+nav.tabbar{position:fixed;left:0;right:0;bottom:0;background:var(--glass);-webkit-backdrop-filter:blur(24px) saturate(1.8);backdrop-filter:blur(24px) saturate(1.8);border:none;border-top:1px solid var(--glass-brd);border-radius:0;display:flex;flex-direction:column;padding:10px max(8px,env(safe-area-inset-right,8px)) calc(6px + var(--sab,env(safe-area-inset-bottom))) max(8px,env(safe-area-inset-left,8px));z-index:40;box-shadow:0 -7px 22px -14px rgba(0,0,0,.32)}
+.tabrow{display:flex;width:100%}
+.navcopy{width:100%;text-align:center;font-size:9.5px;line-height:1.4;color:var(--muted);opacity:.6;padding:8px 12px 0;letter-spacing:.2px}
+nav.tabbar button{flex:1;min-width:0;background:none;border:none;color:var(--muted);font-family:'Manrope';font-weight:600;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer;padding:6px 2px;border-radius:16px;transition:background .22s ease,color .22s ease,transform .2s cubic-bezier(.2,.9,.3,1);white-space:nowrap;overflow:hidden}
+@media(max-width:400px){nav.tabbar button{font-size:11px;gap:4px} nav.tabbar button .ic{font-size:23px}}
+nav.tabbar button .ic{font-size:26px;line-height:1;transition:transform .2s cubic-bezier(.2,.9,.3,1)}
+nav.tabbar button.active{color:var(--go);background:var(--go-soft);box-shadow:0 2px 10px -4px var(--go)}
+nav.tabbar button.active .ic{transform:scale(1.12) translateY(-1px)}
+@media(hover:hover){nav.tabbar button:hover{color:var(--ink)}nav.tabbar button:hover .ic{transform:scale(1.42) translateY(-3px)}}
+nav.tabbar button:active{background:var(--glass-2)}
+nav.tabbar button:active .ic{transform:scale(1.22)}
+
+/* Modal */
+.overlay{position:fixed;inset:0;background:rgba(10,14,12,.4);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);display:none;align-items:flex-end;justify-content:center;z-index:60;padding:0}
+.overlay.show{display:flex}
+.sheet{background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(1.8);backdrop-filter:blur(30px) saturate(1.8);border:1px solid var(--glass-brd);border-bottom:none;box-shadow:var(--glass-hi);width:100%;max-width:560px;border-radius:28px 28px 0 0;padding:8px 20px calc(24px + var(--sab,env(safe-area-inset-bottom)));max-height:92vh;overflow-y:auto;animation:up .28s cubic-bezier(.2,.9,.3,1)}
+@keyframes up{from{transform:translateY(40px);opacity:.5}to{transform:translateY(0);opacity:1}}
+.grab{width:42px;height:5px;border-radius:3px;background:var(--line2);margin:8px auto 14px}
+.sheet h3{font-size:20px;margin-bottom:16px}
+label.f{display:block;font-size:12.5px;font-weight:600;color:var(--muted);margin:12px 0 5px;text-transform:uppercase;letter-spacing:.03em}
+input,select,textarea{width:100%;font-family:'Manrope';font-size:16px;padding:12px 13px;border:1px solid var(--glass-brd);border-radius:14px;background:var(--glass-2);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);color:var(--ink);transition:.15s}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--go);box-shadow:0 0 0 3px var(--go-soft)}
+.f2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.datesel{display:grid;grid-template-columns:1fr 1.25fr 0.9fr;gap:8px}
+.datesel select,.datesel input{padding-left:10px;padding-right:6px}
+.segbtns{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:6px}
+.segbtns button{padding:11px;border-radius:14px;border:1px solid var(--glass-brd);background:var(--glass-2);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);font-family:'Manrope';font-weight:600;font-size:13px;cursor:pointer;color:var(--ink);transition:.15s;display:flex;align-items:center;justify-content:center;gap:6px}
+.segbtns button.on{border-color:transparent;color:#fff;font-weight:700}
+.segbtns button.on.ferie{background:var(--ferie)} .segbtns button.on.rol{background:var(--rol)}
+.segbtns button.on.permr{background:var(--permr)} .segbtns button.on.permn{background:var(--permn)} .segbtns button.on.fp{background:var(--go)}
+html[data-theme="dark"] .segbtns button.on{color:#0b0d10}
+.toggle{display:flex;align-items:center;justify-content:space-between;padding:13px 0;border-bottom:1px solid var(--line)}
+.toggle:last-child{border-bottom:none}
+.sw{width:48px;height:28px;border-radius:999px;background:var(--line2);position:relative;cursor:pointer;transition:.2s;flex:none}
+.sw.on{background:var(--go)}
+.sw::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:.2s}
+.sw.on::after{transform:translateX(20px)}
+.danger{color:var(--permr)}
+
+/* toast */
+#toast{position:fixed;left:50%;bottom:calc(90px + var(--sab,env(safe-area-inset-bottom)));transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--card);padding:12px 20px;border-radius:13px;font-weight:600;font-size:14px;opacity:0;pointer-events:none;transition:.25s;z-index:80;box-shadow:var(--shadow);max-width:90%;text-align:center}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.view{display:none;animation:fade .25s} .view.active{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.hint{font-size:12px;color:var(--muted);background:var(--bg2);border-radius:11px;padding:10px 12px;margin-top:10px;line-height:1.45}
+.flex{display:flex;align-items:center;gap:8px}
+.spacer{flex:1}
+
+/* ===== Pagina di accesso ===== */
+#loginPage{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding:calc(20px + var(--sat,env(safe-area-inset-top))) 22px calc(20px + var(--sab,env(safe-area-inset-bottom))) 22px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.loginbg{position:fixed;inset:0;background:var(--bg);background-image:radial-gradient(circle at 18% 8%,var(--go-soft),transparent 42%),radial-gradient(circle at 88% 92%,var(--ferie-soft),transparent 40%);z-index:-1}
+.loginwrap{width:100%;max-width:380px;animation:fade .4s}
+.loginbrand{text-align:center;margin-bottom:28px}
+.loginlogo{width:190px;max-width:62%;height:auto;display:block;margin:0 auto 6px;filter:drop-shadow(0 8px 18px rgba(40,28,18,.18))}
+html[data-theme="dark"] .loginlogo{filter:drop-shadow(0 8px 20px rgba(0,0,0,.55))}
+.loginbrand .logo{margin:0 auto 14px;box-shadow:0 10px 30px -8px var(--go)}
+.loginbrand h1{font-size:34px}
+.loginbrand p{color:var(--muted);font-size:14px;margin:4px 0 0}
+.loginsub{font-weight:700;font-size:14px;text-align:center;margin-bottom:14px;color:var(--ink)}
+.profgrid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;margin-bottom:14px}
+.profcard{position:relative;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px 10px;width:96px;text-align:center;cursor:pointer;transition:.15s;box-shadow:var(--shadow)}
+.profcard:active{transform:scale(.95)}
+.profcard.sel{border-color:var(--go);box-shadow:0 0 0 3px var(--go-soft)}
+.profdel{position:absolute;top:-7px;right:-7px;width:24px;height:24px;border-radius:50%;background:var(--permr);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:700;cursor:pointer;box-shadow:var(--shadow);z-index:2}
+.pwrap{position:relative}
+.pwrap input{padding-right:84px}
+.pweye{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--go);font-family:'Manrope';font-weight:700;font-size:13px;cursor:pointer;padding:8px 10px}
+.profcard .av{width:46px;height:46px;border-radius:50%;background:linear-gradient(135deg,var(--go),var(--go-deep));color:#fff;display:grid;place-items:center;font-family:'Bricolage Grotesque';font-weight:800;font-size:20px;margin:0 auto 8px;background-size:cover;background-position:center}
+.bgswrap{display:flex;flex-wrap:wrap;gap:10px;margin-top:6px}
+.bgsw{width:62px;height:46px;border-radius:12px;border:2px solid var(--line);cursor:pointer;background-size:cover!important;background-position:center;display:grid;place-items:center;font-size:18px;transition:.15s}
+.bgsw.on{border-color:var(--go);box-shadow:0 0 0 3px var(--go-soft)}
+.bgsw.bgimg{background:var(--bg2)}
+html[data-theme="dark"] .profcard .av{color:#06140d}
+.profcard .nm{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.linkbtn{display:block;width:100%;background:none;border:none;color:var(--go);font-family:'Manrope';font-weight:700;font-size:14px;cursor:pointer;padding:14px;margin-top:6px}
+.loginmsg{text-align:center;font-size:13.5px;font-weight:600;margin-top:14px;min-height:18px}
+.loginmsg.error{color:var(--permr)} .loginmsg.ok{color:var(--go)} .loginmsg.info{color:var(--muted)}
+/* ── Login: scena montagna/camping + card + layout desktop ── */
+.loginscene{position:fixed;left:0;right:0;bottom:0;width:100%;height:46vh;max-height:520px;z-index:-1;pointer-events:none;animation:gwSceneIn 1.1s ease both}
+.loginscene svg{position:absolute;bottom:0;left:0;width:100%;height:100%;display:block}
+@keyframes gwSceneIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:none}}
+.gw-fire{transform-origin:475px 500px;animation:gwFlicker 1.5s ease-in-out infinite}
+@keyframes gwFlicker{0%,100%{opacity:.82;transform:scaleY(1)}45%{opacity:1;transform:scaleY(1.13)}72%{opacity:.9;transform:scaleY(.95)}}
+.loginwrap{width:100%;max-width:400px;animation:fade .4s;position:relative;z-index:2;margin-block:auto;border-radius:26px;padding:28px 24px 20px;background:rgba(255,255,255,.72);border:1px solid rgba(120,90,55,.16);box-shadow:0 26px 80px -32px rgba(60,40,25,.55);backdrop-filter:blur(18px) saturate(1.2);-webkit-backdrop-filter:blur(18px) saturate(1.2)}
+html[data-theme="dark"] .loginwrap{background:rgba(16,22,19,.6);border-color:rgba(255,255,255,.12);box-shadow:0 26px 80px -32px rgba(0,0,0,.72)}
+.loginaside{display:none}
+.loginaside .bigword{font-family:'Bricolage Grotesque',serif;font-weight:800;font-size:clamp(54px,6.5vw,92px);line-height:.92;color:#fff;letter-spacing:-.01em;text-shadow:0 6px 30px rgba(0,0,0,.4)}
+.loginaside .bigword span{color:var(--go);text-shadow:0 6px 30px rgba(0,0,0,.35)}
+.loginaside .bigsub{color:#fff;opacity:.94;font-size:clamp(15px,1.35vw,19px);line-height:1.5;margin-top:16px;max-width:440px;text-shadow:0 2px 14px rgba(0,0,0,.5)}
+.loginaside .chips{display:flex;gap:10px;flex-wrap:wrap;margin-top:24px}
+.loginaside .chip{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:9px 15px;font-size:13.5px;font-weight:600;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);text-shadow:0 1px 6px rgba(0,0,0,.35)}
+@media(min-width:980px){
+  #loginPage{flex-direction:row;align-items:center;justify-content:center;gap:clamp(40px,6vw,96px);padding-left:6vw;padding-right:6vw}
+  .loginaside{display:flex;flex-direction:column;justify-content:center;flex:1 1 480px;max-width:600px;position:relative;z-index:2}
+  .loginwrap{flex:0 0 420px;max-width:420px;margin:0}
+  .loginwrap .loginbrand p{display:none}
+  .loginlogo{width:140px}
+  .loginscene{height:64vh;max-height:700px}
+}
+.loginfoot{text-align:center;color:var(--muted);font-size:11px;margin-top:24px;letter-spacing:.04em}
+.loginfoot a{color:var(--go);font-weight:700;text-decoration:none;border-bottom:1px solid transparent;transition:.15s}
+.loginfoot a:active{opacity:.7;border-bottom-color:var(--go)}
+.loginquote{text-align:center;font-family:'Bricolage Grotesque',serif;font-style:italic;font-size:15px;line-height:1.5;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin:-8px 0 22px;box-shadow:var(--shadow);min-height:24px;transition:opacity .5s}
+.loginquote:empty{display:none;padding:0;margin:0;border:none;min-height:0;box-shadow:none}
+.loginquote .qa{display:block;font-style:normal;font-family:'Manrope';font-size:12px;font-weight:700;color:var(--go);margin-top:8px;letter-spacing:.03em}
+</style>
+<script src="/home/claude/cedolino/node_modules/pdfjs-dist/build/pdf.min.js"></script>
+<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="/home/claude/cedolino/node_modules/pdfjs-dist/build/pdf.worker.min.js";</script>
+</head>
+<body>
+<div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:90;background:var(--pausa);color:#fff;text-align:center;font-size:12.5px;font-weight:600;padding:8px;padding-top:calc(8px + var(--sat,env(safe-area-inset-top)))">📱 Offline</div>
+<div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:96;background:var(--go);color:#06140d;text-align:center;font-size:13px;font-weight:700;padding:11px 14px;padding-top:calc(11px + var(--sat,env(safe-area-inset-top)));box-shadow:0 6px 20px -8px rgba(0,0,0,.55)">
+  ⬆️ Nuova versione disponibile
+  <button onclick="applyUpdate(this)" style="margin-left:10px;background:#06140d;color:var(--go);border:none;border-radius:9px;padding:7px 14px;font-weight:800;font-size:13px;cursor:pointer">Aggiorna ora</button>
+  <button onclick="document.getElementById('updateBanner').style.display='none'" style="margin-left:6px;background:transparent;color:#06140d;border:none;font-weight:700;font-size:16px;cursor:pointer;opacity:.7" title="Ignora">✕</button>
+</div>
+
+<!-- ════════ PAGINA DI ACCESSO ════════ -->
+<div id="loginPage">
+  <div class="loginbg"></div>
+  <div class="loginscene" aria-hidden="true">
+    <svg viewBox="0 0 1440 540" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="gwFireGlow" cx="50%" cy="62%" r="50%">
+          <stop offset="0%" stop-color="#ffb24d" stop-opacity="0.55"/>
+          <stop offset="100%" stop-color="#ffb24d" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <path d="M0,360 L150,200 L290,300 L430,170 L560,290 L700,180 L860,300 L1010,190 L1160,300 L1300,210 L1440,300 L1440,540 L0,540 Z" fill="#3a5c47" opacity="0.42"/>
+      <path d="M430,170 L452,210 L408,210 Z" fill="#ede8dd" opacity="0.5"/>
+      <path d="M1010,190 L1030,224 L990,224 Z" fill="#ede8dd" opacity="0.5"/>
+      <path d="M0,400 L170,290 L320,370 L470,270 L620,380 L780,280 L940,385 L1110,275 L1280,380 L1440,300 L1440,540 L0,540 Z" fill="#1f3d2c" opacity="0.8"/>
+      <path d="M0,470 C220,445 360,460 560,462 C760,464 940,448 1140,460 C1290,468 1380,462 1440,464 L1440,540 L0,540 Z" fill="#102a1c" opacity="0.94"/>
+      <path d="M120,428 L145,470 L95,470 Z M175,414 L209,470 L141,470 Z M245,430 L269,470 L221,470 Z M905,424 L933,470 L877,470 Z M980,410 L1016,470 L944,470 Z M1060,428 L1085,470 L1035,470 Z M1140,414 L1174,470 L1106,470 Z M1225,430 L1249,470 L1201,470 Z M1330,418 L1361,470 L1299,470 Z" fill="#0c2016" opacity="0.96"/>
+      <path d="M0,492 L1440,480 L1440,540 L0,540 Z" fill="#0a160f"/>
+      <!-- tenda -->
+      <path d="M360,428 L302,500 L418,500 Z" fill="#c2673a"/>
+      <path d="M418,500 L360,428 L388,431 L446,500 Z" fill="#9c4f2c"/>
+      <path d="M360,452 L341,500 L379,500 Z" fill="#46220f"/>
+      <line x1="360" y1="430" x2="360" y2="408" stroke="#6b4a30" stroke-width="3"/>
+      <path d="M360,408 L386,414 L360,420 Z" fill="#e8b04b"/>
+      <!-- falò -->
+      <ellipse cx="475" cy="500" rx="72" ry="30" fill="url(#gwFireGlow)"/>
+      <line x1="455" y1="503" x2="497" y2="497" stroke="#5a3722" stroke-width="5" stroke-linecap="round"/>
+      <line x1="455" y1="497" x2="497" y2="503" stroke="#5a3722" stroke-width="5" stroke-linecap="round"/>
+      <g class="gw-fire">
+        <path d="M475,500 C462,483 470,473 475,463 C480,473 488,483 475,500 Z" fill="#ff7a2f"/>
+        <path d="M475,498 C469,488 472,481 475,474 C478,481 481,488 475,498 Z" fill="#ffd24a"/>
+      </g>
+    </svg>
+  </div>
+  <div class="loginaside" aria-hidden="true">
+    <div class="bigword">Go<span>Work</span></div>
+    <div class="bigsub">Il tuo tempo di lavoro, ferie e permessi — sempre con te, anche offline.</div>
+    <div class="chips">
+      <span class="chip">⏱️ Timbra entrata/uscita</span>
+      <span class="chip">🏖️ Ferie &amp; ROL</span>
+      <span class="chip">📊 Riepilogo mensile</span>
+      <span class="chip">☁️ Backup cloud</span>
+    </div>
+  </div>
+  <div class="loginwrap">
+    <div class="loginbrand">
+      <svg class="loginlogo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="GoWork — TradClab"><defs><linearGradient id="walletGradGWLogin" x1="8" y1="14" x2="86" y2="94" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#6EE7B7"/><stop offset="0.55" stop-color="#0AA88F"/><stop offset="1" stop-color="#0B7D73"/></linearGradient></defs><rect x="26" y="4" width="38" height="27" rx="4" fill="#0F172A" transform="rotate(-16 45 17)"/><rect x="30" y="7" width="38" height="27" rx="4" fill="#173B4E" transform="rotate(-5 49 20)"/><rect x="15" y="30" width="62" height="66" rx="15" fill="url(#walletGradGWLogin)"/><rect x="27" y="50" width="28" height="9" rx="4.5" fill="#F4FFFB"/><rect x="27" y="67" width="28" height="9" rx="4.5" fill="#F4FFFB"/><circle cx="76" cy="61" r="7.6" fill="#E9C97A"/><circle cx="76" cy="61" r="3.2" fill="#0B7D73"/></svg>
+      <p>I tuoi orari, ferie e permessi. Sempre con te.</p>
+    </div>
+    <div id="loginQuote" class="loginquote"></div>
+
+    <!-- selezione profilo (se esistono account) -->
+    <div id="profilesBox" style="display:none">
+      <div class="loginsub">Bentornato — scegli il profilo</div>
+      <div id="profilesGrid" class="profgrid"></div>
+      <div id="passBox" style="display:none">
+        <div class="pwrap">
+          <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+          <button type="button" class="pweye" onclick="togglePw('loginPassword',this)">Mostra</button>
+        </div>
+        <button class="btn btn-go btn-block" style="margin-top:10px" onclick="doLogin()">Accedi</button>
+        <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="backToProfiles()">‹ Cambia profilo</button>
+        <button class="linkbtn" onclick="startReset()" style="font-size:12.5px;opacity:.8;margin-top:2px">Password dimenticata?</button>
+        <div id="resetBox" style="display:none;margin-top:10px;text-align:left">
+          <div class="loginsub" style="font-size:13px;margin-bottom:8px">Imposta una nuova password</div>
+          <div class="pwrap"><input type="password" id="rsPass" placeholder="Nuova password (min. 6)" autocomplete="new-password"><button type="button" class="pweye" onclick="togglePw('rsPass',this)">Mostra</button></div>
+          <input type="password" id="rsPass2" placeholder="Ripeti la password" autocomplete="new-password" style="margin-top:8px" onkeydown="if(event.key==='Enter')doReset()">
+          <button class="btn btn-go btn-block" style="margin-top:10px" onclick="doReset()">Reimposta e accedi</button>
+        </div>
+      </div>
+      <button class="linkbtn" onclick="showRegister()">+ Crea un nuovo account</button>
+      <button class="linkbtn" id="manageBtn" onclick="toggleManage()" style="font-size:13px;opacity:.75;margin-top:-4px">Gestisci profili</button>
+    </div>
+
+    <!-- registrazione / primo accesso -->
+    <div id="registerBox" style="display:none">
+      <div class="loginsub" id="regTitle">Crea il tuo account</div>
+      <input type="text" id="regName" placeholder="Nome" autocomplete="name">
+      <input type="email" id="regEmail" placeholder="Email" autocomplete="email" style="margin-top:10px">
+      <div class="pwrap" style="margin-top:10px">
+        <input type="password" id="regPassword" placeholder="Password (min. 6 caratteri)" autocomplete="new-password" onkeydown="if(event.key==='Enter')doRegister()">
+        <button type="button" class="pweye" onclick="togglePw('regPassword',this)">Mostra</button>
+      </div>
+      <button class="btn btn-go btn-block" style="margin-top:14px" onclick="doRegister()">Crea account</button>
+      <button class="linkbtn" id="backToLoginBtn" onclick="showProfiles()" style="display:none">‹ Ho già un account</button>
+    </div>
+
+    <div id="loginMsg" class="loginmsg"></div>
+
+    <div style="text-align:center;color:var(--muted);font-size:11.5px;margin-top:6px;line-height:1.45">Per entrare bastano <b>email e password</b>.<br>Il cloud serve solo come backup per ritrovare l'account.</div>
+    <button class="linkbtn" id="lgToggle" onclick="toggleLgSync()" style="font-size:13px;opacity:.85">☁️ Backup / recupera account (Gist)</button>
+    <div id="lgSync" style="display:none">
+      <input type="password" id="lgToken" placeholder="GitHub token (ghp_…)" autocomplete="off">
+      <input type="text" id="lgId" placeholder="Gist ID (vuoto = crea nuovo)" style="margin-top:8px">
+      <button class="btn btn-go btn-block" style="margin-top:10px" onclick="loginGistConnect()">Connetti & carica account</button>
+    </div>
+    <div class="loginfoot">© 2026/2027 — GoWork associata <a href="https://tradori23-ops.github.io/tradocroods/" target="_blank" rel="noopener">TradClab</a> · <span id="loginVer">v25</span></div>
+  </div>
+</div>
+
+<div class="app" style="display:none">
+  <header>
+    <div class="brand">
+      <svg width="38" height="38" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" style="flex-shrink:0;"><defs><linearGradient id="walletGradGW" x1="8" y1="14" x2="86" y2="94" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="#6EE7B7"/><stop offset="0.55" stop-color="#0AA88F"/><stop offset="1" stop-color="#0B7D73"/></linearGradient></defs><rect x="26" y="4" width="38" height="27" rx="4" fill="#0F172A" transform="rotate(-16 45 17)"/><rect x="30" y="7" width="38" height="27" rx="4" fill="#173B4E" transform="rotate(-5 49 20)"/><rect x="15" y="30" width="62" height="66" rx="15" fill="url(#walletGradGW)"/><rect x="27" y="50" width="28" height="9" rx="4.5" fill="#F4FFFB"/><rect x="27" y="67" width="28" height="9" rx="4.5" fill="#F4FFFB"/><circle cx="76" cy="61" r="7.6" fill="#E9C97A"/><circle cx="76" cy="61" r="3.2" fill="#0B7D73"/></svg>
+      <div><b>GoWork</b><small>Gestione orari</small></div>
+    </div>
+    <div class="flex" style="gap:8px">
+      <div class="havatar" id="headerAvatar" onclick="go('set')" title="Profilo">S</div>
+      <button class="icbtn" id="cloudBtn" onclick="go('set')" title="Sincronizzazione" data-state="off">☁️</button>
+      <button class="icbtn" id="themeBtn" title="Tema">◐</button>
+    </div>
+  </header>
+
+  <!-- ===== OGGI ===== -->
+  <section class="view active" id="view-oggi">
+    <div class="card clockcard">
+      <div id="statusPill" class="statuspill s-out"><span class="dot"></span><span id="statusTxt">Fuori servizio</span></div>
+      <div class="bigdate" id="bigDate"></div>
+      <div class="bigtime mono" id="bigTime">--:--</div>
+      <div class="worktoday mono" id="workToday">Lavorate oggi 0:00</div>
+      <div class="clocksub" id="clockSub">Tocca <b>Timbra entrata</b> per iniziare</div>
+      <div class="btnrow" id="clockBtns"></div>
+      <div class="grid3">
+        <div class="stat"><div class="v mono" id="stWork">0:00</div><div class="l">Lavorate</div></div>
+        <div class="stat"><div class="v mono" id="stTarget">8:00</div><div class="l">Previste</div></div>
+        <div class="stat"><div class="v mono" id="stDiff">0:00</div><div class="l">Saldo</div></div>
+      </div>
+      <div class="grid3" style="margin-top:8px">
+        <div class="stat"><div class="v mono" id="tEntrata" style="color:var(--go)">–</div><div class="l">Entrata</div></div>
+        <div class="stat"><div class="v mono" id="tPausa" style="font-size:14px">–</div><div class="l">Pausa pranzo</div></div>
+        <div class="stat"><div class="v mono" id="tUscita" style="color:#e5484d">–</div><div class="l">Uscita</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="flex"><h2>Saldi assenze</h2><span class="spacer"></span><button class="btn btn-ghost btn-sm" onclick="openAssenza()">+ Richiedi</button></div>
+      <div class="sub">Anno <span id="annoCorr"></span></div>
+      <div class="balgrid" id="balGrid"></div>
+    </div>
+
+    <div class="card">
+      <h2>Sessioni di oggi</h2>
+      <div class="sub" id="todayDate"></div>
+      <div id="todaySessions"></div>
+    </div>
+  </section>
+
+  <!-- ===== REGISTRO ===== -->
+  <section class="view" id="view-registro">
+    <div class="card fullspan">
+      <div class="mnav">
+        <button class="icbtn" onclick="navMonth(-1)">‹</button>
+        <b id="regMonthLbl"></b>
+        <button class="icbtn" onclick="navMonth(1)">›</button>
+      </div>
+      <div id="calGrid"></div>
+      <button class="btn btn-go btn-block btn-sm" style="margin-top:12px" onclick="compilaMese()">✓ Compila mese di lavoro</button>
+      <button class="btn btn-ghost btn-block btn-sm danger" style="margin-top:8px" onclick="resetMese()">Resetta mese</button>
+      <div class="callegend">
+        <span><i style="background:var(--go)"></i>lavoro</span>
+        <span><i style="background:var(--rol)"></i>impegno</span>
+        <span><i style="background:var(--ferie)"></i>ferie</span>
+        <span><i style="background:var(--permr)"></i>permesso</span>
+      </div>
+    </div>
+    <div class="card">
+      <div class="grid3" style="margin-top:0">
+        <div class="stat"><div class="v mono" id="mWork">0</div><div class="l">Ore lavorate</div></div>
+        <div class="stat"><div class="v mono" id="mOver">0</div><div class="l">Straordinario</div></div>
+        <div class="stat"><div class="v mono" id="mDays">0</div><div class="l">Giorni</div></div>
+      </div>
+      <button class="btn btn-ghost btn-block btn-sm" style="margin-top:12px" onclick="openTimbra()">+ Aggiungi giornata manuale</button>
+      <div style="display:flex;gap:8px;margin-top:8px"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="downloadRegistro()">⬇️ Scarica mese</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="printRegistro()">🖨️ Stampa mese</button></div>
+    </div>
+  </section>
+
+  <!-- ===== ASSENZE ===== -->
+  <section class="view" id="view-assenze">
+    <div class="card">
+      <h2>Ferie & Permessi</h2>
+      <div class="sub">Saldi calcolati per l'anno <span id="annoCorr2"></span></div>
+      <div class="balgrid" id="balGrid2"></div>
+      <button class="btn btn-go btn-block" style="margin-top:14px" onclick="openAssenza()">+ Nuova richiesta</button>
+      <button class="btn btn-ghost btn-block" style="margin-top:8px" onclick="openCedolinoReader()">&#128196; Leggi cedolino (PDF)</button>
+    </div>
+    <div class="card">
+      <h2 style="font-size:15px">Cedolini letti</h2>
+      <div id="cedList"></div>
+    </div>
+    <div class="card">
+      <div class="mnav">
+        <button class="icbtn" onclick="navAssYear(-1)">‹</button>
+        <b id="assYearLbl"></b>
+        <button class="icbtn" onclick="navAssYear(1)">›</button>
+      </div>
+      <div id="assList"></div>
+    </div>
+  </section>
+
+  <!-- ===== RIEPILOGO ===== -->
+  <section class="view" id="view-riep">
+    <div class="card">
+      <h2>Riepilogo annuale</h2>
+      <div class="mnav" style="margin-top:8px">
+        <button class="icbtn" onclick="navRiepYear(-1)">‹</button>
+        <b id="riepYearLbl"></b>
+        <button class="icbtn" onclick="navRiepYear(1)">›</button>
+      </div>
+      <div class="balgrid">
+        <div class="stat" style="text-align:left;background:var(--go-soft)"><div class="v mono" id="rTot">0</div><div class="l">Ore totali</div></div>
+        <div class="stat" style="text-align:left;background:var(--bg2)"><div class="v mono" id="rOver">0</div><div class="l">Straordinario</div></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="downloadRiep()">⬇️ Scarica anno</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="printRiep()">🖨️ Stampa anno</button></div>
+    </div>
+    <div class="card">
+      <h2>Andamento mensile</h2>
+      <div class="sub">Ore lavorate per mese</div>
+      <div id="chart"></div></div>
+    <div class="card">
+      <h2>Rendimento per giorno</h2>
+      <div class="sub">Media ore lavorate per giorno della settimana</div>
+      <div id="chartDow"></div>
+    </div>
+    <div class="card">
+      <h2>Assenze dell'anno</h2>
+      <div id="riepAss"></div>
+    </div>
+    <div class="card">
+      <h2>Ferie e Permessi</h2>
+      <div class="segbtns" id="fpPeriodBtns" style="margin-bottom:12px;grid-template-columns:repeat(3,1fr)">
+        <button class="on fp" data-p="settimana" onclick="fpSetPeriod('settimana')">Settimana</button>
+        <button data-p="mese" onclick="fpSetPeriod('mese')">Mese</button>
+        <button data-p="anno" onclick="fpSetPeriod('anno')">Anno</button>
+      </div>
+      <div class="mnav">
+        <button class="icbtn" onclick="fpNav(-1)">&lsaquo;</button>
+        <b id="fpPeriodLbl"></b>
+        <button class="icbtn" onclick="fpNav(1)">&rsaquo;</button>
+      </div>
+      <div class="sub" style="margin-top:14px">&#127918; Ferie (giorni)</div>
+      <div id="fpChartFerie" style="display:flex;align-items:flex-end;gap:4px;height:90px;margin-top:6px"></div>
+      <div class="sub" style="margin-top:16px">&#128203; Permessi (ore) &mdash; ROL + retr. + non retr.</div>
+      <div id="fpChartPerm" style="display:flex;align-items:flex-end;gap:4px;height:90px;margin-top:6px"></div>
+    </div>
+      </section>
+
+  <!-- ===== DIARIO ===== -->
+  <section class="view" id="view-diario">
+    <div class="card fullspan">
+      <div class="flex"><h2>Diario di lavoro</h2><span class="spacer"></span><button class="btn btn-go btn-sm" onclick="openDiario()">+ Nuova attività</button></div>
+      <div class="sub">Annota cosa hai fatto, idee e attività</div>
+      <div style="display:flex;gap:8px;margin-top:14px"><button class="btn btn-ghost btn-sm" style="flex:1" onclick="downloadDiario()">⬇️ Scarica</button><button class="btn btn-ghost btn-sm" style="flex:1" onclick="printDiario()">🖨️ Stampa</button></div>
+    </div>
+    <div class="card fullspan" id="diarioListCard">
+      <div id="diarioList"></div>
+    </div>
+  </section>
+
+  <!-- ===== COMPITI ===== -->
+  <section class="view" id="view-compiti">
+    <div class="card">
+      <h2>Compiti</h2>
+      <div class="sub" id="compCount"></div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        <input id="compInput" placeholder="Nuovo compito...">
+        <input type="file" id="compFile" accept="application/pdf" style="display:none">
+        <button class="btn btn-ghost btn-sm" id="compAttachBtn" style="width:44px;height:44px;padding:0;flex:none">&#128206;</button>
+        <button class="btn btn-go btn-sm" id="compAddBtn" style="width:44px;height:44px;padding:0;flex:none">+</button>
+      </div>
+      <div id="compPending" style="display:none;font-size:12px;color:var(--go);margin-top:6px"></div>
+    </div>
+    <div class="card">
+      <div id="compList"></div>
+    </div>
+  </section>
+
+  <!-- ===== IMPOSTAZIONI ===== -->
+  <section class="view" id="view-set">
+    <div class="card fullspan">
+      <div class="flex">
+        <div class="logo" style="width:48px;height:48px;border-radius:14px;font-size:22px;background-size:cover;background-position:center;cursor:pointer" id="accAvatar" onclick="document.getElementById('fotoFile').click()">G</div>
+        <div style="min-width:0"><b id="accName" style="font-family:'Bricolage Grotesque';font-size:17px"></b><div class="sub" id="accEmail" style="margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div></div>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Esci</button>
+      </div>
+      <input type="file" id="fotoFile" accept="image/*" style="display:none" onchange="uploadFoto(this)">
+      <div class="flex" style="gap:8px;margin-top:12px">
+        <button class="btn btn-ghost btn-sm" style="flex:1;justify-content:center" onclick="document.getElementById('fotoFile').click()">📷 Cambia foto</button>
+        <button class="btn btn-ghost btn-sm" onclick="removeFoto()">Rimuovi</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Profilo & contratto</h2>
+      <div class="sub">Configura il tuo orario di lavoro</div>
+      <label class="f">Nome</label>
+      <input id="setNome" placeholder="Il tuo nome">
+      <div class="f2">
+        <div><label class="f">Ore al giorno</label><input type="number" id="setOreGg" step="0.5" min="0"></div>
+        <div><label class="f">Ore a settimana</label><input type="number" id="setOreSett" step="0.5" min="0"></div>
+      </div>
+      <label class="f">Giorni lavorativi</label>
+      <div id="setDays" class="segbtns" style="grid-template-columns:repeat(7,minmax(0,1fr))"></div>
+    </div>
+
+    <div class="card">
+      <h2>Dati lavorativi</h2>
+      <div class="sub">Professione, azienda e contratto</div>
+      <label class="f">Professione</label>
+      <input id="setProf" placeholder="es. Impiegato amministrativo">
+      <label class="f">Azienda / Ditta</label>
+      <input id="setDitta" placeholder="es. TradClab S.r.l.">
+      <div class="f2">
+        <div><label class="f">Tipo contratto</label>
+          <select id="setTipoContr"><option value="indeterminato">Indeterminato</option><option value="determinato">Determinato</option><option value="apprendistato">Apprendistato</option><option value="partita_iva">Partita IVA</option></select></div>
+        <div><label class="f">CCNL</label><input id="setCcnl" placeholder="es. Commercio"></div>
+      </div>
+      <div class="f2">
+        <div><label class="f">Stipendio lordo / mese (€)</label><input type="number" id="setStip" step="50" min="0"></div>
+        <div><label class="f">Mensilità</label><select id="setMens"><option value="12">12</option><option value="13">13</option><option value="14">14</option></select></div>
+      </div>
+      <label class="f">Data inizio lavoro (attuale)</label>
+      <div id="setInizioLavSel"></div>
+      <div id="anzianitaOut"></div>
+    </div>
+
+    <div class="card">
+      <div class="flex"><h2>Carriera</h2><span class="spacer"></span><button class="btn btn-ghost btn-sm" onclick="cambiaLavoro()">Ho cambiato lavoro</button></div>
+      <div class="sub">Storico dei rapporti di lavoro</div>
+      <div id="carrieraList"></div>
+    </div>
+
+    <div class="card fullspan" id="pensioneCard">
+      <h2>Pensione — stima</h2>
+      <div class="sub">Indicazione orientativa, non ufficiale</div>
+      <div class="f2">
+        <div><label class="f">Data di nascita</label><div id="setNascitaSel"></div></div>
+        <div><label class="f">Contributi precedenti (anni)</label><input type="number" id="setContrib" step="0.5" min="0" placeholder="0"></div>
+      </div>
+      <div id="pensioneOut"></div>
+      <div class="hint">⚠️ Stima molto approssimativa con il sistema <b>contributivo</b> (ipotesi: aliquota 33%, stipendio costante, coefficiente ~5,7% a 67 anni). <b>Non è un calcolo ufficiale.</b> Per la cifra reale usa il simulatore INPS "La mia pensione futura". GoWork non fornisce consulenza previdenziale.</div>
+    </div>
+
+    <div class="card">
+      <h2>Saldi & maturazione</h2>
+      <div class="sub">Residui iniziali e quanto matura ogni mese</div>
+      <div class="f2">
+        <div><label class="f">Ferie iniziali (gg)</label><input type="number" id="setFerieIni" step="0.5"></div>
+        <div><label class="f">Ferie / mese (gg)</label><input type="number" id="setFerieMese" step="0.01"></div>
+      </div>
+      <div class="f2">
+        <div><label class="f">ROL iniziali (ore)</label><input type="number" id="setRolIni" step="0.5"></div>
+        <div><label class="f">ROL / mese (ore)</label><input type="number" id="setRolMese" step="0.1"></div>
+      </div>
+      <label class="f">Permessi retribuiti — monte ore annuo (0 = illimitato)</label>
+      <input type="number" id="setPermr" step="0.5">
+    </div>
+
+    <div class="card">
+      <h2>Sincronizzazione cloud (Gist)</h2>
+      <div class="sub">Ritrova i dati su tutti i dispositivi · <span id="syncStatus">Non connesso</span></div>
+      <label class="f">GitHub token (scope: gist)</label>
+      <input type="password" id="stToken" placeholder="ghp_…" autocomplete="off">
+      <label class="f">Gist ID (vuoto = crea nuovo)</label>
+      <input type="text" id="stId" placeholder="es. a1b2c3d4…">
+      <div class="flex" style="gap:8px;margin-top:12px">
+        <button class="btn btn-go" style="flex:1;justify-content:center" onclick="settingsGistConnect()">Connetti</button>
+        <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="syncNow()">Sincronizza ora</button>
+      </div>
+      <button class="btn btn-ghost btn-block btn-sm danger" style="margin-top:8px" onclick="syncDisconnect()">Disconnetti cloud</button>
+      <div id="stMsg" class="loginmsg" style="margin-top:8px;min-height:0"></div>
+      <div class="hint">Crea un <b>token GitHub</b> con permesso <b>gist</b> (github.com → Settings → Developer settings → Personal access tokens). Il Gist è <b>privato</b>. Lo stesso token + ID su un altro dispositivo recupera i tuoi dati.</div>
+    </div>
+    <div class="card">
+      <h2>Sfondo accesso</h2>
+      <div class="sub">Personalizza la pagina di login (su questo dispositivo)</div>
+      <div id="bgSwatches" class="bgswrap"></div>
+      <input type="file" id="bgFile" accept="image/*" style="display:none" onchange="uploadLoginBg(this)">
+    </div>
+    <div class="card">
+      <h2>Dati & backup</h2>
+      <div class="toggle"><div><b>Backup</b><div class="sub" style="margin:0">Esporta tutti i dati in un file</div></div><button class="btn btn-ghost btn-sm" onclick="exportData()">Esporta</button></div>
+      <div class="toggle"><div><b>Ripristino</b><div class="sub" style="margin:0">Importa da un backup</div></div><button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">Importa</button></div>
+      <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)">
+      <div class="toggle"><div><b class="danger">Azzera tutto</b><div class="sub" style="margin:0">Cancella tutti i dati</div></div><button class="btn btn-ghost btn-sm danger" onclick="resetAll()">Cancella</button></div>
+      <div class="hint">I dati sono salvati <b>solo su questo dispositivo</b> (localStorage) e funzionano senza internet. Fai un backup ogni tanto. Versione dati: <span id="dataVer"></span></div>
+    </div>
+    <button class="btn btn-go btn-block fullspan" onclick="saveSettings()">Salva impostazioni</button>
+    <button class="btn btn-ghost btn-block fullspan" style="margin-top:10px" onclick="checkForUpdate(true)">⬆️ Cerca aggiornamenti</button>
+    <div class="fullspan" style="text-align:center;color:var(--muted);font-size:12px;margin-top:18px">GoWork <span id="setVer">v25</span> · by Sergio</div>
+  </section>
+</div>
+
+<!-- Nav -->
+<nav class="tabbar" id="tabbar" style="display:none"></nav>
+
+<!-- Modal generico -->
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeSheet()">
+  <div class="sheet" id="sheet"></div>
+</div>
+<div id="toast"></div>
+
+<!-- Modale conferma custom (sostituisce confirm() bloccato su iOS PWA) -->
+<div class="overlay" id="gwConfirm" style="align-items:center;padding:20px;z-index:120">
+  <div class="sheet" style="border-radius:22px;max-width:380px;text-align:center;padding:28px 22px calc(22px + var(--sab,env(safe-area-inset-bottom)))">
+    <div id="gwcIcon" style="font-size:42px;margin-bottom:8px">⚠️</div>
+    <div id="gwcMsg" style="font-size:15.5px;font-weight:500;margin-bottom:22px;line-height:1.5"></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-ghost" style="flex:1;justify-content:center" onclick="gwResolve(false)">Annulla</button>
+      <button class="btn" id="gwcOk" style="flex:1;justify-content:center;background:var(--permr);color:#fff" onclick="gwResolve(true)">Elimina</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= AUTH — account locali (stile TradoCroods) ================= */
+let currentUser=null;
+function getUsers(){try{return JSON.parse(localStorage.getItem('gw_users')||'[]');}catch(e){return[];}}
+function saveUsers(u){localStorage.setItem('gw_users',JSON.stringify(u));}
+async function hashPass(pass,salt){
+  const buf=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(salt+'::'+pass+'::GOWORK2026'));
+  return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+function randSalt(){return [...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(16).padStart(2,'0')).join('');}
+
+/* ================= STATO & PERSISTENZA (separato per utente) ================= */
+function dataKey(){return 'gw_'+(currentUser?currentUser.email:'_none')+'_data';}
+const DEFAULTS=()=>({
+  version:1,
+  profile:{nome:'',professione:'',ditta:'',tipoContratto:'indeterminato',ccnl:'',stipendio:0,mensilita:13,dataNascita:'',anniContributi:0,dataInizioLavoro:''},
+  settings:{
+    oreGiornaliere:8, oreSettimanali:40, giorniLavorativi:[1,2,3,4,5],
+    ferieIniziali:26, ferieMese:0, rolIniziali:0, rolMese:0, permessiRetr:0,
+    tema:'auto', loginBg:null
+  },
+  sessione:null,            // {inizio, pause:[{inizio,fine}], note}
+  giornate:{},              // 'YYYY-MM-DD': {sessioni:[{inizio,fine,note}]}
+  assenze:[],               // {id,tipo,dataInizio,dataFine,giornataIntera,ore,note}
+  diario:[],                // {id, data, titolo, testo, ore}
+  impegni:[],               // {id, data, ora, titolo, note}
+  carriera:[],              // {id, ditta, ruolo, tipoContratto, ccnl, dataInizio, dataFine}
+  compiti:[],               // {id, testo, fatto, pdfName, pdfData}
+  cedolini:[]               // {id, data, ferie, permessi, rol, exFest}
+});
+let D=DEFAULTS();
+function load(){
+  try{const r=JSON.parse(localStorage.getItem(dataKey()));if(r&&r.version)return Object.assign(DEFAULTS(),r);}catch(e){}
+  return DEFAULTS();
+}
+function save(){if(!currentUser)return;D._v=(D._v||0)+1;D._ts=Date.now();localStorage.setItem(dataKey(),JSON.stringify(D));if(typeof schedulePush==='function')schedulePush();}
+function persistCloud(obj){D=obj;localStorage.setItem(dataKey(),JSON.stringify(D));}
+
+/* ================= UTILITY ================= */
+const pad=n=>String(n).padStart(2,'0');
+function escH(s){return (s==null?'':String(s)).replace(/[<>&"]/g,c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));}
+function isoDay(d=new Date()){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
+function parseDay(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d);}
+function hm(ms){const t=Math.max(0,Math.round(ms/1000));const h=Math.floor(t/3600),m=Math.floor((t%3600)/60);return h+':'+pad(m);}
+function hms(ms){const t=Math.max(0,Math.floor(ms/1000));return pad(Math.floor(t/3600))+':'+pad(Math.floor((t%3600)/60))+':'+pad(t%60);}
+function oreStr(h){const v=Math.round(h*100)/100;return (Number.isInteger(v)?v:v.toFixed(1)).toString();}
+function decToHM(h){const neg=h<0;h=Math.abs(h);const H=Math.floor(h);const M=Math.round((h-H)*60);return (neg?'−':'')+H+':'+pad(M);}
+const MESI=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
+const GIORNI=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+const GG=['D','L','M','M','G','V','S'];
+function fmtData(s){const d=parseDay(s);return GIORNI[d.getDay()]+' '+d.getDate()+' '+MESI[d.getMonth()].slice(0,3);}
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),2200);}
+
+/* ===== calcolo durata sessione (sempre da timestamp = offline safe) ===== */
+function pauseMs(pause,now){let tot=0;(pause||[]).forEach(p=>{const f=p.fine?new Date(p.fine):now;tot+=(f-new Date(p.inizio));});return tot;}
+function sessDurMs(s,now=new Date()){const fine=s.fine?new Date(s.fine):now;return (fine-new Date(s.inizio))-pauseMs(s.pause,now);}
+function oreGiorno(iso){const g=D.giornate[iso];if(!g)return 0;return g.sessioni.reduce((a,s)=>a+sessDurMs(s)/3600000,0);}
+function isLavorativo(iso){return D.settings.giorniLavorativi.includes(parseDay(iso).getDay());}
+
+/* ===== saldi assenze ===== */
+function meseCorrAnno(){return new Date().getMonth()+1;} // 1..12 (per maturazione progressiva anno corrente)
+function assenzeAnno(anno){return D.assenze.filter(a=>parseDay(a.dataInizio).getFullYear()===anno);}
+function giorniAssenza(a){ // numero giorni (per ferie) o 1 se intera
+  if(a.tipo!=='ferie')return 0;
+  if(!a.giornataIntera) return 0.5;
+  const d1=parseDay(a.dataInizio),d2=parseDay(a.dataFine||a.dataInizio);
+  let n=0;for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1)){if(isLavorativo(isoDay(d)))n++;}
+  return Math.max(1,n);
+}
+function oreAssenza(a){if(a.tipo==='ferie')return 0;return a.ore||0;}
+function saldi(anno){
+  const s=D.settings; const ass=assenzeAnno(anno);
+  const mese=(anno===new Date().getFullYear())?meseCorrAnno():12;
+  const ferieMat=s.ferieIniziali+ (s.ferieMese||0)*mese;
+  const rolMat=s.rolIniziali+ (s.rolMese||0)*mese;
+  let ferieUse=0,rolUse=0,prUse=0,pnUse=0;
+  ass.forEach(a=>{
+    if(a.tipo==='ferie')ferieUse+=giorniAssenza(a);
+    if(a.tipo==='rol')rolUse+=oreAssenza(a);
+    if(a.tipo==='permesso_retr')prUse+=oreAssenza(a);
+    if(a.tipo==='permesso_non_retr')pnUse+=oreAssenza(a);
+  });
+  return {
+    ferie:{mat:ferieMat,use:ferieUse,res:ferieMat-ferieUse},
+    rol:{mat:rolMat,use:rolUse,res:rolMat-rolUse},
+    permr:{monte:s.permessiRetr,use:prUse,res:s.permessiRetr?s.permessiRetr-prUse:null},
+    permn:{use:pnUse}
+  };
+}
+const TIPI={
+  ferie:{lab:'Ferie',cls:'ferie',col:'var(--ferie)',em:'🏖️',unit:'gg'},
+  rol:{lab:'ROL',cls:'rol',col:'var(--rol)',em:'⏱️',unit:'ore'},
+  permesso_retr:{lab:'Permesso retr.',cls:'permr',col:'var(--permr)',em:'📋',unit:'ore'},
+  permesso_non_retr:{lab:'Permesso non retr.',cls:'permn',col:'var(--permn)',em:'🚫',unit:'ore'},
+  malattia:{lab:'Malattia',cls:'permn',col:'var(--permn)',em:'🤒',unit:'gg'}
+};
+
+/* ================= TEMA ================= */
+function applyTheme(){
+  const t=D.settings.tema;
+  let dark = t==='dark' || (t==='auto' && matchMedia('(prefers-color-scheme:dark)').matches);
+  document.documentElement.setAttribute('data-theme',dark?'dark':'light');
+  document.querySelector('meta[name=theme-color]').setAttribute('content',dark?'#101316':'#13231b');
+}
+document.getElementById('themeBtn').onclick=()=>{
+  const order=['auto','light','dark'];D.settings.tema=order[(order.indexOf(D.settings.tema)+1)%3];save();applyTheme();
+  toast('Tema: '+({auto:'automatico',light:'chiaro',dark:'scuro'})[D.settings.tema]);
+};
+matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>{if(D.settings.tema==='auto')applyTheme();});
+
+/* ================= NAVIGAZIONE ================= */
+const TABS=[
+  {id:'oggi',ic:'⏱',lab:'Oggi'},
+  {id:'registro',ic:'📆',lab:'Calendario'},
+  {id:'diario',ic:'📒',lab:'Diario'},
+  {id:'assenze',ic:'🏖',lab:'Ferie'},
+  {id:'riep',ic:'📊',lab:'Riepilogo'},
+  {id:'compiti',ic:'✅',lab:'Compiti'},
+  {id:'set',ic:'⚙️',lab:'Impostaz.'}
+];
+function buildTabs(){
+  document.getElementById('tabbar').innerHTML=
+    '<div class="tabrow">'+TABS.map(t=>
+    `<button data-t="${t.id}" onclick="go('${t.id}')"><span class="ic">${t.ic}</span>${t.lab}</button>`).join('')+'</div>'+
+    '<div class="navcopy">\u00A9 2026/2027 \u00B7 GoWork \u00B7 Tradori Sergio \u00B7 Mail: sergio.tradori@outlook.it \u00B7 Italy</div>';
+}
+function go(id){
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.id==='view-'+id));
+  document.querySelectorAll('#tabbar button').forEach(b=>b.classList.toggle('active',b.dataset.t===id));
+  if(id==='registro')renderRegistro();
+  if(id==='diario')renderDiario();
+  if(id==='assenze')renderAssenze();
+  if(id==='riep')renderRiep();
+  if(id==='compiti')renderCompiti();
+  if(id==='set')renderSettings();
+  try{var _a=document.querySelector('.app');if(_a)_a.scrollTop=0;}catch(e){}
+}
+
+/* ================= COMPITI ================= */
+let _compPendingPdf=null;
+function renderCompiti(){
+  const all=D.compiti||[];
+  const list=all.slice().sort(function(a,b){return (a.fatto===b.fatto)?0:(a.fatto?1:-1);});
+  const done=all.filter(function(c){return c.fatto;}).length;
+  document.getElementById('compCount').textContent=done+'/'+all.length+' completati';
+  const el=document.getElementById('compList');
+  if(!list.length){el.innerHTML='<div class="empty"><span class="em">&#9989;</span>Nessun compito. Aggiungine uno qui sopra.</div>';return;}
+  el.innerHTML=list.map(function(c){return rowCompito(c);}).join('');
+}
+function rowCompito(c){
+  const pdfBadge=c.pdfName?('<button class="btn btn-ghost btn-sm" style="padding:4px 8px" onclick="viewCompitoPdf('+"'"+c.id+"'"+')">&#128196;</button>'):'';
+  const testoStyle=c.fatto?'opacity:.5;text-decoration:line-through':'';
+  return '<div class="row" style="align-items:center">'+
+    '<div onclick="toggleCompito('+"'"+c.id+"'"+')" style="width:22px;height:22px;border-radius:50%;border:1.5px solid '+(c.fatto?'var(--go)':'var(--line)')+';background:'+(c.fatto?'var(--go)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#06140d;font-size:13px">'+(c.fatto?'&#10003;':'')+'</div>'+
+    '<div class="main" style="flex:1;margin-left:10px;'+testoStyle+'">'+c.testo+'</div>'+
+    pdfBadge+
+    '<button class="btn btn-ghost btn-sm" style="padding:4px 8px;color:var(--muted)" onclick="delCompito('+"'"+c.id+"'"+')">&#128465;</button>'+
+    '</div>';
+}
+function addCompito(){
+  const inp=document.getElementById('compInput');
+  const testo=inp.value.trim();
+  if(!testo){toast('Scrivi un compito prima di aggiungerlo');return;}
+  const c={id:'c'+Date.now(),testo:testo,fatto:false,pdfName:_compPendingPdf?_compPendingPdf.name:null,pdfData:_compPendingPdf?_compPendingPdf.data:null};
+  D.compiti=D.compiti||[];
+  D.compiti.push(c);
+  inp.value='';
+  _compPendingPdf=null;
+  document.getElementById('compPending').style.display='none';
+  save();renderCompiti();
+}
+function toggleCompito(id){
+  const c=(D.compiti||[]).find(function(x){return x.id===id;});
+  if(!c)return;
+  c.fatto=!c.fatto;
+  save();renderCompiti();
+}
+function delCompito(id){
+  gwAsk('Eliminare questo compito?','&#128465;','Elimina','var(--permr)',function(ok){
+    if(!ok)return;
+    D.compiti=(D.compiti||[]).filter(function(x){return x.id!==id;});
+    save();renderCompiti();
+  });
+}
+function viewCompitoPdf(id){
+  const c=(D.compiti||[]).find(function(x){return x.id===id;});
+  if(!c||!c.pdfData)return;
+  const w=window.open();
+  if(w)w.document.write('<iframe src="'+c.pdfData+'" style="width:100%;height:100%;border:none"></iframe>');
+}
+document.getElementById('compAttachBtn').addEventListener('click',function(){document.getElementById('compFile').click();});
+document.getElementById('compFile').addEventListener('change',function(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  if(file.size>4*1024*1024){toast('PDF troppo grande, massimo 4MB');return;}
+  const reader=new FileReader();
+  reader.onload=function(){
+    _compPendingPdf={name:file.name,data:reader.result};
+    const p=document.getElementById('compPending');
+    p.style.display='block';
+    p.textContent='📎 '+file.name;
+  };
+  reader.readAsDataURL(file);
+});
+document.getElementById('compAddBtn').addEventListener('click',addCompito);
+
+/* ================= CEDOLINO ================= */
+function openCedolinoReader(){
+  openSheet('<h3>Leggi cedolino</h3>'+
+    '<p style="font-size:13px;color:var(--muted);margin:0 0 14px">Carica il PDF del cedolino: leggo il mese di riferimento e i residui di Ferie, Permessi, R.O.L. ed Ex Festività. Controlla sempre i valori prima di confermare.</p>'+
+    '<input type="file" id="cedFile" accept="application/pdf">'+
+    '<div id="cedStatus" style="font-size:13px;margin-top:10px;color:var(--muted)"></div>'+
+    '<div id="cedReview" style="display:none;margin-top:14px">'+
+    '<label class="f">Mese di riferimento</label><input id="cedMese" placeholder="es. Agosto 2026">'+
+    '<label class="f">Ferie residue (giorni)</label><input id="cedFerie">'+
+    '<label class="f">Permessi residui (ore)</label><input id="cedPerm">'+
+    '<label class="f">R.O.L. residue (ore)</label><input id="cedRol">'+
+    '<label class="f">Ex Festività residue (ore)</label><input id="cedExFest">'+
+    '<button class="btn btn-go btn-block" style="margin-top:14px" onclick="confirmCedolino()">Conferma e salva</button>'+
+    '</div>');
+  document.getElementById('cedFile').addEventListener('change',handleCedolinoFile);
+}
+async function handleCedolinoFile(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const status=document.getElementById('cedStatus');
+  status.textContent='Lettura in corso...';
+  try{
+    if(!window.pdfjsLib)throw new Error('Libreria PDF non disponibile');
+    const buf=await file.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    const page=await pdf.getPage(1);
+    const content=await page.getTextContent();
+    const items=content.items.map(function(it){
+      return {text:it.str,x0:it.transform[4],x1:it.transform[4]+it.width,y:it.transform[5],w:it.width};
+    }).filter(function(it){return it.text.trim().length>0;});
+    function findWord(t){return items.filter(function(it){return it.text===t;});}
+    function findLabelAnchor(label,belowY,maxX0){
+      const cands=items.filter(function(it){return (it.text===label||it.text.indexOf(label)===0)&&it.y<belowY&&it.x0<maxX0;});
+      if(!cands.length)return null;
+      return cands.reduce(function(a,b){return a.y>b.y?a:b;});
+    }
+    function residuoValue(anchorY,resX0,resX1,tolY,maxDist){
+      const resCenter=(resX0+resX1)/2;
+      const row=items.filter(function(it){return Math.abs(it.y-anchorY)<tolY;});
+      let best=null,bestDist=null;
+      row.forEach(function(it){
+        if(it.text==='g'||it.text==='h')return;
+        const n=parseFloat(it.text.replace(',','.'));
+        if(isNaN(n))return;
+        const cx=it.x0+it.w/2;
+        const dist=Math.abs(cx-resCenter);
+        if(dist<=maxDist&&(best===null||dist<bestDist)){best=it.text;bestDist=dist;}
+      });
+      return best;
+    }
+    function findRowText(labelText,maxX0,maxGap){
+      const lbl=items.find(function(it){return it.text===labelText;});
+      if(!lbl)return null;
+      const row=items.filter(function(it){return it.y<lbl.y&&(lbl.y-it.y)<(maxGap||20)&&it.x0<maxX0;});
+      row.sort(function(a,b){return a.x0-b.x0;});
+      return row.map(function(it){return it.text;}).join(' ').replace(/s+/g,' ').trim();
+    }
+    const residuoHdr=findWord('RESIDUO')[0];
+    if(!residuoHdr)throw new Error('Formato non riconosciuto');
+    const letti={};
+    [['FERIE','ferie'],['PERMESSI','permessi'],['R.O.L.','rol'],['EX FEST.','exFest']].forEach(function(pair){
+      const anchor=findLabelAnchor(pair[0],residuoHdr.y,70);
+      letti[pair[1]]=anchor?residuoValue(anchor.y,residuoHdr.x0,residuoHdr.x1,6,30):null;
+    });
+    const meseRaw=findRowText("MENSILITA'",100,20);
+    const meseLeggibile=meseRaw?(meseRaw.charAt(0)+meseRaw.slice(1).toLowerCase()):'';
+    status.textContent='Letto. Controlla i valori prima di confermare.';
+    document.getElementById('cedMese').value=meseLeggibile;
+    document.getElementById('cedFerie').value=letti.ferie||'';
+    document.getElementById('cedPerm').value=letti.permessi||'';
+    document.getElementById('cedRol').value=letti.rol||'';
+    document.getElementById('cedExFest').value=letti.exFest||'';
+    document.getElementById('cedReview').style.display='block';
+  }catch(err){
+    status.textContent='Non sono riuscito a leggere il file in automatico. Puoi comunque scrivere i valori a mano qui sotto.';
+    document.getElementById('cedReview').style.display='block';
+  }
+}
+function confirmCedolino(){
+  const meseTxt=document.getElementById('cedMese').value.trim();
+  const ferieTxt=document.getElementById('cedFerie').value.trim();
+  const permTxt=document.getElementById('cedPerm').value.trim();
+  const rolTxt=document.getElementById('cedRol').value.trim();
+  const exFestTxt=document.getElementById('cedExFest').value.trim();
+
+  const cur=saldi(new Date().getFullYear());
+  const meseNum=meseCorrAnno();
+  const calibrati=[];
+
+  if(ferieTxt){
+    const v=parseFloat(ferieTxt.replace(',','.'));
+    if(!isNaN(v)){
+      D.settings.ferieIniziali=v-(D.settings.ferieMese||0)*meseNum+cur.ferie.use;
+      calibrati.push('Ferie');
+    }
+  }
+  if(rolTxt){
+    const v=parseFloat(rolTxt.replace(',','.'));
+    if(!isNaN(v)){
+      D.settings.rolIniziali=v-(D.settings.rolMese||0)*meseNum+cur.rol.use;
+      calibrati.push('R.O.L.');
+    }
+  }
+  if(permTxt){
+    const v=parseFloat(permTxt.replace(',','.'));
+    if(!isNaN(v)){
+      D.settings.permessiRetr=v+cur.permr.use;
+      calibrati.push('Permessi');
+    }
+  }
+
+  const entry={
+    id:'ced'+Date.now(),
+    mese:meseTxt,
+    ferie:ferieTxt,
+    permessi:permTxt,
+    rol:rolTxt,
+    exFest:exFestTxt
+  };
+  D.cedolini=D.cedolini||[];
+  D.cedolini.unshift(entry);
+  save();closeSheet();renderCedList();
+  toast(calibrati.length?('Cedolino salvato e saldi aggiornati: '+calibrati.join(', ')):'Cedolino salvato');
+}
+
+let cedOpenIdx=null;
+function toggleCedolino(i){
+  cedOpenIdx=(cedOpenIdx===i)?null:i;
+  renderCedList();
+}
+function cedNum(s){
+  if(s===null||s===undefined||s==='')return null;
+  const v=parseFloat(String(s).replace(',','.'));
+  return isNaN(v)?null:v;
+}
+function cedDelta(curr,prev){
+  if(curr===null||prev===null)return '';
+  const d=curr-prev;
+  if(Math.abs(d)<0.005)return '<span class="cedDelta" style="color:var(--muted)">invariato</span>';
+  const sign=d>0?'+':'';
+  const col=d>0?'var(--go)':'var(--pausa)';
+  return '<span class="cedDelta" style="color:'+col+'">'+sign+oreStr(d)+' vs mese prec.</span>';
+}
+function renderCedList(){
+  const el=document.getElementById('cedList');
+  if(!el)return;
+  const list=D.cedolini||[];
+  if(!list.length){el.innerHTML='<div class="empty"><span class="em">&#128196;</span>Nessun cedolino ancora letto</div>';return;}
+  el.innerHTML=list.map(function(c,i){
+    const open=cedOpenIdx===i;
+    const prev=list[i+1];
+    const fFerie=cedNum(c.ferie), fRol=cedNum(c.rol), fPerm=cedNum(c.permessi), fExFest=cedNum(c.exFest);
+    const pFerie=prev?cedNum(prev.ferie):null, pRol=prev?cedNum(prev.rol):null, pExFest=prev?cedNum(prev.exFest):null;
+    let html='<div class="cedRow">';
+    html+='<button class="cedHead" onclick="toggleCedolino('+i+')"><span class="t1">'+(c.mese||'—')+'</span><span class="cedChev">'+(open?'&#9650;':'&#9660;')+'</span></button>';
+    if(open){
+      html+='<div class="cedGrid">';
+      html+='<div><div class="cedLbl">Ferie</div><div class="cedVal">'+(fFerie!==null?oreStr(fFerie):'—')+'gg</div>'+cedDelta(fFerie,pFerie)+'</div>';
+      html+='<div><div class="cedLbl">ROL</div><div class="cedVal">'+(fRol!==null?oreStr(fRol):'—')+'h</div>'+cedDelta(fRol,pRol)+'</div>';
+      html+='<div><div class="cedLbl">Permessi</div><div class="cedVal">'+(fPerm!==null?oreStr(fPerm):'—')+'h</div>'+cedDelta(fPerm,prev?cedNum(prev.permessi):null)+'</div>';
+      html+='<div><div class="cedLbl">Ex Fest.</div><div class="cedVal">'+(fExFest!==null?oreStr(fExFest):'—')+'h</div>'+cedDelta(fExFest,pExFest)+'</div>';
+      html+='</div>';
+    }
+    html+='</div>';
+    return html;
+  }).join('');
+}
+
+
+/* ================= VIEW: OGGI ================= */
+let tick=null;
+function renderOggi(){
+  const s=D.sessione, pill=document.getElementById('statusPill'), txt=document.getElementById('statusTxt');
+  const btns=document.getElementById('clockBtns'), sub=document.getElementById('clockSub');
+  document.getElementById('annoCorr').textContent=new Date().getFullYear();
+  document.getElementById('todayDate').textContent=fmtData(isoDay())+' '+new Date().getFullYear();
+
+  if(!s){
+    pill.className='statuspill s-out';txt.textContent='Fuori servizio';
+    btns.innerHTML=`<button class="btn btn-go btn-block" onclick="timbraEntrata()">▶ Timbra entrata</button>`;
+    sub.innerHTML='Tocca <b>Timbra entrata</b> per iniziare';
+  }else{
+    const inPausa=(s.pause||[]).length && !s.pause[s.pause.length-1].fine;
+    const inTrasf=(s.trasferte||[]).length && !s.trasferte[s.trasferte.length-1].fine;
+    if(inPausa){pill.className='statuspill s-pausa';txt.textContent='In pausa';
+      btns.innerHTML=`<button class="btn btn-go" onclick="riprendi()">▶ Riprendi</button>
+        <button class="btn btn-stop" onclick="timbraUscita()">■ Esci</button>`;
+    }else if(inTrasf){pill.className='statuspill s-trasf';txt.textContent='In trasferta';
+      btns.innerHTML=`<button class="btn btn-trasf" onclick="rientroDitta()">🏢 Rientro in ditta</button>
+        <button class="btn btn-stop" onclick="timbraUscita()">■ Timbra uscita</button>`;
+    }else{pill.className='statuspill s-in';txt.textContent='Al lavoro';
+      btns.innerHTML=`<button class="btn btn-pausa" onclick="pausa()">❚❚ Pausa</button>
+        <button class="btn btn-trasf" onclick="trasfertaOut()">✈ Trasferta</button>
+        <button class="btn btn-stop btn-block" onclick="timbraUscita()">■ Timbra uscita</button>`;
+    }
+    const ent=new Date(s.inizio);
+    sub.innerHTML='Entrata alle <b>'+pad(ent.getHours())+':'+pad(ent.getMinutes())+'</b>';
+  }
+  renderBalances();
+  renderTodaySessions();
+  renderOrari();
+  refreshTick();
+}
+function refreshTick(){
+  clearInterval(tick);
+  const big=document.getElementById('bigTime');
+  const wt=document.getElementById('workToday');
+  const bd=document.getElementById('bigDate');
+  function paint(){
+    const now=new Date();
+    big.textContent=pad(now.getHours())+':'+pad(now.getMinutes());
+    if(bd){var _gg=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];var _mm=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];bd.textContent=_gg[now.getDay()]+' '+now.getDate()+' '+_mm[now.getMonth()]+' '+now.getFullYear();}
+    const s=D.sessione;
+    let lavMs=D.giornate[isoDay()]?D.giornate[isoDay()].sessioni.reduce((a,x)=>a+sessDurMs(x),0):0;
+    if(s) lavMs+=sessDurMs(s);
+    if(wt) wt.textContent='Lavorate oggi '+hm(lavMs);
+    document.getElementById('stWork').textContent=hm(lavMs);
+    const prev=isLavorativo(isoDay())?D.settings.oreGiornaliere:0;
+    document.getElementById('stTarget').textContent=decToHM(prev);
+    const diff=lavMs/3600000-prev;
+    const de=document.getElementById('stDiff');de.textContent=(diff>=0?'+':'')+decToHM(diff);
+    de.className='v mono '+(diff>=0?'pos':'neg');
+  }
+  paint();
+  tick=setInterval(paint,30000);
+}
+function renderBalances(){
+  const anno=new Date().getFullYear(); const s=saldi(anno);
+  const html=`
+    <div class="bal ferie"><div class="lab"><i></i>Ferie</div><div class="big">${oreStr(s.ferie.res)}<span style="font-size:14px"> gg</span></div><div class="small">su ${oreStr(s.ferie.mat)} · uso ${oreStr(s.ferie.use)}</div></div>
+    <div class="bal rol"><div class="lab"><i></i>ROL</div><div class="big">${decToHM(s.rol.res)}</div><div class="small">su ${decToHM(s.rol.mat)} · uso ${decToHM(s.rol.use)}</div></div>
+    <div class="bal permr"><div class="lab"><i></i>Perm. retr.</div><div class="big">${s.permr.res===null?decToHM(s.permr.use):decToHM(s.permr.res)}</div><div class="small">${s.permr.res===null?'usate':'residue su '+oreStr(s.permr.monte)+'h'}</div></div>
+    <div class="bal permn"><div class="lab"><i></i>Perm. non retr.</div><div class="big">${decToHM(s.permn.use)}</div><div class="small">usate quest'anno</div></div>`;
+  document.getElementById('balGrid').innerHTML=html;
+}
+function renderTodaySessions(){
+  const iso=isoDay(),g=D.giornate[iso],el=document.getElementById('todaySessions');
+  let items=[];
+  if(g)g.sessioni.forEach((x,i)=>items.push(rowSessione(x,iso,i)));
+  if(D.sessione){const s=D.sessione;const ent=new Date(s.inizio);
+    items.push(`<div class="row"><div class="tag" style="background:var(--go)"></div><div class="main"><div class="t1">In corso…</div><div class="t2">dalle ${pad(ent.getHours())}:${pad(ent.getMinutes())}${s.pause.length?' · '+s.pause.length+' pausa/e':''}${(s.trasferte&&s.trasferte.length)?' · ✈ trasferta':''}</div></div><div class="amt" style="color:var(--go)">●</div></div>`);}
+  el.innerHTML=items.length?items.join(''):'<div class="empty"><span class="em">😴</span>Nessuna timbratura oggi</div>';
+}
+function trasfInfo(x){const tr=(x.trasferte||[]).filter(t=>t.fine);if(!tr.length)return '';if(tr.length===1){const a=new Date(tr[0].inizio),b=new Date(tr[0].fine);return '✈ '+pad(a.getHours())+':'+pad(a.getMinutes())+'–'+pad(b.getHours())+':'+pad(b.getMinutes())+' · ';}return '✈ '+tr.length+' trasferte · ';}
+function rowSessione(x,iso,i){
+  const e=new Date(x.inizio),u=new Date(x.fine);const dur=sessDurMs(x);
+  const pm=Math.round(pauseMs(x.pause,new Date())/60000);
+  return `<div class="row" onclick="askEditSessione('${iso}',${i})"><div class="tag" style="background:var(--go)"></div>
+    <div class="main"><div class="t1">${pad(e.getHours())}:${pad(e.getMinutes())} → ${pad(u.getHours())}:${pad(u.getMinutes())}</div>
+    <div class="t2">${pm?('pausa '+pm+' min · '):''}${trasfInfo(x)}${x.note?x.note:'🔒 tocca per correggere'}</div></div>
+    <div class="amt">${hm(dur)}<small>ore</small></div></div>`;
+}
+
+function renderOrari(){
+  const iso=isoDay(), g=D.giornate[iso], s=D.sessione;
+  let sess=[]; if(g) sess=sess.concat(g.sessioni); if(s) sess.push(s);
+  let entrata='–', uscita='–', pausa='–';
+  if(sess.length){
+    const e=new Date(sess[0].inizio); entrata=pad(e.getHours())+':'+pad(e.getMinutes());
+    if(!s){ const last=sess[sess.length-1]; if(last.fine){const u=new Date(last.fine); uscita=pad(u.getHours())+':'+pad(u.getMinutes());} }
+    let best=null, bestDur=-1;
+    sess.forEach(x=>{(x.pause||[]).forEach(pp=>{
+      const ini=new Date(pp.inizio), fin=pp.fine?new Date(pp.fine):new Date(), d=fin-ini;
+      if(d>bestDur){ bestDur=d; best={ini, fin:pp.fine?fin:null}; }
+    });});
+    if(best){ const pi=pad(best.ini.getHours())+':'+pad(best.ini.getMinutes());
+      pausa = best.fin ? pi+'–'+pad(best.fin.getHours())+':'+pad(best.fin.getMinutes()) : pi+' (in corso)'; }
+  }
+  const set=(id,v)=>{const el=document.getElementById(id); if(el) el.textContent=v;};
+  set('tEntrata',entrata); set('tPausa',pausa); set('tUscita',uscita);
+}
+/* ===== azioni timbratura ===== */
+function timbraEntrata(){D.sessione={inizio:new Date().toISOString(),pause:[],trasferte:[],note:''};save();renderOggi();toast('Entrata registrata');}
+function pausa(){D.sessione.pause.push({inizio:new Date().toISOString(),fine:null});save();renderOggi();}
+function riprendi(){const p=D.sessione.pause[D.sessione.pause.length-1];if(p&&!p.fine)p.fine=new Date().toISOString();save();renderOggi();}
+function trasfertaOut(){if(!D.sessione.trasferte)D.sessione.trasferte=[];D.sessione.trasferte.push({inizio:new Date().toISOString(),fine:null});save();renderOggi();toast('Uscita trasferta registrata');}
+function rientroDitta(){const t=D.sessione.trasferte||[];const l=t[t.length-1];if(l&&!l.fine)l.fine=new Date().toISOString();save();renderOggi();toast('Rientro in ditta registrato');}
+function timbraUscita(){
+  const s=D.sessione;const p=s.pause[s.pause.length-1];if(p&&!p.fine)p.fine=new Date().toISOString();
+  const _t=(s.trasferte||[]);const _lt=_t[_t.length-1];if(_lt&&!_lt.fine)_lt.fine=new Date().toISOString();
+  const iso=isoDay(new Date(s.inizio));
+  if(!D.giornate[iso])D.giornate[iso]={sessioni:[]};
+  D.giornate[iso].sessioni.push({inizio:s.inizio,fine:new Date().toISOString(),pause:s.pause,note:s.note||''});
+  D.sessione=null;save();renderOggi();
+  toast('Uscita registrata · '+hm(sessDurMs(D.giornate[iso].sessioni.slice(-1)[0]))+' h');
+}
+
+/* ================= VIEW: CALENDARIO ================= */
+let regCursor=new Date(); regCursor.setDate(1);
+function navMonth(n){regCursor.setMonth(regCursor.getMonth()+n);renderRegistro();}
+function resetMese(){
+  const y=regCursor.getFullYear(),m=regCursor.getMonth();
+  const label=MESI[m]+' '+y;
+  gwAsk('Cancellare tutte le giornate di '+label+'? Non si può annullare.','🗑️','Cancella','var(--permr)',function(ok){
+    if(!ok)return;
+    Object.keys(D.giornate).forEach(k=>{const d=parseDay(k);if(d.getFullYear()===y&&d.getMonth()===m)delete D.giornate[k];});
+    save();renderRegistro();renderOggi();toast(label+' resettato');
+  });
+}
+function impegniDi(iso){return (D.impegni||[]).filter(x=>x.data===iso);}
+function assenzeDi(iso){
+  const t=parseDay(iso);
+  return (D.assenze||[]).filter(a=>{const d1=parseDay(a.dataInizio),d2=parseDay(a.dataFine||a.dataInizio);return t>=d1&&t<=d2;});
+}
+function renderRegistro(){
+  const y=regCursor.getFullYear(),m=regCursor.getMonth();
+  document.getElementById('regMonthLbl').textContent=MESI[m]+' '+y;
+  // statistiche mese
+  let totMs=0,giorni=0,attese=0;
+  Object.keys(D.giornate).forEach(k=>{const d=parseDay(k);if(d.getFullYear()===y&&d.getMonth()===m){totMs+=D.giornate[k].sessioni.reduce((a,s)=>a+sessDurMs(s),0);giorni++;}});
+  const lastDay=new Date(y,m+1,0).getDate();
+  for(let d=1;d<=lastDay;d++){const iso=y+'-'+pad(m+1)+'-'+pad(d);if(isLavorativo(iso))attese+=D.settings.oreGiornaliere;}
+  const over=totMs/3600000-attese;
+  document.getElementById('mWork').textContent=oreStr(totMs/3600000)+'h';
+  const ov=document.getElementById('mOver');ov.textContent=(over>=0?'+':'')+oreStr(over)+'h';ov.className='v mono '+(over>=0?'pos':'neg');
+  document.getElementById('mDays').textContent=giorni;
+  // griglia
+  const firstDow=(new Date(y,m,1).getDay()+6)%7; // 0=Lun
+  const oggi=isoDay();
+  let cells='';
+  for(let i=0;i<firstDow;i++)cells+='<div class="calcell empty"></div>';
+  for(let d=1;d<=lastDay;d++){
+    const iso=y+'-'+pad(m+1)+'-'+pad(d);
+    const g=D.giornate[iso];const ms=g?g.sessioni.reduce((a,s)=>a+sessDurMs(s),0):0;
+    const impList=impegniDi(iso), ass=assenzeDi(iso);
+    let lbl='';
+    if(impList.length){
+      lbl=`<div class="callbl" style="color:var(--rol)">${escH(impList[0].titolo)}${impList.length>1?' +'+(impList.length-1):''}</div>`;
+    }else if(ass.length){
+      const t=TIPI[ass[0].tipo];
+      lbl=`<div class="callbl" style="color:${t.col}">${t.em} ${t.lab}${ass.length>1?' +'+(ass.length-1):''}</div>`;
+    }
+    let dots='';
+    if(impList.length&&ass.length){ass.forEach(a=>{dots+=`<i style="background:${TIPI[a.tipo].col}"></i>`;});} // mostra i pallini delle assenze solo se c'è già il titolo impegno
+    const dow=parseDay(iso).getDay();
+    cells+=`<div class="calcell${iso===oggi?' oggi':''}${(dow===0||dow===6)?' festivo':''}" onclick="openGiorno('${iso}')">
+      <div class="cd">${d}</div>${ms?`<div class="ch">${hm(ms)}</div>`:''}${lbl}${dots?`<div class="caldots">${dots}</div>`:''}</div>`;
+  }
+  document.getElementById('calGrid').innerHTML=
+    '<div class="caldow"><span>Lun</span><span>Mar</span><span>Mer</span><span>Gio</span><span>Ven</span><span>Sab</span><span>Dom</span></div>'+
+    '<div class="calgrid">'+cells+'</div>';
+}
+function openGiorno(iso){
+  const g=D.giornate[iso];const imp=impegniDi(iso);const ass=assenzeDi(iso);
+  let sez='';
+  // sessioni di lavoro
+  if(g&&g.sessioni.length){
+    sez+='<div class="loginsub" style="text-align:left;margin:6px 0 4px">Lavoro</div>';
+    g.sessioni.forEach((x,i)=>{const e=new Date(x.inizio),u=new Date(x.fine);
+      sez+=`<div class="row" onclick="askEditSessione('${iso}',${i})"><div class="tag" style="background:var(--go)"></div><div class="main"><div class="t1">${pad(e.getHours())}:${pad(e.getMinutes())} → ${pad(u.getHours())}:${pad(u.getMinutes())}</div></div><div class="amt">${hm(sessDurMs(x))}<small>ore</small></div></div>`;});
+  }
+  // assenze
+  ass.forEach(a=>{const t=TIPI[a.tipo];sez+=`<div class="row"><div class="tag" style="background:${t.col}"></div><div class="main"><div class="t1">${t.em} ${t.lab}</div><div class="t2">${a.note||''}</div></div></div>`;});
+  // impegni
+  sez+='<div class="loginsub" style="text-align:left;margin:14px 0 4px">Impegni</div>';
+  if(imp.length)imp.sort((a,b)=>(a.ora||'').localeCompare(b.ora||'')).forEach(x=>{
+    sez+=`<div class="row" onclick="openImpegno('${iso}','${x.id}')"><div class="tag" style="background:var(--rol)"></div><div class="main"><div class="t1">${x.titolo}</div><div class="t2">${x.ora?'🕒 '+x.ora+(x.note?' · ':''):''}${x.note||''}</div></div><div class="amt" style="color:var(--rol)">›</div></div>`;});
+  else sez+='<div class="empty" style="padding:14px"><span class="em">🗓️</span>Nessun impegno</div>';
+  openSheet(`<h3>${fmtData(iso)} ${parseDay(iso).getFullYear()}</h3>${sez}
+    <button class="btn btn-go btn-block" style="margin-top:14px" onclick="openImpegno('${iso}')">+ Aggiungi impegno</button>
+    <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="openTimbra('${iso}')">+ Aggiungi giornata di lavoro</button>`);
+}
+function compilaMese(){
+  const y=regCursor.getFullYear(), m=regCursor.getMonth();
+  const oreG=D.settings.oreGiornaliere||8;
+  const oggi=new Date(); oggi.setHours(0,0,0,0);
+  const last=new Date(y,m+1,0).getDate();
+  let target=[];
+  for(let d=1;d<=last;d++){
+    const iso=y+'-'+pad(m+1)+'-'+pad(d);
+    const dd=parseDay(iso); dd.setHours(0,0,0,0);
+    if(dd>oggi) continue;
+    if(!isLavorativo(iso)) continue;
+    if(D.giornate[iso]&&D.giornate[iso].sessioni.length) continue;
+    if(assenzeDi(iso).length) continue;
+    target.push(iso);
+  }
+  if(!target.length){ toast('Nessun giorno da compilare in '+MESI[m]); return; }
+  gwAsk('Segnare '+target.length+' giorni lavorativi di '+MESI[m]+' '+y+' come lavorati ('+oreG+'h ciascuno)? Ferie/permessi e giorni già registrati non verranno toccati.','🗓️','Compila',(typeof getComputedStyle!=='undefined'?'#1f9d57':null)||'var(--go)',ok=>{
+    if(!ok)return;
+    target.forEach(iso=>{
+      const inizio=new Date(iso+'T09:00');
+      const fine=new Date(inizio.getTime()+oreG*3600000);
+      D.giornate[iso]={sessioni:[{inizio:inizio.toISOString(),fine:fine.toISOString(),pause:[],note:'auto'}]};
+    });
+    save(); renderRegistro(); renderOggi(); toast(target.length+' giorni compilati ✓');
+  });
+}
+function openImpegno(iso,id){
+  const x=id?D.impegni.find(i=>i.id===id):null;
+  openSheet(`<h3>${x?'Modifica':'Nuovo'} impegno</h3>
+    <label class="f">Data</label><div id="imDateSel"></div>
+    <div class="f2" style="margin-top:10px"><div><label class="f">Ora (opz.)</label><input type="time" id="imOra" value="${x?x.ora||'':''}"></div>
+    <div><label class="f">Titolo</label><input id="imTit" value="${x?(x.titolo||'').replace(/"/g,'&quot;'):''}" placeholder="es. Visita medica"></div></div>
+    <label class="f">Note</label><textarea id="imNote" rows="3">${x?x.note||'':''}</textarea>
+    <button class="btn btn-go btn-block" style="margin-top:14px" onclick="saveImpegno('${id||''}')">Salva</button>
+    ${x?`<button class="btn btn-block danger" style="background:var(--permr-soft);margin-top:8px" onclick="delImpegno('${id}')">Elimina</button>`:''}`);
+  buildDateSel('imDateSel','imDate',x?x.data:iso);
+}
+function saveImpegno(id){
+  const data=readDateSel('imDate');if(!data)return toast('Inserisci la data');
+  const o={id:id||('i'+Date.now()),data,ora:document.getElementById('imOra').value,titolo:document.getElementById('imTit').value.trim()||'Impegno',note:document.getElementById('imNote').value.trim()};
+  if(!D.impegni)D.impegni=[];
+  if(id){const i=D.impegni.findIndex(x=>x.id===id);D.impegni[i]=o;}else D.impegni.push(o);
+  save();closeSheet();renderRegistro();toast('Impegno salvato');
+}
+function delImpegno(id){gwAsk('Eliminare questo impegno?','🗑️','Elimina',null,ok=>{if(!ok)return;D.impegni=D.impegni.filter(x=>x.id!==id);save();closeSheet();renderRegistro();toast('Eliminato');});}
+
+/* ================= CARRIERA & ANZIANITÀ ================= */
+function anniMesiTra(d1,d2){
+  let a=d2.getFullYear()-d1.getFullYear();let m=d2.getMonth()-d1.getMonth();
+  if(d2.getDate()<d1.getDate())m--;
+  if(m<0){a--;m+=12;}
+  return {anni:Math.max(0,a),mesi:Math.max(0,m)};
+}
+function anzianitaTesto(dataInizio){
+  if(!dataInizio)return null;
+  const r=anniMesiTra(parseDay(dataInizio),new Date());
+  return r.anni+' anni e '+r.mesi+' mesi';
+}
+function renderCarriera(){
+  const out=document.getElementById('anzianitaOut');
+  if(out){const az=anzianitaTesto(D.profile.dataInizioLavoro);
+    out.innerHTML=az?`<div class="hint" style="margin-top:10px">📌 Anzianità nel lavoro attuale: <b>${az}</b></div>`:'';}
+  const cl=document.getElementById('carrieraList');if(!cl)return;
+  const c=(D.carriera||[]).slice().sort((a,b)=>(b.dataFine||'').localeCompare(a.dataFine||''));
+  if(!c.length){cl.innerHTML='<div class="empty" style="padding:16px"><span class="em">💼</span>Nessun lavoro precedente</div>';return;}
+  cl.innerHTML=c.map(j=>{const r=anniMesiTra(parseDay(j.dataInizio),parseDay(j.dataFine));
+    return `<div class="row" onclick="delCarriera('${j.id}')"><div class="tag" style="background:var(--permn)"></div>
+    <div class="main"><div class="t1">${j.ditta||'—'}${j.ruolo?' · '+j.ruolo:''}</div><div class="t2">${fmtData(j.dataInizio)} → ${fmtData(j.dataFine)} · ${r.anni}a ${r.mesi}m</div></div></div>`;}).join('');
+}
+function cambiaLavoro(){
+  const p=D.profile;
+  if(!p.dataInizioLavoro){toast('Imposta prima la data inizio del lavoro attuale');return;}
+  gwAsk('Archiviare il lavoro attuale ('+(p.ditta||'—')+') e iniziarne uno nuovo? La data di fine sarà oggi.','💼','Archivia',null,ok=>{
+    if(!ok)return;
+    if(!D.carriera)D.carriera=[];
+    D.carriera.push({id:'c'+Date.now(),ditta:p.ditta,ruolo:p.professione,tipoContratto:p.tipoContratto,ccnl:p.ccnl,dataInizio:p.dataInizioLavoro,dataFine:isoDay()});
+    p.ditta='';p.professione='';p.ccnl='';p.dataInizioLavoro='';
+    save();renderSettings();toast('Lavoro archiviato — inserisci il nuovo');
+  });
+}
+function delCarriera(id){gwAsk('Eliminare questo lavoro dallo storico?','🗑️','Elimina',null,ok=>{if(!ok)return;D.carriera=D.carriera.filter(x=>x.id!==id);save();renderCarriera();toast('Eliminato');});}
+
+/* ================= VIEW: ASSENZE ================= */
+let assYear=new Date().getFullYear();
+function navAssYear(n){assYear+=n;renderAssenze();}
+function renderAssenze(){
+  document.getElementById('annoCorr2').textContent=new Date().getFullYear();
+  document.getElementById('assYearLbl').textContent=assYear;
+  // balances duplicate
+  const s=saldi(new Date().getFullYear());
+  document.getElementById('balGrid2').innerHTML=document.getElementById('balGrid').innerHTML;
+  renderCedList();
+  const ass=assenzeAnno(assYear).sort((a,b)=>b.dataInizio.localeCompare(a.dataInizio));
+  const el=document.getElementById('assList');
+  if(!ass.length){el.innerHTML='<div class="empty"><span class="em">🗓️</span>Nessuna assenza nel '+assYear+'</div>';return;}
+  el.innerHTML=ass.map(a=>rowAssenza(a)).join('');
+}
+function rowAssenza(a){
+  const t=TIPI[a.tipo];
+  let when=fmtData(a.dataInizio);
+  if(a.dataFine&&a.dataFine!==a.dataInizio)when+=' → '+fmtData(a.dataFine);
+  let amt = (a.tipo==='ferie'||a.tipo==='malattia') ? oreStr(giorniAssenza(a))+'<small>gg</small>' : decToHM(a.ore||0)+'<small>ore</small>';
+  if(a.tipo==='ferie'&&!a.giornataIntera)amt='½<small>gg</small>';
+  const certBtn=a.certPath?`<button class="btn btn-ghost btn-sm" style="padding:4px 8px" onclick="event.stopPropagation();viewCertificato('${a.certPath}')">📄</button>`:'';
+  return `<div class="row" onclick="editAssenza('${a.id}')"><div class="tag" style="background:${t.col}"></div>
+    <div class="main"><div class="t1">${t.em} ${t.lab}</div><div class="t2">${when}${a.note?' · '+a.note:''}</div></div>
+    ${certBtn}
+    <div class="amt" style="color:${t.col}">${amt}</div></div>`;
+}
+let _certPendingPath=null;
+function ewSbCreds(){
+  const token=(window.parent&&typeof window.parent.ewGetAccessToken==='function')?window.parent.ewGetAccessToken():null;
+  const uid=(window.parent&&typeof window.parent.ewGetUserId==='function')?window.parent.ewGetUserId():null;
+  return {token:token,uid:uid,url:'https://qjevhdpxsuwjskksudcn.supabase.co',key:'sb_publishable_PFQfg1zWZqfUstTvmuaQAQ_dzxEwe9c'};
+}
+async function uploadCertificato(file){
+  const c=ewSbCreds();
+  if(!c.token||!c.uid)throw new Error('Sessione non disponibile: accedi dalla schermata principale prima di allegare un certificato.');
+  const safeName=file.name.replace(/[^a-zA-Z0-9._-]/g,'_');
+  const path=c.uid+'/'+Date.now()+'_'+safeName;
+  const res=await fetch(c.url+'/storage/v1/object/certificati-medici/'+path,{
+    method:'POST',
+    headers:{'Authorization':'Bearer '+c.token,'apikey':c.key,'Content-Type':file.type||'application/pdf'},
+    body:file
+  });
+  if(!res.ok){throw new Error('HTTP '+res.status);}
+  return path;
+}
+async function viewCertificato(path){
+  const c=ewSbCreds();
+  if(!c.token){toast('Sessione non disponibile');return;}
+  try{
+    const res=await fetch(c.url+'/storage/v1/object/sign/certificati-medici/'+path,{
+      method:'POST',
+      headers:{'Authorization':'Bearer '+c.token,'apikey':c.key,'Content-Type':'application/json'},
+      body:JSON.stringify({expiresIn:120})
+    });
+    const data=await res.json();
+    if(data&&data.signedURL)window.open(c.url+'/storage/v1'+data.signedURL,'_blank');
+    else toast('Impossibile aprire il certificato');
+  }catch(err){toast('Impossibile aprire il certificato');}
+}
+
+/* ================= VIEW: DIARIO ================= */
+function renderDiario(){
+  const list=(D.diario||[]).slice().sort((a,b)=>b.data.localeCompare(a.data));
+  const el=document.getElementById('diarioList');
+  if(!list.length){el.innerHTML='<div class="empty"><span class="em">📒</span>Nessuna attività registrata. Tocca "+ Nuova attività".</div>';return;}
+  el.innerHTML=list.map(d=>`<div class="row" onclick="editDiario('${d.id}')"><div class="tag" style="background:var(--rol)"></div>
+    <div class="main"><div class="t1">${d.titolo||'Attività'}</div><div class="t2">${fmtData(d.data)}${d.testo?' · '+d.testo.replace(/</g,'&lt;').slice(0,80):''}</div></div>
+    ${d.ore?`<div class="amt">${decToHM(d.ore)}<small>ore</small></div>`:''}</div>`).join('');
+}
+function openDiario(){
+  openSheet(`<h3>Nuova attività</h3>
+    <label class="f">Data</label><div id="dDateSel"></div>
+    <label class="f">Titolo</label><input id="dTit" placeholder="es. Riunione team / Report mensile">
+    <label class="f">Dettagli</label><textarea id="dTxt" rows="4" placeholder="Cosa hai fatto, note, idee…"></textarea>
+    <label class="f">Ore dedicate (opz.)</label><input type="number" id="dOre" step="0.5" min="0" placeholder="0">
+    <button class="btn btn-go btn-block" style="margin-top:16px" onclick="saveDiario()">Salva</button>`);
+  buildDateSel('dDateSel','dDate',isoDay());
+}
+function saveDiario(id){
+  const data=readDateSel('dDate');if(!data)return toast('Inserisci la data');
+  const o={id:id||('d'+Date.now()),data,titolo:document.getElementById('dTit').value.trim()||'Attività',testo:document.getElementById('dTxt').value.trim(),ore:parseFloat(document.getElementById('dOre').value||0)};
+  if(!D.diario)D.diario=[];
+  if(id){const i=D.diario.findIndex(x=>x.id===id);D.diario[i]=o;}else D.diario.push(o);
+  save();closeSheet();renderDiario();toast('Attività salvata');
+}
+function editDiario(id){
+  const d=D.diario.find(x=>x.id===id);if(!d)return;
+  openSheet(`<h3>Modifica attività</h3>
+    <label class="f">Data</label><div id="dDateSel"></div>
+    <label class="f">Titolo</label><input id="dTit" value="${(d.titolo||'').replace(/"/g,'&quot;')}">
+    <label class="f">Dettagli</label><textarea id="dTxt" rows="4">${d.testo||''}</textarea>
+    <label class="f">Ore dedicate (opz.)</label><input type="number" id="dOre" step="0.5" min="0" value="${d.ore||''}">
+    <button class="btn btn-go btn-block" style="margin-top:16px" onclick="saveDiario('${id}')">Salva</button>
+    <button class="btn btn-block danger" style="background:var(--permr-soft);margin-top:8px" onclick="delDiario('${id}')">Elimina</button>`);
+  buildDateSel('dDateSel','dDate',d.data);
+}
+function delDiario(id){gwAsk('Eliminare questa attività?','🗑️','Elimina',null,ok=>{if(!ok)return;D.diario=D.diario.filter(x=>x.id!==id);save();closeSheet();renderDiario();toast('Eliminata');});}
+/* ===== Esportazione report (download HTML + stampa/PDF) con data e ora ===== */
+function gwGenTs(){
+  var GG=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  var n=new Date();
+  return GG[n.getDay()]+' '+n.getDate()+' '+MESI[n.getMonth()]+' '+n.getFullYear()+' alle '+pad(n.getHours())+':'+pad(n.getMinutes());
+}
+function gwLogoTag(){try{var li=document.querySelector('.hlogo');if(li&&li.src)return '<img src="'+li.src+'" alt="GoWork" class="brand">';}catch(e){}return '';}
+function gwSignDate(){try{var d=new Date();return 'Torino, '+d.getDate()+' '+MESI[d.getMonth()]+' '+d.getFullYear();}catch(e){return 'Torino';}}
+function gwShell(title, meta, body, opts){
+  return '<!doctype html><html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+escH(title)+' — GoWork</title><style>'+'@import url(https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap);'
+    +'*{box-sizing:border-box}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#1a1a2e;margin:0;padding:30px 26px;background:#fff;line-height:1.5}'
+    +'.head{display:flex;align-items:center;gap:13px;border-bottom:2px solid #2e8b57;padding-bottom:14px;margin-bottom:20px}.head .brand{width:46px;height:auto;border-radius:11px;flex:0 0 auto}.head .htxt{min-width:0}.head h1{margin:0;font-size:22px}.head .gen{color:#666;font-size:12.5px;margin-top:5px}.signwrap{display:flex;justify-content:flex-end;margin:34px 0 4px;break-inside:avoid;page-break-inside:avoid}.signwrap .scard{width:248px;text-align:center}.signwrap .sdate{font-family:Georgia,"Times New Roman",serif;font-style:italic;font-size:12px;color:#5b6168;margin-bottom:10px;letter-spacing:.2px}.signwrap .sname{font-family:"Great Vibes","Snell Roundhand","Apple Chancery","Segoe Script","Brush Script MT",cursive;font-size:36px;line-height:1.15;color:#1f3a5f;padding:0 6px}.signwrap .srule{border-bottom:1.5px solid #c9ced3;margin-top:1px}.signwrap .slabel{font-size:10.5px;letter-spacing:1.5px;text-transform:uppercase;color:#8a9097;margin-top:6px}'
+    +'.sumline{font-size:13px;color:#333;margin:0 0 16px;padding:10px 12px;background:#f3f7f4;border:1px solid #e3ece6;border-radius:8px}'
+    +'.sec{font-size:13px;font-weight:700;color:#2e8b57;text-transform:uppercase;letter-spacing:.4px;margin:22px 0 8px}'
+    +'.entry{padding:12px 0;border-bottom:1px solid #ececec;break-inside:avoid;page-break-inside:avoid}.entry .tit{font-size:15px;font-weight:700;margin:0 0 2px}.entry .meta{font-size:12.5px;color:#2e8b57;font-weight:600;margin:0 0 5px}.entry .txt{font-size:13.5px;color:#333;white-space:pre-wrap;margin:0}.entry.empty{color:#999;font-style:italic;border:none}'
+    +'.ln{display:flex;justify-content:space-between;gap:12px;font-size:13.5px;padding:6px 0;border-bottom:1px solid #f0f0f0}.ln .k{color:#333}.ln .v{font-weight:700;white-space:nowrap}'
+    +'table{width:100%;border-collapse:collapse;font-size:13px}td,th{text-align:left;padding:6px 8px;border-bottom:1px solid #f0f0f0}th{color:#666;font-weight:600;font-size:11.5px;text-transform:uppercase;letter-spacing:.3px}td.n,th.n{text-align:right;white-space:nowrap}'
+    +'.foot{margin-top:24px;padding-top:12px;border-top:1px solid #ececec;font-size:11px;color:#999;text-align:center}'
+    +'@page{margin:1.4cm}@media print{body{padding:0}}'
+    +'</style></head><body><div class="head">'+gwLogoTag()+'<div class="htxt"><h1>'+escH(title)+'</h1><div class="gen">GoWork · Generato '+gwGenTs()+(meta?' · '+meta:'')+'</div></div></div>'
+    +body
+    +(opts&&opts.sign?'<div class="signwrap"><div class="scard"><div class="sdate">'+gwSignDate()+'</div><div class="sname">Sergio Tradori</div><div class="srule"></div><div class="slabel">Firma</div></div></div>':'')
+    +'<div class="foot">© 2026/2027 · GoWork · Tradori Sergio · sergio.tradori@outlook.it · Italy</div></body></html>';
+}
+function gwDownloadHTML(base, html){
+  try{
+    var blob=new Blob([html],{type:'text/html;charset=utf-8'});
+    var a=document.createElement('a');a.href=URL.createObjectURL(blob);
+    a.download=base+'-'+isoDay()+'.html';
+    document.body.appendChild(a);a.click();
+    setTimeout(function(){try{URL.revokeObjectURL(a.href);}catch(e){}a.remove();},1500);
+    toast('Scaricato');
+  }catch(e){toast('Errore download');}
+}
+function gwPrintHTML(html){
+  try{
+    var ifr=document.createElement('iframe');
+    ifr.setAttribute('aria-hidden','true');
+    ifr.style.cssText='position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+    document.body.appendChild(ifr);
+    var doc=ifr.contentWindow.document;doc.open();doc.write(html);doc.close();
+    var done=false;
+    function go(){if(done)return;done=true;try{ifr.contentWindow.focus();ifr.contentWindow.print();}catch(e){}setTimeout(function(){try{ifr.remove();}catch(e){}},3000);}
+    ifr.onload=function(){setTimeout(go,300);};
+    setTimeout(go,900);
+  }catch(e){toast('Stampa non disponibile');}
+}
+/* --- DIARIO --- */
+function diarioBody(){
+  var list=(D.diario||[]).slice().sort(function(a,b){return b.data.localeCompare(a.data);});
+  if(!list.length)return '<div class="entry empty">Nessuna attività registrata.</div>';
+  var GG=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  function fullDate(s){var d=parseDay(s);return GG[d.getDay()]+' '+d.getDate()+' '+MESI[d.getMonth()]+' '+d.getFullYear();}
+  var tot=list.reduce(function(s,d){return s+(parseFloat(d.ore)||0);},0);
+  var head=tot>0?'<div class="sumline">Totale ore annotate: <b>'+decToHM(tot)+'</b> · '+list.length+' attività</div>':'';
+  return head+list.map(function(d){
+    var meta=fullDate(d.data)+(d.ore?' · '+decToHM(d.ore)+' ore':'');
+    return '<div class="entry"><div class="tit">'+escH(d.titolo||'Attività')+'</div><div class="meta">'+meta+'</div>'+(d.testo?'<div class="txt">'+escH(d.testo)+'</div>':'')+'</div>';
+  }).join('');
+}
+function downloadDiario(){ if(!(D.diario||[]).length)return toast('Nessuna nota da scaricare'); gwDownloadHTML('diario-gowork', gwShell('Diario di lavoro','',diarioBody(),{sign:true})); }
+function printDiario(){ if(!(D.diario||[]).length)return toast('Nessuna nota da stampare'); gwPrintHTML(gwShell('Diario di lavoro','',diarioBody(),{sign:true})); }
+/* --- REGISTRO (mese visualizzato) --- */
+function registroBody(){
+  var y=regCursor.getFullYear(), m=regCursor.getMonth();
+  var GG=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  var last=new Date(y,m+1,0).getDate();
+  var totMs=0,giorni=0,attese=0;
+  Object.keys(D.giornate).forEach(function(k){var d=parseDay(k);if(d.getFullYear()===y&&d.getMonth()===m){totMs+=D.giornate[k].sessioni.reduce(function(a,s){return a+sessDurMs(s);},0);giorni++;}});
+  for(var dd=1;dd<=last;dd++){var isoo=y+'-'+pad(m+1)+'-'+pad(dd);if(isLavorativo(isoo))attese+=D.settings.oreGiornaliere;}
+  var over=totMs/3600000-attese;
+  var sum='<div class="sumline">Ore lavorate: <b>'+oreStr(totMs/3600000)+'h</b> · Straordinario: <b>'+(over>=0?'+':'')+oreStr(over)+'h</b> · Giorni lavorati: <b>'+giorni+'</b></div>';
+  var rows='';
+  for(var d=1;d<=last;d++){
+    var iso=y+'-'+pad(m+1)+'-'+pad(d);
+    var g=D.giornate[iso]; var ass=assenzeDi(iso); var imp=impegniDi(iso);
+    if((!g||!g.sessioni.length)&&!ass.length&&!imp.length)continue;
+    var dObj=parseDay(iso);
+    var dayLbl=GG[dObj.getDay()].slice(0,3)+' '+d+' '+MESI[m].slice(0,3);
+    var det=[];
+    if(g&&g.sessioni.length){
+      g.sessioni.forEach(function(x){var e=new Date(x.inizio),u=new Date(x.fine);det.push(pad(e.getHours())+':'+pad(e.getMinutes())+'→'+pad(u.getHours())+':'+pad(u.getMinutes())+' ('+hm(sessDurMs(x))+')'+(x.note&&x.note!=='auto'?' · '+escH(x.note):''));});
+    }
+    ass.forEach(function(a){var t=TIPI[a.tipo];det.push(t.em+' '+t.lab+(a.note?' · '+escH(a.note):''));});
+    imp.forEach(function(x){det.push('🗓️ '+escH(x.titolo||'Impegno')+(x.ora?' '+x.ora:''));});
+    var dayMs=g?g.sessioni.reduce(function(a,s){return a+sessDurMs(s);},0):0;
+    rows+='<div class="entry"><div class="tit">'+dayLbl+(dayMs?' — '+hm(dayMs):'')+'</div><div class="txt">'+det.join('<br>')+'</div></div>';
+  }
+  if(!rows)rows='<div class="entry empty">Nessuna attività in questo mese.</div>';
+  return sum+rows;
+}
+function regTitle(){return 'Registro — '+MESI[regCursor.getMonth()]+' '+regCursor.getFullYear();}
+function downloadRegistro(){ gwDownloadHTML('registro-gowork-'+regCursor.getFullYear()+'-'+pad(regCursor.getMonth()+1), gwShell(regTitle(),'',registroBody())); }
+function printRegistro(){ gwPrintHTML(gwShell(regTitle(),'',registroBody())); }
+/* --- RIEPILOGO (anno visualizzato) --- */
+function riepBody(){
+  var perMese=Array(12).fill(0);var tot=0,attese=0;
+  Object.keys(D.giornate).forEach(function(k){var d=parseDay(k);if(d.getFullYear()===riepYear){var ms=D.giornate[k].sessioni.reduce(function(a,s){return a+sessDurMs(s);},0);perMese[d.getMonth()]+=ms/3600000;tot+=ms/3600000;}});
+  for(var m=0;m<12;m++){var last=new Date(riepYear,m+1,0).getDate();for(var dd=1;dd<=last;dd++){var iso=riepYear+'-'+pad(m+1)+'-'+pad(dd);if(isLavorativo(iso))attese+=D.settings.oreGiornaliere;}}
+  var over=tot-attese;
+  var sum='<div class="sumline">Ore totali: <b>'+oreStr(tot)+'h</b> · Straordinario: <b>'+(over>=0?'+':'')+oreStr(over)+'h</b> · Ore previste: <b>'+oreStr(attese)+'h</b></div>';
+  var rowsM='';
+  for(var i=0;i<12;i++){ if(perMese[i]>0) rowsM+='<tr><td>'+MESI[i]+'</td><td class="n">'+oreStr(perMese[i])+' h</td></tr>'; }
+  if(!rowsM)rowsM='<tr><td colspan="2" style="color:#999;font-style:italic">Nessuna ora registrata</td></tr>';
+  var tbl='<div class="sec">Ore per mese</div><table><thead><tr><th>Mese</th><th class="n">Ore</th></tr></thead><tbody>'+rowsM+'</tbody></table>';
+  var s=saldi(riepYear);
+  var ass='<div class="sec">Assenze annuali</div>'
+    +'<div class="ln"><span class="k">🏖️ Ferie usate</span><span class="v">'+oreStr(s.ferie.use)+' gg</span></div>'
+    +'<div class="ln"><span class="k">⏱️ ROL usati</span><span class="v">'+decToHM(s.rol.use)+' ore</span></div>'
+    +'<div class="ln"><span class="k">📋 Permessi retribuiti</span><span class="v">'+decToHM(s.permr.use)+' ore</span></div>'
+    +'<div class="ln"><span class="k">🚫 Permessi non retribuiti</span><span class="v">'+decToHM(s.permn.use)+' ore</span></div>';
+  return sum+tbl+ass;
+}
+function downloadRiep(){ gwDownloadHTML('riepilogo-gowork-'+riepYear, gwShell('Riepilogo annuale — '+riepYear,'',riepBody())); }
+function printRiep(){ gwPrintHTML(gwShell('Riepilogo annuale — '+riepYear,'',riepBody())); }
+
+/* ================= STIMA PENSIONE (orientativa) ================= */
+function etaDa(dataNascita){const n=parseDay(dataNascita);const o=new Date();let e=o.getFullYear()-n.getFullYear();if(o.getMonth()<n.getMonth()||(o.getMonth()===n.getMonth()&&o.getDate()<n.getDate()))e--;return e;}
+function anniDecimali(d1,d2){return Math.max(0,(d2-d1)/(365.25*86400000));}
+function contributiMaturati(){ // anni decimali da lavoro attuale + carriera registrata
+  const p=D.profile;let tot=0;
+  if(p.dataInizioLavoro)tot+=anniDecimali(parseDay(p.dataInizioLavoro),new Date());
+  (D.carriera||[]).forEach(j=>{if(j.dataInizio&&j.dataFine)tot+=anniDecimali(parseDay(j.dataInizio),parseDay(j.dataFine));});
+  return tot;
+}
+function stimaPensione(){
+  const p=D.profile;
+  const ral=(p.stipendio||0)*(p.mensilita||13);
+  if(!ral||!p.dataNascita)return null;
+  const eta=etaDa(p.dataNascita);
+  const etaPensione=67;                       // vecchiaia (regola attuale)
+  const anniResidui=Math.max(0,etaPensione-eta);
+  const contribAuto=contributiMaturati();      // da date (lavoro attuale + carriera)
+  const contribPrec=(p.anniContributi||0);     // periodi non registrati, inseriti a mano
+  const contribGiaVersati=contribAuto+contribPrec;
+  const anniTot=contribGiaVersati+anniResidui;
+  const aliquota=0.33;                         // contributiva dipendenti
+  const coeff=0.057;                           // coeff. trasformazione ~67 anni
+  const montante=ral*aliquota*anniTot;         // semplificato, senza rivalutazione composta
+  const annua=montante*coeff;
+  const mensile=annua/13;
+  const tasso=annua/ral;
+  return {ral,eta,anniResidui,anniTot,contribAuto,contribPrec,contribGiaVersati,annoPensione:new Date().getFullYear()+anniResidui,annua,mensile,tasso};
+}
+function renderPensione(){
+  const out=document.getElementById('pensioneOut');if(!out)return;
+  const r=stimaPensione();
+  if(!r){out.innerHTML='<div class="hint" style="margin-top:6px">Inserisci <b>stipendio</b> e <b>data di nascita</b> per vedere la stima.</div>';return;}
+  out.innerHTML=`<div class="grid3" style="margin-top:14px">
+    <div class="stat"><div class="v mono">€${Math.round(r.mensile).toLocaleString('it-IT')}</div><div class="l">Pensione/mese (lordo)</div></div>
+    <div class="stat"><div class="v mono">${r.annoPensione}</div><div class="l">Anno (a 67)</div></div>
+    <div class="stat"><div class="v mono">${Math.round(r.tasso*100)}%</div><div class="l">su stipendio</div></div>
+  </div>
+  <div class="hint" style="margin-top:10px">📌 Contributi già maturati: <b>${r.contribGiaVersati.toFixed(1)} anni</b> (${r.contribAuto.toFixed(1)} da carriera registrata${r.contribPrec?' + '+r.contribPrec+' precedenti':''}). Al pensionamento: ~${Math.round(r.anniTot)} anni totali · stipendio lordo annuo €${Math.round(r.ral).toLocaleString('it-IT')}.</div>`;
+}
+
+/* ================= FERIE E PERMESSI (grafico) ================= */
+let fpPeriod='settimana';
+let fpWeekCursor=(function(){const d=new Date();const dow=(d.getDay()+6)%7;d.setDate(d.getDate()-dow);d.setHours(12,0,0,0);return d;})();
+let fpMonthYear=new Date().getFullYear();
+let fpYearBase=new Date().getFullYear()-4;
+const FP_PERM_TYPES=['rol','permesso_retr','permesso_non_retr'];
+
+function fpSetPeriod(p){
+  fpPeriod=p;
+  document.querySelectorAll('#fpPeriodBtns button').forEach(function(b){b.className=b.dataset.p===p?'on fp':'';});
+  renderFP();
+}
+function fpNav(dir){
+  if(fpPeriod==='settimana'){fpWeekCursor.setDate(fpWeekCursor.getDate()+dir*7);}
+  else if(fpPeriod==='mese'){fpMonthYear+=dir;}
+  else {fpYearBase+=dir*5;}
+  renderFP();
+}
+function fpWeekDates(){
+  const arr=[];
+  for(let i=0;i<7;i++){const d=new Date(fpWeekCursor);d.setDate(d.getDate()+i);arr.push(d);}
+  return arr;
+}
+function fpBarChart(containerId,labels,fullLabels,values,colorVar,unit){
+  const el=document.getElementById(containerId);
+  const max=Math.max(1,Math.max.apply(null,values));
+  el.innerHTML=values.map(function(v,i){
+    const h=Math.max(3,v/max*100);
+    const title=fullLabels[i]+': '+oreStr(v)+' '+unit;
+    return '<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;height:100%;justify-content:flex-end" title="'+title+'">'
+      +'<div style="width:100%;background:'+(v?colorVar:'var(--line)')+';height:'+h+'%;border-radius:4px 4px 0 0;transition:height .4s"></div>'
+      +'<div style="font-size:9.5px;color:var(--muted)">'+labels[i]+'</div>'
+      +'</div>';
+  }).join('');
+}
+function renderFP(){
+  const el=document.getElementById('fpChartFerie');
+  if(!el)return;
+  const MESI_S=['G','F','M','A','M','G','L','A','S','O','N','D'];
+  const GIORNI_S=['L','M','M','G','V','S','D'];
+  const lbl=document.getElementById('fpPeriodLbl');
+  if(fpPeriod==='settimana'){
+    const dates=fpWeekDates();
+    const fullLabels=dates.map(function(d){return fmtData(isoDay(d));});
+    const ferie=dates.map(function(d){
+      const iso=isoDay(d);
+      return assenzeDi(iso).filter(function(a){return a.tipo==='ferie';}).reduce(function(s,a){return s+(a.giornataIntera?1:0.5);},0);
+    });
+    const perm=dates.map(function(d){
+      const iso=isoDay(d);
+      return assenzeDi(iso).filter(function(a){return FP_PERM_TYPES.indexOf(a.tipo)!==-1;}).reduce(function(s,a){return s+oreAssenza(a);},0);
+    });
+    lbl.textContent=fmtData(isoDay(dates[0]))+' – '+fmtData(isoDay(dates[6]));
+    fpBarChart('fpChartFerie',GIORNI_S,fullLabels,ferie,'var(--ferie)','gg');
+    fpBarChart('fpChartPerm',GIORNI_S,fullLabels,perm,'var(--permr)','ore');
+  }else if(fpPeriod==='mese'){
+    const fullLabels=MESI.map(function(m){return m.charAt(0).toUpperCase()+m.slice(1)+' '+fpMonthYear;});
+    const ferie=Array(12).fill(0),perm=Array(12).fill(0);
+    D.assenze.forEach(function(a){
+      const d=parseDay(a.dataInizio);
+      if(d.getFullYear()!==fpMonthYear)return;
+      if(a.tipo==='ferie')ferie[d.getMonth()]+=giorniAssenza(a);
+      else if(FP_PERM_TYPES.indexOf(a.tipo)!==-1)perm[d.getMonth()]+=oreAssenza(a);
+    });
+    lbl.textContent=fpMonthYear;
+    fpBarChart('fpChartFerie',MESI_S,fullLabels,ferie,'var(--ferie)','gg');
+    fpBarChart('fpChartPerm',MESI_S,fullLabels,perm,'var(--permr)','ore');
+  }else{
+    const years=[];for(let i=0;i<5;i++)years.push(fpYearBase+i);
+    const labels=years.map(String);
+    const ferie=years.map(function(y){
+      let t=0;D.assenze.forEach(function(a){if(a.tipo==='ferie'&&parseDay(a.dataInizio).getFullYear()===y)t+=giorniAssenza(a);});return t;
+    });
+    const perm=years.map(function(y){
+      let t=0;D.assenze.forEach(function(a){if(FP_PERM_TYPES.indexOf(a.tipo)!==-1&&parseDay(a.dataInizio).getFullYear()===y)t+=oreAssenza(a);});return t;
+    });
+    lbl.textContent=years[0]+' – '+years[4];
+    fpBarChart('fpChartFerie',labels,labels,ferie,'var(--ferie)','gg');
+    fpBarChart('fpChartPerm',labels,labels,perm,'var(--permr)','ore');
+  }
+}
+
+/* ================= VIEW: RIEPILOGO ================= */
+let riepYear=new Date().getFullYear();
+function navRiepYear(n){riepYear+=n;renderRiep();}
+function renderRiep(){
+  document.getElementById('riepYearLbl').textContent=riepYear;
+  const perMese=Array(12).fill(0);let tot=0,attese=0;
+  Object.keys(D.giornate).forEach(k=>{const d=parseDay(k);if(d.getFullYear()===riepYear){const ms=D.giornate[k].sessioni.reduce((a,s)=>a+sessDurMs(s),0);perMese[d.getMonth()]+=ms/3600000;tot+=ms/3600000;}});
+  // attese annue
+  for(let m=0;m<12;m++){const last=new Date(riepYear,m+1,0).getDate();for(let d=1;d<=last;d++){const iso=riepYear+'-'+pad(m+1)+'-'+pad(d);if(isLavorativo(iso))attese+=D.settings.oreGiornaliere;}}
+  document.getElementById('rTot').textContent=oreStr(tot)+'h';
+  const over=tot-attese;const ov=document.getElementById('rOver');ov.textContent=(over>=0?'+':'')+oreStr(over)+'h';ov.className='v mono '+(over>=0?'pos':'neg');
+  // chart
+  const max=Math.max(...perMese,1);
+  document.getElementById('chart').innerHTML='<div style="display:flex;align-items:flex-end;gap:5px;height:140px;padding-top:6px">'+
+    perMese.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">
+      <div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono'">${v?Math.round(v):''}</div>
+      <div style="width:100%;background:${v?'var(--go)':'var(--line)'};height:${Math.max(3,v/max*100)}%;border-radius:5px 5px 0 0;transition:.4s"></div>
+      <div style="font-size:9.5px;color:var(--muted)">${['G','F','M','A','M','G','L','A','S','O','N','D'][i]}</div></div>`).join('')+'</div>';
+  // rendimento per giorno della settimana (media)
+  const dowSum=Array(7).fill(0),dowCnt=Array(7).fill(0);
+  Object.keys(D.giornate).forEach(k=>{const d=parseDay(k);if(d.getFullYear()===riepYear){const ms=D.giornate[k].sessioni.reduce((a,s)=>a+sessDurMs(s),0);if(ms>0){const wd=d.getDay();dowSum[wd]+=ms/3600000;dowCnt[wd]++;}}});
+  const _ord=[1,2,3,4,5,6,0],_lab=['Lun','Mar','Mer','Gio','Ven','Sab','Dom'];
+  const oreG=D.settings.oreGiornaliere||8;
+  const avg=_ord.map(wd=>dowCnt[wd]?dowSum[wd]/dowCnt[wd]:0);
+  const maxA=Math.max(...avg,1);
+  document.getElementById('chartDow').innerHTML='<div style="display:flex;align-items:flex-end;gap:6px;height:150px;padding-top:6px">'+
+    avg.map((v,i)=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;justify-content:flex-end">
+      <div style="font-size:9px;color:var(--muted);font-family:'JetBrains Mono'">${v?v.toFixed(1):''}</div>
+      <div style="width:100%;background:${v?(v>=oreG?'var(--go)':'#e0a64e'):'var(--line)'};height:${Math.max(3,v/maxA*100)}%;border-radius:6px 6px 0 0;transition:.4s"></div>
+      <div style="font-size:9.5px;color:var(--muted)">${_lab[i]}</div></div>`).join('')+'</div>'+
+    '<div class="sub" style="margin-top:10px">Barre più alte = giorni in cui lavori di più (media). Verde = sopra le '+oreG+'h previste, arancio = sotto.</div>';
+  // assenze riepilogo
+  const s=saldi(riepYear);
+  document.getElementById('riepAss').innerHTML=`
+    <div class="row"><div class="tag" style="background:var(--ferie)"></div><div class="main"><div class="t1">🏖️ Ferie usate</div></div><div class="amt">${oreStr(s.ferie.use)}<small>gg</small></div></div>
+    <div class="row"><div class="tag" style="background:var(--rol)"></div><div class="main"><div class="t1">⏱️ ROL usati</div></div><div class="amt">${decToHM(s.rol.use)}<small>ore</small></div></div>
+    <div class="row"><div class="tag" style="background:var(--permr)"></div><div class="main"><div class="t1">📋 Permessi retr.</div></div><div class="amt">${decToHM(s.permr.use)}<small>ore</small></div></div>
+    <div class="row"><div class="tag" style="background:var(--permn)"></div><div class="main"><div class="t1">🚫 Permessi non retr.</div></div><div class="amt">${decToHM(s.permn.use)}<small>ore</small></div></div>`;
+  renderFP();
+}
+
+/* ================= SHEET (modali) ================= */
+const overlay=document.getElementById('overlay'),sheet=document.getElementById('sheet');
+function openSheet(html){sheet.innerHTML='<div class="grab"></div>'+html;overlay.classList.add('show');}
+function closeSheet(){overlay.classList.remove('show');}
+
+/* ===== conferma custom (iOS-safe, sostituisce confirm()) ===== */
+let _gwCb=null;
+function gwAsk(msg,icon,okLabel,okColor,cb){
+  document.getElementById('gwcMsg').textContent=msg;
+  document.getElementById('gwcIcon').textContent=icon||'⚠️';
+  const ok=document.getElementById('gwcOk');ok.textContent=okLabel||'Elimina';ok.style.background=okColor||'var(--permr)';
+  document.getElementById('gwConfirm').classList.add('show');_gwCb=cb;
+}
+function gwResolve(res){document.getElementById('gwConfirm').classList.remove('show');const cb=_gwCb;_gwCb=null;if(cb)cb(res);}
+
+/* --- timbra manuale / modifica giornata --- */
+function openTimbra(iso){
+  const today=iso||isoDay();
+  openSheet(`<h3>Aggiungi giornata</h3>
+
+    <!-- PRESET RAPIDI -->
+    <div style="margin-bottom:14px;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;">⚡ Preset rapidi</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;">
+        <button onclick="applyPreset('standard')" style="background:rgba(34,197,94,0.12);border:1.5px solid rgba(34,197,94,0.35);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;color:#22c55e;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:1px;flex:1;min-width:100px;">
+          <span>📋 Turno Standard</span>
+          <span style="font-size:10px;opacity:0.7;">08:15→17:00 · 45min pranzo</span>
+        </button>
+        <button onclick="applyPreset('mattina')" style="background:rgba(251,191,36,0.12);border:1.5px solid rgba(251,191,36,0.35);border-radius:10px;padding:7px 12px;font-size:12px;font-weight:600;color:#fbbf24;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:1px;flex:1;min-width:100px;">
+          <span>🌅 Solo mattina</span>
+          <span style="font-size:10px;opacity:0.7;">08:15→12:15 · 4h</span>
+        </button>
+      </div>
+    </div>
+
+    <label class="f">Data</label><div id="tDateSel"></div>
+
+    <div class="f2" style="margin-top:10px">
+      <div><label class="f">Entrata</label><input type="time" id="tIn" value="08:15"></div>
+      <div><label class="f">Uscita</label><input type="time" id="tOut" value="17:00"></div>
+    </div>
+
+    <!-- Auto-calcolo 8h nette -->
+    <button onclick="autoCalcUscita()" style="background:rgba(96,165,250,0.1);border:1px solid rgba(96,165,250,0.3);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:600;color:#60a5fa;cursor:pointer;margin-top:6px;width:100%;">
+      🔄 Calcola uscita per 8h nette
+    </button>
+
+    <!-- Info pause -->
+    <div id="tPauseInfo" style="background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;margin-top:10px;font-size:11px;color:var(--muted);">
+      <div style="font-weight:700;color:var(--ink);margin-bottom:6px;">⏱ Schema pause standard</div>
+      <div style="display:flex;flex-direction:column;gap:3px;">
+        <div>☕ Mattina: 09:50 – 10:00 (10 min)</div>
+        <div>🍽️ Pranzo: 12:15 – 13:00 (45 min)</div>
+        <div>☕ Pomeriggio: 14:50 – 15:00 (10 min)</div>
+      </div>
+    </div>
+
+    <label class="f" style="margin-top:12px;">Pausa (minuti) <span style="font-size:10px;opacity:0.6;">solo quella che riduce le ore</span></label>
+    <input type="number" id="tPause" value="45" min="0">
+    <label class="f">Nota (opz.)</label><input id="tNote" placeholder="es. trasferta">
+    <button class="btn btn-go btn-block" style="margin-top:18px" onclick="saveTimbra()">Salva giornata</button>`);
+  buildDateSel('tDateSel','tDate',today);
+}
+const GW_PRESETS = {
+  standard: { in: '08:15', out: '17:00', pause: 45, nota: '' },
+  mattina:  { in: '08:15', out: '12:15', pause: 0,  nota: 'Mezza giornata' },
+};
+function applyPreset(key) {
+  const p = GW_PRESETS[key];
+  if(!p) return;
+  const inEl  = document.getElementById('tIn');
+  const outEl = document.getElementById('tOut');
+  const pauseEl = document.getElementById('tPause');
+  const noteEl  = document.getElementById('tNote');
+  if(inEl)    inEl.value   = p.in;
+  if(outEl)   outEl.value  = p.out;
+  if(pauseEl) pauseEl.value = p.pause;
+  if(noteEl && p.nota) noteEl.value = p.nota;
+  // Feedback visivo
+  toast('Preset applicato: ' + (key==='standard'?'Turno Standard 8h':'Solo mattina 4h'));
+}
+
+function autoCalcUscita() {
+  // Calcola uscita = entrata + 8h lavorate + minuti pausa
+  const inEl    = document.getElementById('tIn');
+  const outEl   = document.getElementById('tOut');
+  const pauseEl = document.getElementById('tPause');
+  if(!inEl || !inEl.value) { toast('Inserisci prima l\'orario di entrata'); return; }
+  const [hh, mm] = inEl.value.split(':').map(Number);
+  const pause    = parseInt(pauseEl?.value || 45);
+  const totalMin = hh * 60 + mm + 480 + pause; // 8h = 480min
+  const oh = Math.floor(totalMin / 60) % 24;
+  const om = totalMin % 60;
+  if(outEl) outEl.value = String(oh).padStart(2,'0') + ':' + String(om).padStart(2,'0');
+  toast('Uscita calcolata per 8h nette + ' + pause + 'min pausa');
+}
+
+function saveTimbra(){
+  const date=readDateSel('tDate');const i=document.getElementById('tIn').value;const o=document.getElementById('tOut').value;
+  if(!date||!i||!o)return toast('Compila i campi');
+  const inizio=new Date(date+'T'+i);let fine=new Date(date+'T'+o);
+  if(fine<=inizio)fine.setDate(fine.getDate()+1); // turno oltre mezzanotte
+  const pm=parseInt(document.getElementById('tPause').value||0);
+  const pause=pm>0?[{inizio:inizio.toISOString(),fine:new Date(inizio.getTime()+pm*60000).toISOString()}]:[];
+  const nuovaSessione={inizio:inizio.toISOString(),fine:fine.toISOString(),pause,note:document.getElementById('tNote').value};
+  function commitSessione(){
+    save();closeSheet();renderOggi();renderRegistro();toast('Giornata salvata');
+  }
+  if(D.giornate[date]&&D.giornate[date].sessioni.length){
+    gwAsk('Questo giorno ha già orari salvati. Sostituirli con i nuovi?','⚠️','Sostituisci','var(--go)',function(ok){
+      if(!ok)return;
+      D.giornate[date].sessioni=[nuovaSessione];
+      commitSessione();
+    });
+  } else {
+    if(!D.giornate[date])D.giornate[date]={sessioni:[]};
+    D.giornate[date].sessioni.push(nuovaSessione);
+    commitSessione();
+  }
+}
+function editGiornata(iso){
+  const g=D.giornate[iso];if(!g)return;
+  openSheet(`<h3>${fmtData(iso)}</h3>
+    ${g.sessioni.map((x,i)=>{const e=new Date(x.inizio),u=new Date(x.fine);return `<div class="row"><div class="main"><div class="t1">${pad(e.getHours())}:${pad(e.getMinutes())} → ${pad(u.getHours())}:${pad(u.getMinutes())}</div><div class="t2">${hm(sessDurMs(x))} h</div></div><button class="btn btn-ghost btn-sm" onclick="askEditSessione('${iso}',${i})">Modifica</button></div>`;}).join('')}
+    <button class="btn btn-ghost btn-block" style="margin-top:14px" onclick="openTimbra('${iso}')">+ Aggiungi sessione</button>
+    <button class="btn btn-block danger" style="background:var(--permr-soft);margin-top:8px" onclick="delGiornata('${iso}')">Elimina giornata</button>`);
+}
+function askEditSessione(iso,i){
+  gwAsk('Una giornata registrata non andrebbe modificata, se non per correggere un errore. Vuoi procedere lo stesso?','⚠️','Sì, correggi','#e0a000',ok=>{ if(ok) editSessione(iso,i); });
+}
+function editSessione(iso,i){
+  const x=D.giornate[iso].sessioni[i];const e=new Date(x.inizio),u=new Date(x.fine);
+  const pm=Math.round(pauseMs(x.pause,new Date())/60000);
+  openSheet(`<h3>Modifica sessione</h3>
+    <label class="f">Data</label><div id="eDateSel"></div>
+    <div class="f2" style="margin-top:10px"><div><label class="f">Entrata</label><input type="time" id="eIn" value="${pad(e.getHours())}:${pad(e.getMinutes())}"></div>
+    <div><label class="f">Uscita</label><input type="time" id="eOut" value="${pad(u.getHours())}:${pad(u.getMinutes())}"></div></div>
+    <label class="f">Pausa (minuti)</label><input type="number" id="ePause" value="${pm}" min="0">
+    <label class="f">Nota</label><input id="eNote" value="${x.note||''}">
+    <button class="btn btn-go btn-block" style="margin-top:18px" onclick="saveSessione('${iso}',${i})">Salva</button>
+    <button class="btn btn-block danger" style="background:var(--permr-soft);margin-top:8px" onclick="delSessione('${iso}',${i})">Elimina sessione</button>`);
+  buildDateSel('eDateSel','eDate',isoDay(e));
+}
+function saveSessione(iso,i){
+  const date=readDateSel('eDate');if(!date)return toast('Inserisci la data');
+  const inizio=new Date(date+'T'+document.getElementById('eIn').value);
+  let fine=new Date(date+'T'+document.getElementById('eOut').value);
+  if(fine<=inizio)fine.setDate(fine.getDate()+1);
+  const pm=parseInt(document.getElementById('ePause').value||0);
+  const pause=pm>0?[{inizio:inizio.toISOString(),fine:new Date(inizio.getTime()+pm*60000).toISOString()}]:[];
+  // se cambia data, sposta
+  const old=D.giornate[iso];old.sessioni.splice(i,1);if(!old.sessioni.length)delete D.giornate[iso];
+  if(!D.giornate[date])D.giornate[date]={sessioni:[]};
+  D.giornate[date].sessioni.push({inizio:inizio.toISOString(),fine:fine.toISOString(),pause,note:document.getElementById('eNote').value});
+  save();closeSheet();renderOggi();renderRegistro();toast('Aggiornato');
+}
+function delSessione(iso,i){gwAsk('Eliminare questa sessione?','🗑️','Elimina',null,ok=>{if(!ok)return;D.giornate[iso].sessioni.splice(i,1);if(!D.giornate[iso].sessioni.length)delete D.giornate[iso];save();closeSheet();renderOggi();renderRegistro();toast('Sessione eliminata');});}
+function delGiornata(iso){gwAsk('Eliminare l\'intera giornata di '+fmtData(iso)+'?','🗑️','Elimina',null,ok=>{if(!ok)return;delete D.giornate[iso];save();closeSheet();renderOggi();renderRegistro();toast('Giornata eliminata');});}
+
+/* --- assenze --- */
+let assTipo='ferie';
+function openAssenza(){
+  assTipo='ferie';
+  openSheet(`<h3>Nuova richiesta</h3>
+    <label class="f">Tipo</label>
+    <div class="segbtns" id="assTipoBtns">
+      <button class="on ferie" data-t="ferie" onclick="selTipo('ferie')">🏖️ Ferie</button>
+      <button data-t="rol" onclick="selTipo('rol')">⏱️ ROL</button>
+      <button data-t="permesso_retr" onclick="selTipo('permesso_retr')">📋 Perm. retr.</button>
+      <button data-t="permesso_non_retr" onclick="selTipo('permesso_non_retr')">🚫 Perm. non retr.</button>
+      <button data-t="malattia" onclick="selTipo('malattia')">🤒 Malattia</button>
+    </div>
+    <div id="assFields"></div>
+    <button class="btn btn-go btn-block" style="margin-top:18px" onclick="saveAssenza()">Salva</button>`);
+  renderAssFields();
+}
+function selTipo(t){assTipo=t;document.querySelectorAll('#assTipoBtns button').forEach(b=>{b.className=b.dataset.t===t?('on '+TIPI[b.dataset.t].cls):'';});renderAssFields();}
+function renderAssFields(id){
+  const today=isoDay();
+  const a = id? D.assenze.find(x=>x.id===id):null;
+  if(assTipo==='ferie'){
+    document.getElementById('assFields').innerHTML=`
+      <div class="f2"><div><label class="f">Dal</label><div id="aD1sel"></div></div>
+      <div><label class="f">Al</label><div id="aD2sel"></div></div></div>
+      <div class="toggle" style="border:none"><div><b>Mezza giornata</b><div class="sub" style="margin:0">solo se un giorno solo</div></div>
+      <div class="sw ${a&&!a.giornataIntera?'on':''}" id="aHalf" onclick="this.classList.toggle('on')"></div></div>
+      <label class="f">Nota</label><input id="aNote" value="${a?a.note||'':''}">`;
+    buildDateSel('aD1sel','aD1',a?a.dataInizio:today);
+    buildDateSel('aD2sel','aD2',a&&a.dataFine?a.dataFine:(a?a.dataInizio:today));
+  }else if(assTipo==='malattia'){
+    document.getElementById('assFields').innerHTML=`
+      <div class="f2"><div><label class="f">Dal</label><div id="aD1sel"></div></div>
+      <div><label class="f">Al</label><div id="aD2sel"></div></div></div>
+      <label class="f">Certificato medico (opzionale)</label>
+      <input type="file" id="certFile" accept="application/pdf,image/*">
+      <div id="certStatus" style="font-size:12px;color:var(--muted);margin-top:4px">${a&&a.certPath?'Certificato già allegato':''}</div>
+      <label class="f">Nota</label><input id="aNote" value="${a?a.note||'':''}">`;
+    buildDateSel('aD1sel','aD1',a?a.dataInizio:today);
+    buildDateSel('aD2sel','aD2',a&&a.dataFine?a.dataFine:(a?a.dataInizio:today));
+    _certPendingPath=null;
+    document.getElementById('certFile').addEventListener('change',async function(e){
+      const file=e.target.files[0];
+      if(!file)return;
+      const statusEl=document.getElementById('certStatus');
+      statusEl.textContent='Caricamento in corso...';
+      try{
+        const path=await uploadCertificato(file);
+        _certPendingPath=path;
+        statusEl.textContent='Allegato: '+file.name;
+      }catch(err){
+        statusEl.textContent='Caricamento non riuscito, riprova.';
+      }
+    });
+  }else{
+    const u=TIPI[assTipo].lab;
+    document.getElementById('assFields').innerHTML=`
+      <label class="f">Data</label><div id="aD1sel"></div>
+      <label class="f">Ore di ${u.toLowerCase()}</label><input type="number" id="aOre" step="0.5" min="0" value="${a?a.ore||1:1}">
+      <label class="f">Nota</label><input id="aNote" value="${a?a.note||'':''}">`;
+    buildDateSel('aD1sel','aD1',a?a.dataInizio:today);
+  }
+}
+function saveAssenza(id){
+  const d1=readDateSel('aD1');if(!d1)return toast('Inserisci la data');
+  const a={id:id||('a'+Date.now()),tipo:assTipo,dataInizio:d1,note:document.getElementById('aNote').value||''};
+  if(assTipo==='ferie'){a.dataFine=readDateSel('aD2')||d1;a.giornataIntera=!document.getElementById('aHalf').classList.contains('on');}
+  else if(assTipo==='malattia'){a.dataFine=readDateSel('aD2')||d1;a.giornataIntera=true;if(_certPendingPath)a.certPath=_certPendingPath;else if(id){const prev=D.assenze.find(x=>x.id===id);if(prev&&prev.certPath)a.certPath=prev.certPath;}}
+  else{a.ore=parseFloat(document.getElementById('aOre').value||0);a.dataFine=d1;a.giornataIntera=true;}
+  if(id){const i=D.assenze.findIndex(x=>x.id===id);D.assenze[i]=a;}else D.assenze.push(a);
+  save();closeSheet();renderOggi();renderAssenze();toast('Richiesta salvata');
+}
+function editAssenza(id){
+  const a=D.assenze.find(x=>x.id===id);assTipo=a.tipo;
+  openSheet(`<h3>Modifica richiesta</h3>
+    <label class="f">Tipo</label>
+    <div class="segbtns" id="assTipoBtns">
+      ${Object.keys(TIPI).map(t=>`<button class="${t===assTipo?'on '+TIPI[t].cls:''}" data-t="${t}" onclick="selTipo('${t}')">${TIPI[t].em} ${TIPI[t].lab}</button>`).join('')}
+    </div><div id="assFields"></div>
+    <button class="btn btn-go btn-block" style="margin-top:18px" onclick="saveAssenza('${id}')">Salva modifiche</button>
+    <button class="btn btn-block danger" style="background:var(--permr-soft);margin-top:8px" onclick="delAssenza('${id}')">Elimina</button>`);
+  renderAssFields(id);
+}
+function delAssenza(id){gwAsk('Eliminare questa richiesta?','🗑️','Elimina',null,ok=>{if(!ok)return;D.assenze=D.assenze.filter(x=>x.id!==id);save();closeSheet();renderOggi();renderAssenze();toast('Eliminata');});}
+
+/* ================= IMPOSTAZIONI ================= */
+function renderSettings(){
+  const s=D.settings;
+  if(currentUser){
+    document.getElementById('accName').textContent=currentUser.name||'Profilo';
+    document.getElementById('accEmail').textContent=currentUser.email;
+    const acc=document.getElementById('accAvatar');
+    if(currentUser.foto){acc.style.backgroundImage=`url('${currentUser.foto}')`;acc.textContent='';}
+    else{acc.style.backgroundImage='';acc.textContent=(currentUser.name||currentUser.email)[0].toUpperCase();}
+  }
+  document.getElementById('setNome').value=D.profile.nome||'';
+  const p=D.profile;
+  document.getElementById('setProf').value=p.professione||'';
+  document.getElementById('setDitta').value=p.ditta||'';
+  document.getElementById('setTipoContr').value=p.tipoContratto||'indeterminato';
+  document.getElementById('setCcnl').value=p.ccnl||'';
+  document.getElementById('setStip').value=p.stipendio||'';
+  document.getElementById('setMens').value=p.mensilita||13;
+  buildDateSel('setNascitaSel','setNascita',p.dataNascita||'');
+  document.getElementById('setContrib').value=p.anniContributi||'';
+  buildDateSel('setInizioLavSel','setInizioLav',p.dataInizioLavoro||'');
+  document.getElementById('setOreGg').value=s.oreGiornaliere;
+  document.getElementById('setOreSett').value=s.oreSettimanali;
+  document.getElementById('setFerieIni').value=s.ferieIniziali;
+  document.getElementById('setFerieMese').value=s.ferieMese;
+  document.getElementById('setRolIni').value=s.rolIniziali;
+  document.getElementById('setRolMese').value=s.rolMese;
+  document.getElementById('setPermr').value=s.permessiRetr;
+  document.getElementById('dataVer').textContent=D.version;
+  try{const sv=document.getElementById('setVer');if(sv)sv.textContent=(((window.GW_BUILD||'gw-v25').match(/v\d+/)||['v?'])[0]);}catch(e){}
+  gistLoadCfg();
+  const stId=document.getElementById('stId');if(stId)stId.value=_gId||'';
+  const stTk=document.getElementById('stToken');if(stTk){stTk.value='';stTk.placeholder=_gToken?'Token salvato ✓ (lascia vuoto per mantenerlo)':'ghp_…';}
+  cloudBadge(gistReady?'ok':(_gToken&&_gId?'syncing':'off'));
+  document.getElementById('setDays').innerHTML=[1,2,3,4,5,6,0].map(d=>
+    `<button class="${s.giorniLavorativi.includes(d)?'on ferie':''}" data-d="${d}" onclick="toggleDay(${d},this)">${GG[d]}</button>`).join('');
+  renderPensione();
+  renderCarriera();
+  renderBgSwatches();
+  renderHeaderAvatar();
+  // autosave: appena modifichi un campo del profilo/impostazioni, salva da solo
+  const sv=document.getElementById('view-set');
+  if(sv&&!sv._autowired){
+    sv._autowired=true;
+    sv.addEventListener('input',e=>{if(e.target.matches('input,textarea,select'))scheduleSettingsSave();});
+    sv.addEventListener('change',e=>{if(e.target.matches('input,select'))scheduleSettingsSave();});
+  }
+}
+function toggleDay(d,btn){
+  const arr=D.settings.giorniLavorativi;const i=arr.indexOf(d);
+  if(i>=0)arr.splice(i,1);else arr.push(d);
+  btn.className=arr.includes(d)?'on ferie':'';
+  save();renderOggi();
+}
+function collectSettings(){
+  const s=D.settings,p=D.profile;
+  p.nome=document.getElementById('setNome').value;
+  p.professione=document.getElementById('setProf').value;
+  p.ditta=document.getElementById('setDitta').value;
+  p.tipoContratto=document.getElementById('setTipoContr').value;
+  p.ccnl=document.getElementById('setCcnl').value;
+  p.stipendio=parseFloat(document.getElementById('setStip').value)||0;
+  p.mensilita=parseInt(document.getElementById('setMens').value)||13;
+  p.dataNascita=readDateSel('setNascita');
+  p.anniContributi=parseFloat(document.getElementById('setContrib').value)||0;
+  p.dataInizioLavoro=readDateSel('setInizioLav');
+  s.oreGiornaliere=parseFloat(document.getElementById('setOreGg').value)||8;
+  s.oreSettimanali=parseFloat(document.getElementById('setOreSett').value)||40;
+  s.ferieIniziali=parseFloat(document.getElementById('setFerieIni').value)||0;
+  s.ferieMese=parseFloat(document.getElementById('setFerieMese').value)||0;
+  s.rolIniziali=parseFloat(document.getElementById('setRolIni').value)||0;
+  s.rolMese=parseFloat(document.getElementById('setRolMese').value)||0;
+  s.permessiRetr=parseFloat(document.getElementById('setPermr').value)||0;
+  save();
+  // aggiorno il nome mostrato nella card account, se serve
+  const an=document.getElementById('accName');if(an&&currentUser)an.textContent=currentUser.name||p.nome||'Profilo';
+}
+let _setSaveTimer=null;
+function scheduleSettingsSave(){clearTimeout(_setSaveTimer);_setSaveTimer=setTimeout(()=>{collectSettings();renderPensione();renderCarriera();},500);}
+function saveSettings(){collectSettings();renderOggi();renderPensione();renderCarriera();toast('Impostazioni salvate ✓');}
+function flushSettings(){const sv=document.getElementById('view-set');if(sv&&sv.classList.contains('active')&&currentUser){clearTimeout(_setSaveTimer);collectSettings();}}
+function exportData(){
+  const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download='gowork-backup-'+isoDay()+'.json';a.click();toast('Backup esportato');
+}
+function importData(e){
+  const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);if(!o.version)throw 0;D=Object.assign(DEFAULTS(),o);save();applyTheme();renderOggi();renderSettings();toast('Dati importati');}catch(x){toast('File non valido');}};
+  r.readAsText(f);e.target.value='';
+}
+function resetAll(){gwAsk('Cancellare TUTTI i dati di questo profilo? Operazione irreversibile.','🔥','Cancella tutto',null,ok=>{if(!ok)return;localStorage.removeItem(dataKey());D=DEFAULTS();save();applyTheme();renderOggi();renderSettings();toast('Dati azzerati');});}
+
+/* ================= AVVIO ================= */
+// ricalcola il tempo quando si riapre l'app (anche dopo cell. spento): i timestamp restano corretti
+document.addEventListener('visibilitychange',()=>{if(document.hidden)flushSettings();else renderOggi();});
+window.addEventListener('focus',renderOggi);
+/* ================= AUTH FLOW ================= */
+const GW_EMAILJS={serviceId:'',templateId:'',publicKey:''}; // ← inserisci i tuoi ID EmailJS per le email di benvenuto
+function loginMsg(m,t){const el=document.getElementById('loginMsg');el.textContent=m||'';el.className='loginmsg '+(t||'');}
+let selEmail=null,manageMode=false;
+function togglePw(id,btn){const i=document.getElementById(id);if(i.type==='password'){i.type='text';btn.textContent='Nascondi';}else{i.type='password';btn.textContent='Mostra';}}
+function showProfiles(){
+  selEmail=null;loginMsg('');
+  const users=getUsers();
+  document.getElementById('registerBox').style.display='none';
+  if(!users.length){manageMode=false;showRegister(true);return;}
+  document.getElementById('profilesBox').style.display='block';
+  document.getElementById('passBox').style.display='none';
+  const mb=document.getElementById('manageBtn');if(mb)mb.style.display=users.length?'block':'none';
+  renderProfilesGrid();
+}
+function renderProfilesGrid(){
+  document.getElementById('profilesGrid').innerHTML=getUsers().map(u=>{
+    const init=(u.name||u.email)[0].toUpperCase();
+    const del=manageMode?`<div class="profdel" onclick="event.stopPropagation();askDeleteProfile('${u.email}')">✕</div>`:'';
+    const oc=manageMode?'':`onclick="selectProfile('${u.email}')"`;
+    return `<div class="profcard" data-e="${u.email}" ${oc}>${del}
+      <div class="av" style="${avatarBg(u)}">${u.foto?'':init}</div><div class="nm">${u.name||u.email}</div></div>`;
+  }).join('');
+}
+function toggleManage(){
+  manageMode=!manageMode;
+  const mb=document.getElementById('manageBtn');if(mb)mb.textContent=manageMode?'Fine':'Gestisci profili';
+  backToProfiles();renderProfilesGrid();
+}
+function askDeleteProfile(email){
+  const u=getUsers().find(x=>x.email===email);
+  gwAsk('Eliminare il profilo "'+(u?(u.name||email):email)+'"? I suoi dati su questo dispositivo verranno cancellati.','🗑️','Elimina',null,ok=>{
+    if(!ok)return;
+    saveUsers(getUsers().filter(x=>x.email!==email));
+    try{localStorage.removeItem('gw_'+email+'_data');}catch(e){}
+    if(localStorage.getItem('gw_current')===email)localStorage.removeItem('gw_current');
+    if(!getUsers().length){manageMode=false;showRegister(true);}
+    else{renderProfilesGrid();toast('Profilo eliminato');}
+  });
+}
+function selectProfile(email){
+  if(manageMode)return;
+  selEmail=email;loginMsg('');
+  const rb=document.getElementById('resetBox');if(rb){rb.style.display='none';document.getElementById('rsPass').value='';document.getElementById('rsPass2').value='';}
+  document.querySelectorAll('.profcard').forEach(c=>c.classList.toggle('sel',c.dataset.e===email));
+  document.getElementById('passBox').style.display='block';
+  const p=document.getElementById('loginPassword');p.value='';p.type='password';
+  const eye=p.parentElement.querySelector('.pweye');if(eye)eye.textContent='Mostra';
+  setTimeout(()=>p.focus(),60);
+}
+function backToProfiles(){selEmail=null;document.getElementById('passBox').style.display='none';const rb=document.getElementById('resetBox');if(rb)rb.style.display='none';document.querySelectorAll('.profcard').forEach(c=>c.classList.remove('sel'));loginMsg('');}
+function showRegister(first){
+  loginMsg('');
+  document.getElementById('profilesBox').style.display='none';
+  document.getElementById('registerBox').style.display='block';
+  document.getElementById('regTitle').textContent=first?'Crea il tuo account':'Nuovo account';
+  document.getElementById('backToLoginBtn').style.display=getUsers().length?'block':'none';
+  ['regName','regEmail','regPassword'].forEach(id=>document.getElementById(id).value='');
+}
+async function doLogin(){
+  if(!selEmail)return;
+  const pass=document.getElementById('loginPassword').value;
+  if(!pass){loginMsg('Inserisci la password.','error');return;}
+  const u=getUsers().find(x=>x.email===selEmail);if(!u)return;
+  const h=await hashPass(pass,u.salt||'');
+  if(h!==u.pass){loginMsg('Password non corretta.','error');return;}
+  enterApp(u);
+}
+async function doRegister(){
+  const name=document.getElementById('regName').value.trim();
+  const email=document.getElementById('regEmail').value.trim().toLowerCase();
+  const pass=document.getElementById('regPassword').value;
+  if(!name||!email||!pass){loginMsg('Compila tutti i campi.','error');return;}
+  if(pass.length<6){loginMsg('Password minimo 6 caratteri.','error');return;}
+  if(!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(email)){loginMsg('Inserisci un\'email valida.','error');return;}
+  const users=getUsers();
+  if(users.find(u=>u.email===email)){loginMsg('Email già registrata. Accedi invece.','error');return;}
+  const salt=randSalt();const hp=await hashPass(pass,salt);
+  const u={name,email,pass:hp,salt,createdAt:new Date().toISOString()};
+  users.push(u);saveUsers(users);
+  sendWelcomeEmail(name,email);
+  enterApp(u);
+}
+function startReset(){
+  if(!selEmail){loginMsg('Seleziona prima il profilo.','error');return;}
+  gistLoadCfg();
+  if(!_gToken||!_gId){
+    loginMsg('Per reimpostare la password collega prima il backup cloud qui sotto, poi riprova.','info');
+    const ls=document.getElementById('lgSync');if(ls)ls.style.display='block';
+    return;
+  }
+  document.getElementById('resetBox').style.display='block';
+  loginMsg('Backup cloud collegato: imposta una nuova password.','ok');
+}
+async function doReset(){
+  if(!selEmail)return;
+  const p1=document.getElementById('rsPass').value,p2=document.getElementById('rsPass2').value;
+  if(p1.length<6){loginMsg('Password minimo 6 caratteri.','error');return;}
+  if(p1!==p2){loginMsg('Le due password non coincidono.','error');return;}
+  const users=getUsers();const u=users.find(x=>x.email===selEmail);
+  if(!u){loginMsg('Profilo non trovato.','error');return;}
+  const salt=randSalt();u.salt=salt;u.pass=await hashPass(p1,salt);
+  saveUsers(users);
+  try{if(_gToken&&_gId)await gistApi('PATCH','/gists/'+_gId,{files:{'gowork_users.json':{content:JSON.stringify(getUsers())}}});}catch(e){}
+  loginMsg('Password aggiornata.','ok');
+  enterApp(u);
+}
+function enterApp(user){
+  currentUser=user;
+  localStorage.setItem('gw_current',user.email);
+  D=load();
+  if(!D.profile.nome){D.profile.nome=user.name||'';}
+  // auto-riparazione di eventuali dati incompleti (evita blocchi all'avvio)
+  if(!D.profile)D.profile={};
+  if(!D.settings)D.settings=DEFAULTS().settings;
+  if(D.sessione&&!Array.isArray(D.sessione.pause))D.sessione.pause=[];
+  if(!D.giornate||typeof D.giornate!=='object')D.giornate={};
+  ['assenze','diario','impegni','carriera'].forEach(k=>{if(!Array.isArray(D[k]))D[k]=[];});
+  save();
+  try{mirrorLoginBg();}catch(e){}
+  document.getElementById('loginPage').style.display='none';
+  document.querySelector('.app').style.display='block';
+  document.getElementById('tabbar').style.display='flex';
+  try{applyTheme();buildTabs();renderHeaderAvatar();go('oggi');renderOggi();}catch(e){console.error('render avvio',e);}
+  gistInit();
+}
+function logout(){
+  gwAsk('Uscire da questo account? I dati restano salvati sul dispositivo.','👋','Esci','var(--ink)',ok=>{
+    if(!ok)return;
+    localStorage.removeItem('gw_current');currentUser=null;D=DEFAULTS();applyTheme();
+    document.querySelector('.app').style.display='none';
+    document.getElementById('tabbar').style.display='none';
+    document.getElementById('loginPage').style.display='flex';
+    showProfiles();setQuote();try{var _a=document.querySelector('.app');if(_a)_a.scrollTop=0;}catch(e){}
+  });
+}
+function sendWelcomeEmail(name,email){
+  try{ if(window.emailjs && GW_EMAILJS.serviceId){
+    emailjs.send(GW_EMAILJS.serviceId,GW_EMAILJS.templateId,{to_name:name,to_email:email,user_email:email});
+  }}catch(e){}
+}
+
+/* ================= SYNC GIST (cloud, stile TradoCroods) ================= */
+let _gToken=null,_gId=null,gistReady=false,_gSyncing=false,_gPushTimer=null,_gAutoTimer=null;
+function gistLoadCfg(){_gToken=localStorage.getItem('gw_gist_token')||null;_gId=localStorage.getItem('gw_gist_id')||null;}
+function gistSaveCfg(t,i){if(t){localStorage.setItem('gw_gist_token',t);_gToken=t;}if(i!==undefined){if(i){localStorage.setItem('gw_gist_id',i);_gId=i;}}}
+function gistClearCfg(){localStorage.removeItem('gw_gist_token');localStorage.removeItem('gw_gist_id');_gToken=null;_gId=null;gistReady=false;clearInterval(_gAutoTimer);_gAutoTimer=null;}
+function emailKey(e){return e.replace(/[^a-z0-9]/gi,'_');}
+async function gistApi(method,path,body,timeoutMs){
+  if(!_gToken)return null;
+  const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),timeoutMs||20000);
+  try{
+    const res=await fetch('https://api.github.com'+path,{method,headers:{'Authorization':'token '+_gToken,'Accept':'application/vnd.github.v3+json','Content-Type':'application/json'},body:body?JSON.stringify(body):undefined,signal:ctrl.signal});
+    clearTimeout(t);return res.ok?await res.json():null;
+  }catch(e){clearTimeout(t);return null;}
+}
+async function gistCreateNew(){
+  if(!_gToken)return null;
+  const r=await gistApi('POST','/gists',{description:'GoWork — dati orari',public:false,files:{'gowork_users.json':{content:JSON.stringify(getUsers())}}});
+  if(r&&r.id){gistSaveCfg(null,r.id);return r.id;}return null;
+}
+function cloudBadge(state){
+  const b=document.getElementById('cloudBtn');
+  if(b){b.textContent={off:'☁️',syncing:'🔄',ok:'✅',err:'⚠️'}[state]||'☁️';b.dataset.state=state;}
+  const sc=document.getElementById('syncStatus');
+  if(sc)sc.textContent={off:'Non connesso',syncing:'Sincronizzazione…',ok:'Connesso e sincronizzato',err:'Errore di connessione'}[state]||'';
+}
+async function gistInit(){
+  gistLoadCfg();
+  if(!_gToken||!_gId){gistReady=false;cloudBadge('off');return;}
+  cloudBadge('syncing');
+  const r=await gistApi('GET','/gists/'+_gId);
+  if(r&&r.id){
+    gistReady=true;
+    await gistPull();
+    if(!_gAutoTimer)_gAutoTimer=setInterval(()=>{if(gistReady&&currentUser&&!_gSyncing)gistPush();},300000);
+    cloudBadge('ok');
+  }else{gistReady=false;cloudBadge('err');}
+}
+async function gistPush(){
+  if(!gistReady||!_gToken||!_gId||!currentUser||_gSyncing)return;
+  _gSyncing=true;cloudBadge('syncing');
+  const files={};
+  files['gowork_users.json']={content:JSON.stringify(getUsers())};
+  files['gowork_data_'+emailKey(currentUser.email)+'.json']={content:JSON.stringify(D)};
+  const r=await gistApi('PATCH','/gists/'+_gId,{files});
+  _gSyncing=false;cloudBadge(r?'ok':'err');
+}
+async function gistPull(onDone){
+  if(!gistReady||!_gToken||!_gId){if(onDone)onDone();return;}
+  cloudBadge('syncing');
+  const r=await gistApi('GET','/gists/'+_gId);
+  if(!r||!r.files){cloudBadge('err');if(onDone)onDone();return;}
+  // unione lista account (per email)
+  const uf=r.files['gowork_users.json'];
+  if(uf&&uf.content){try{const cu=JSON.parse(uf.content);if(Array.isArray(cu)){const byE={};cu.forEach(u=>byE[u.email]=u);getUsers().forEach(u=>{if(!byE[u.email])byE[u.email]=u;});saveUsers(Object.values(byE));}}catch(e){}}
+  // dati dell'utente corrente — con confronto versione (anti-sovrascrittura)
+  if(currentUser){
+    const df=r.files['gowork_data_'+emailKey(currentUser.email)+'.json'];
+    if(df&&df.content){
+      try{
+        const cloud=JSON.parse(df.content);
+        const lv=(D._v||0),cv=(cloud._v||0);
+        if(cv>=lv){persistCloud(cloud);refreshAll();}
+        else{setTimeout(gistPush,1200);} // locale più recente → non sovrascrivere, fai push
+      }catch(e){}
+    }else{setTimeout(gistPush,800);} // nessun dato cloud per questo utente → carica i locali
+  }
+  cloudBadge('ok');if(onDone)onDone();
+}
+function schedulePush(){if(!gistReady)return;clearTimeout(_gPushTimer);_gPushTimer=setTimeout(()=>{if(gistReady&&currentUser&&!_gSyncing)gistPush();},1500);}
+function refreshAll(){mirrorLoginBg();renderOggi();const v=document.querySelector('.view.active');if(v){const id=v.id.replace('view-','');if(id==='registro')renderRegistro();if(id==='diario')renderDiario();if(id==='assenze')renderAssenze();if(id==='riep')renderRiep();if(id==='set')renderSettings();}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden'){flushSettings();if(gistReady&&currentUser&&!_gSyncing){clearTimeout(_gPushTimer);gistPush();}}});
+window.addEventListener('pagehide',()=>{flushSettings();if(gistReady&&currentUser&&!_gSyncing)gistPush();});
+
+/* azioni UI — schermata di accesso */
+function toggleLgSync(){
+  const b=document.getElementById('lgSync');
+  const opening=b.style.display==='none';
+  b.style.display=opening?'block':'none';
+  if(opening){ // pre-compila i dati già salvati su questo dispositivo
+    gistLoadCfg();
+    const idf=document.getElementById('lgId');if(idf&&_gId)idf.value=_gId;
+    const tkf=document.getElementById('lgToken');if(tkf&&_gToken){tkf.placeholder='Token salvato ✓ (lascia vuoto per usarlo)';}
+  }
+}
+async function loginGistConnect(){
+  let t=document.getElementById('lgToken').value.trim();
+  const i=document.getElementById('lgId').value.trim();
+  if(!t){gistLoadCfg();if(_gToken)t=_gToken;} // riusa il token salvato se il campo è vuoto
+  if(!t){loginMsg('Inserisci il token GitHub.','error');return;}
+  gistSaveCfg(t,i||null);loginMsg('⏳ Connessione…','info');
+  if(!i){const nid=await gistCreateNew();if(!nid){loginMsg('Token non valido o senza permesso "gist".','error');return;}}
+  await gistInit();
+  if(gistReady){loginMsg('✅ Cloud connesso. Scegli il tuo profilo.','ok');showProfiles();}
+  else loginMsg('Connessione fallita. Controlla token e ID.','error');
+}
+/* azioni UI — impostazioni */
+function stMsg(m,t){const el=document.getElementById('stMsg');if(el){el.textContent=m||'';el.className='loginmsg '+(t||'');}}
+async function settingsGistConnect(){
+  gistLoadCfg();
+  let t=document.getElementById('stToken').value.trim()||_gToken||'';
+  const i=document.getElementById('stId').value.trim();
+  if(!t){stMsg('Inserisci il token GitHub.','error');return;}
+  gistSaveCfg(t,i||null);stMsg('⏳ Connessione…','info');
+  if(!i){const nid=await gistCreateNew();if(!nid){stMsg('Token non valido o senza permesso "gist".','error');return;}}
+  await gistInit();
+  if(gistReady){await gistPush();stMsg('✅ Connesso. Gist ID: '+_gId,'ok');renderSettings();}
+  else stMsg('Connessione fallita. Controlla token e ID.','error');
+}
+function syncNow(){if(!gistReady){stMsg('Prima connetti il cloud.','error');return;}gistPull(()=>{stMsg('✅ Sincronizzato.','ok');toast('Sincronizzato');});}
+function syncDisconnect(){gwAsk('Disconnettere il cloud da questo dispositivo? I dati locali restano.','☁️','Disconnetti','var(--ink)',ok=>{if(!ok)return;gistClearCfg();cloudBadge('off');renderSettings();toast('Cloud disconnesso');});}
+
+/* ================= FOTO PROFILO & SFONDO LOGIN ================= */
+function resizeImage(file,maxDim,q){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=()=>{const img=new Image();img.onload=()=>{
+      let w=img.width,h=img.height;const sc=Math.min(1,maxDim/Math.max(w,h));w=Math.round(w*sc);h=Math.round(h*sc);
+      const c=document.createElement('canvas');c.width=w;c.height=h;c.getContext('2d').drawImage(img,0,0,w,h);
+      res(c.toDataURL('image/jpeg',q));
+    };img.onerror=rej;img.src=r.result;};
+    r.onerror=rej;r.readAsDataURL(file);
+  });
+}
+function avatarBg(u){return u&&u.foto?`background-image:url('${u.foto}');background-size:cover;background-position:center`:'';}
+/* selettore data: giorno+mese a tendina, anno digitabile */
+function buildDateSel(containerId,baseId,value){
+  const c=document.getElementById(containerId);if(!c)return;
+  let g='',m='',a='';if(value){const p=value.split('-');a=p[0];m=p[1];g=p[2];}
+  const giorni=Array.from({length:31},(_,i)=>pad(i+1)).map(d=>`<option value="${d}" ${d===g?'selected':''}>${parseInt(d)}</option>`).join('');
+  const mesiOpt=MESI.map((nm,i)=>{const v=pad(i+1);return `<option value="${v}" ${v===m?'selected':''}>${nm.charAt(0).toUpperCase()+nm.slice(1)}</option>`;}).join('');
+  c.innerHTML=`<div class="datesel">
+    <select id="${baseId}_g"><option value="">Giorno</option>${giorni}</select>
+    <select id="${baseId}_m"><option value="">Mese</option>${mesiOpt}</select>
+    <input type="number" id="${baseId}_a" placeholder="Anno" min="1930" max="${new Date().getFullYear()+10}" value="${a||''}">
+  </div>`;
+}
+function readDateSel(baseId){
+  const g=document.getElementById(baseId+'_g'),m=document.getElementById(baseId+'_m'),a=document.getElementById(baseId+'_a');
+  if(!g||!m||!a||!g.value||!m.value||!a.value)return '';
+  let day=parseInt(g.value),mon=parseInt(m.value),yr=parseInt(a.value);
+  const last=new Date(yr,mon,0).getDate();if(day>last)day=last;   // es. 31 feb → 28/29
+  return yr+'-'+pad(mon)+'-'+pad(day);
+}
+function renderHeaderAvatar(){
+  const a=document.getElementById('headerAvatar');if(!a||!currentUser)return;
+  if(currentUser.foto){a.style.backgroundImage=`url('${currentUser.foto}')`;a.textContent='';}
+  else{a.style.backgroundImage='';a.textContent=(currentUser.name||currentUser.email)[0].toUpperCase();}
+}
+async function uploadFoto(input){
+  const f=input.files[0];if(!f)return;
+  try{const url=await resizeImage(f,256,.85);
+    currentUser.foto=url;
+    const us=getUsers();const i=us.findIndex(u=>u.email===currentUser.email);if(i>=0){us[i].foto=url;saveUsers(us);}
+    renderSettings();if(typeof gistPush==='function'&&gistReady)gistPush();toast('Foto profilo aggiornata');
+  }catch(e){toast('Immagine non valida');}
+  input.value='';
+}
+function removeFoto(){
+  gwAsk('Rimuovere la foto profilo?','🖼️','Rimuovi',null,ok=>{if(!ok)return;
+    delete currentUser.foto;
+    const us=getUsers();const i=us.findIndex(u=>u.email===currentUser.email);if(i>=0){delete us[i].foto;saveUsers(us);}
+    renderSettings();if(gistReady)gistPush();toast('Foto rimossa');
+  });
+}
+const GW_BG={
+  default:{nome:'GoWork',bg:'var(--bg)',img:'radial-gradient(circle at 18% 8%,var(--go-soft),transparent 42%),radial-gradient(circle at 88% 92%,var(--ferie-soft),transparent 40%)'},
+  foresta:{nome:'Foresta',bg:'#16261d',img:'radial-gradient(circle at 20% 10%,#2f6e49,transparent 50%),radial-gradient(circle at 85% 90%,#0f5a38,transparent 50%)'},
+  tramonto:{nome:'Tramonto',bg:'#2a1726',img:'radial-gradient(circle at 15% 12%,#e0792e,transparent 48%),radial-gradient(circle at 88% 85%,#c0306a,transparent 48%)'},
+  notte:{nome:'Notte',bg:'#0e1330',img:'radial-gradient(circle at 20% 10%,#2b3a8f,transparent 48%),radial-gradient(circle at 85% 88%,#5b2b8f,transparent 48%)'},
+  crema:{nome:'Crema',bg:'#ede8dd',img:'none'}
+};
+function applyLoginBg(){
+  const el=document.querySelector('.loginbg');if(!el)return;
+  let cfg=null;try{cfg=JSON.parse(localStorage.getItem('gw_loginbg'));}catch(e){}
+  if(cfg&&cfg.tipo==='img'){el.style.background='#111';el.style.backgroundImage=`url('${cfg.val}')`;el.style.backgroundSize='cover';el.style.backgroundPosition='center';return;}
+  const k=(cfg&&cfg.tipo==='preset')?cfg.val:'default';const p=GW_BG[k]||GW_BG.default;
+  el.style.background=p.bg;el.style.backgroundImage=p.img;el.style.backgroundSize='';el.style.backgroundPosition='';
+}
+function saveLoginBgCfg(cfg){localStorage.setItem('gw_loginbg',JSON.stringify(cfg));if(currentUser){D.settings.loginBg=cfg;save();}}
+function setLoginBg(k){saveLoginBgCfg({tipo:'preset',val:k});applyLoginBg();renderBgSwatches();}
+async function uploadLoginBg(input){
+  const f=input.files[0];if(!f)return;
+  try{const url=await resizeImage(f,1280,.72);saveLoginBgCfg({tipo:'img',val:url});applyLoginBg();renderBgSwatches();toast('Sfondo aggiornato');}
+  catch(e){toast('Immagine non valida');}
+  input.value='';
+}
+/* allinea lo sfondo salvato nei dati (cloud) alla cache locale del dispositivo */
+function mirrorLoginBg(){if(currentUser&&D.settings&&D.settings.loginBg){try{localStorage.setItem('gw_loginbg',JSON.stringify(D.settings.loginBg));}catch(e){}}applyLoginBg();}
+function renderBgSwatches(){
+  const el=document.getElementById('bgSwatches');if(!el)return;
+  let cur='default';try{const c=JSON.parse(localStorage.getItem('gw_loginbg'));if(c)cur=c.tipo==='img'?'img':c.val;}catch(e){}
+  el.innerHTML=Object.keys(GW_BG).map(k=>`<button class="bgsw${cur===k?' on':''}" title="${GW_BG[k].nome}" onclick="setLoginBg('${k}')" style="background:${GW_BG[k].bg};background-image:${GW_BG[k].img}"></button>`).join('')
+    +`<button class="bgsw bgimg${cur==='img'?' on':''}" title="Immagine" onclick="document.getElementById('bgFile').click()">📷</button>`;
+}
+
+/* ================= FRASI FILOSOFICHE (login) ================= */
+const GW_QUOTES=[
+  ["Scegli un lavoro che ami, e non lavorerai mai.","Confucio"],
+  ["Il lavoro tiene lontani tre grandi mali: la noia, il vizio e il bisogno.","Voltaire"],
+  ["Fatti non foste a viver come bruti, ma per seguir virtute e canoscenza.","Dante Alighieri"],
+  ["Niente di grande è stato fatto senza passione.","Hegel"],
+  ["Il segreto per andare avanti è cominciare.","Mark Twain"],
+  ["Il genio è uno per cento ispirazione e novantanove per cento sudore.","Thomas Edison"],
+  ["Fai di ogni giornata il tuo capolavoro.","John Wooden"],
+  ["Chi ben comincia è a metà dell'opera.","Proverbio"],
+  ["La fortuna aiuta gli audaci.","Proverbio"],
+  ["La qualità non è un atto, è un'abitudine.","Aristotele"],
+  ["Non contare i giorni, fai in modo che i giorni contino.","Muhammad Ali"],
+  ["La calma è la virtù dei forti.","Proverbio"]
+];
+let _qIdx=Math.floor(Math.random()*GW_QUOTES.length);
+function setQuote(){
+  const el=document.getElementById('loginQuote');if(!el)return;
+  const q=GW_QUOTES[_qIdx%GW_QUOTES.length];_qIdx++;
+  el.style.opacity=0;
+  setTimeout(()=>{el.innerHTML='«'+q[0]+'»<span class="qa">— '+q[1]+'</span>';el.style.opacity=1;},250);
+}
+setInterval(()=>{if(document.getElementById('loginPage').style.display!=='none')setQuote();},9000);
+
+/* ================= AGGIORNAMENTO APP ================= */
+let _lastUpdCheck=0,_updFound=false;
+async function checkForUpdate(manual){
+  if(!navigator.onLine){if(manual)toast('Sei offline');return;}
+  const now=Date.now();
+  if(!manual && (_updFound || now-_lastUpdCheck<120000))return; // auto: max 1 volta ogni 2 min
+  _lastUpdCheck=now;
+  try{
+    const base=location.href.split('?')[0].split('#')[0];
+    const r=await fetch(base+'?_uv='+now,{cache:'no-store'});
+    if(!r||!r.ok){if(manual)toast('Controllo non riuscito');return;}
+    const txt=await r.text();
+    const m=txt.match(/var BUILD=['"]([^'"]+)['"]/);
+    if(!m){if(manual)toast('Controllo non riuscito');return;}
+    const remote=m[1], local=(window.GW_BUILD||'');
+    if(remote && local && remote!==local){
+      _updFound=true;
+      const b=document.getElementById('updateBanner');if(b)b.style.display='block';
+      if(manual)toast('Aggiornamento trovato ⬆️');
+    }else if(manual){toast('App già aggiornata ✓');}
+  }catch(e){if(manual)toast('Nessuna connessione');}
+}
+async function applyUpdate(btn){
+  if(btn){btn.textContent='Aggiorno…';btn.disabled=true;}
+  try{flushSettings&&flushSettings();}catch(e){}
+  try{if(gistReady&&currentUser&&typeof gistPush==='function'){await gistPush();}}catch(e){} // salva sul cloud prima di ricaricare
+  try{if('serviceWorker' in navigator){const rs=await navigator.serviceWorker.getRegistrations();await Promise.all(rs.map(r=>r.unregister()));}}catch(e){}
+  try{if('caches' in window){const ks=await caches.keys();await Promise.all(ks.map(k=>caches.delete(k)));}}catch(e){}
+  try{localStorage.removeItem('gw_build');localStorage.removeItem('gw_ios_cache_ts');}catch(e){}
+  const u=location.href.split('?')[0].split('#')[0]+'?_u='+Date.now();
+  location.replace(u);
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)checkForUpdate(false);});
+window.addEventListener('online',()=>checkForUpdate(false));
+
+/* ================= BOOT ================= */
+applyTheme();
+applyLoginBg();
+(function boot(){
+  try{const lv=document.getElementById('loginVer');if(lv)lv.textContent=(((window.GW_BUILD||'gw-v25').match(/v\d+/)||['v?'])[0]);}catch(e){}
+  try{
+    const last=localStorage.getItem('gw_current');
+    const u=last?getUsers().find(x=>x.email===last):null;
+    if(u){enterApp(u);return;}
+  }catch(e){console.error('avvio accesso automatico',e);}
+  // login normale (o fallback se l'accesso automatico è fallito)
+  try{
+    currentUser=null;
+    document.getElementById('loginPage').style.display='flex';
+    document.querySelector('.app').style.display='none';
+    document.getElementById('tabbar').style.display='none';
+    showProfiles();setQuote();
+    gistLoadCfg();
+    if(_gToken&&_gId){gistInit().then(()=>{if(!currentUser)showProfiles();}).catch(()=>{});}
+  }catch(e){console.error('login UI',e);try{showRegister(true);}catch(_){}}
+})();
+setTimeout(()=>{try{checkForUpdate(false);}catch(e){}},4000); // controllo nuova versione all'avvio
+
+</script>
+
+<!-- ═══ OFFLINE — Service Worker via Blob (desktop/Android) ═══ -->
+<script>
+(function registerOfflineSW(){
+  if(!('serviceWorker' in navigator))return;
+  var V='gw-offline-v2';
+  var swCode=`
+const CACHE='${V}';
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.add(self.location.href.replace('/sw-blob.js','').split('?')[0]||'/')).then(()=>self.skipWaiting()));});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()));});
+self.addEventListener('fetch',e=>{
+  var url=e.request.url;
+  if(e.request.method!=='GET')return;
+  if(!url.startsWith(self.location.origin))return;
+  if(url.includes('api.github.com')||url.includes('emailjs'))return;
+  e.respondWith(
+    fetch(e.request.clone(),{cache:'no-store'}).then(r=>{
+      if(!r||r.status!==200)return caches.match(e.request);
+      var rc=r.clone();caches.open(CACHE).then(c=>c.put(e.request,rc));return r;
+    }).catch(()=>caches.open(CACHE).then(c=>c.match(e.request)).then(cd=>cd||new Response('<h2 style="font-family:sans-serif;padding:24px">GoWork offline<br><small>Connettiti alla prima visita.</small></h2>',{status:503,headers:{'Content-Type':'text/html'}})))
+  );
+});`;
+  try{
+    var url=URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}));
+    var path=location.pathname.replace(/[^/]*$/,'')||'/';
+    navigator.serviceWorker.register(url,{scope:path}).catch(function(){
+      navigator.serviceWorker.register(url,{scope:'/'}).catch(function(){});
+    });
+  }catch(e){}
+})();
+</script>
+
+<!-- ═══ OFFLINE iOS — Cache API diretta (PWA aggiunta a Home) ═══ -->
+<script>
+(function setupiOSOffline(){
+  var isIOS=/iPhone|iPad|iPod/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+  function banner(show,msg){var b=document.getElementById('offlineBanner');if(!b)return;b.style.display=show?'block':'none';if(show)b.textContent=msg;}
+  if(isIOS){
+    var IOS_CACHE='gowork-ios-v2',appURL=location.href.split('?')[0];
+    function cacheNow(){
+      if(!('caches' in window)||!navigator.onLine)return;
+      caches.open(IOS_CACHE).then(function(cache){
+        fetch(appURL,{cache:'no-store'}).then(function(r){
+          if(r&&r.status===200)r.clone().text().then(function(body){
+            var h=new Headers();h.set('content-type','text/html; charset=utf-8');h.set('sw-cached-at',Date.now()+'');
+            cache.put(appURL,new Response(body,{status:200,headers:h}));
+            localStorage.setItem('gw_ios_cache_ts',Date.now()+'');
+          });
+        }).catch(function(){});
+      });
+    }
+    if(navigator.onLine){setTimeout(cacheNow,2000);setInterval(function(){if(navigator.onLine)cacheNow();},6*36e5);}
+    window.addEventListener('online',function(){banner(false);setTimeout(cacheNow,2000);});
+  }
+  window.addEventListener('online',function(){banner(false);});
+  window.addEventListener('offline',function(){
+    var ts=parseInt(localStorage.getItem('gw_ios_cache_ts')||'0');
+    var age=ts?Math.round((Date.now()-ts)/60000):null;
+    banner(true,age!=null?('📱 Offline — copia salvata '+(age<60?age+'min':Math.floor(age/60)+'h')+' fa'):'📱 Offline — dati locali disponibili');
+  });
+})();
+</script>
+</body>
+</html>
