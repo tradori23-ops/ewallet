@@ -330,8 +330,8 @@ html[data-theme="dark"] .loginwrap{background:rgba(16,22,19,.6);border-color:rgb
 .loginquote:empty{display:none;padding:0;margin:0;border:none;min-height:0;box-shadow:none}
 .loginquote .qa{display:block;font-style:normal;font-family:'Manrope';font-size:12px;font-weight:700;color:var(--go);margin-top:8px;letter-spacing:.03em}
 </style>
-<script src="/home/claude/cedolino/node_modules/pdfjs-dist/build/pdf.min.js"></script>
-<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="/home/claude/cedolino/node_modules/pdfjs-dist/build/pdf.worker.min.js";</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>if(window.pdfjsLib)pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";</script>
 </head>
 <body>
 <div id="offlineBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:90;background:var(--pausa);color:#fff;text-align:center;font-size:12.5px;font-weight:600;padding:8px;padding-top:calc(8px + var(--sat,env(safe-area-inset-top)))">📱 Offline</div>
@@ -607,9 +607,12 @@ html[data-theme="dark"] .loginwrap{background:rgba(16,22,19,.6);border-color:rgb
       <div style="display:flex;gap:8px;margin-top:12px">
         <input id="compInput" placeholder="Nuovo compito...">
         <input type="file" id="compFile" accept="application/pdf" style="display:none">
+        <input type="date" id="compDueInput" style="display:none">
         <button class="btn btn-ghost btn-sm" id="compAttachBtn" style="width:44px;height:44px;padding:0;flex:none">&#128206;</button>
+        <button class="btn btn-ghost btn-sm" id="compDueBtn" style="width:44px;height:44px;padding:0;flex:none">&#128197;</button>
         <button class="btn btn-go btn-sm" id="compAddBtn" style="width:44px;height:44px;padding:0;flex:none">+</button>
       </div>
+      <div id="compDuePending" style="display:none;font-size:12px;color:var(--go);margin-top:4px"></div>
       <div id="compPending" style="display:none;font-size:12px;color:var(--go);margin-top:6px"></div>
     </div>
     <div class="card">
@@ -903,12 +906,22 @@ function renderCompiti(){
   if(!list.length){el.innerHTML='<div class="empty"><span class="em">&#9989;</span>Nessun compito. Aggiungine uno qui sopra.</div>';return;}
   el.innerHTML=list.map(function(c){return rowCompito(c);}).join('');
 }
+function fmtCompitoData(s){const d=parseDay(s);return d.getDate()+' '+MESI[d.getMonth()].slice(0,3);}
+function isCompitoScaduto(c){
+  if(!c.scadenza||c.fatto)return false;
+  return parseDay(c.scadenza)<parseDay(isoDay());
+}
 function rowCompito(c){
   const pdfBadge=c.pdfName?('<button class="btn btn-ghost btn-sm" style="padding:4px 8px" onclick="viewCompitoPdf('+"'"+c.id+"'"+')">&#128196;</button>'):'';
   const testoStyle=c.fatto?'opacity:.5;text-decoration:line-through':'';
+  const scaduto=isCompitoScaduto(c);
+  let dueLine='';
+  if(c.scadenza){
+    dueLine='<div style="font-size:12px;margin-top:2px;color:'+(scaduto?'var(--permr)':'var(--muted)')+'">'+(scaduto?'&#9888;&#65039; In ritardo &middot; scadeva '+fmtCompitoData(c.scadenza):'&#128197; Scade il '+fmtCompitoData(c.scadenza))+'</div>';
+  }
   return '<div class="row" style="align-items:center">'+
-    '<div onclick="toggleCompito('+"'"+c.id+"'"+')" style="width:22px;height:22px;border-radius:50%;border:1.5px solid '+(c.fatto?'var(--go)':'var(--line)')+';background:'+(c.fatto?'var(--go)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#06140d;font-size:13px">'+(c.fatto?'&#10003;':'')+'</div>'+
-    '<div class="main" style="flex:1;margin-left:10px;'+testoStyle+'">'+c.testo+'</div>'+
+    '<div onclick="toggleCompito('+"'"+c.id+"'"+')" style="width:22px;height:22px;border-radius:50%;border:1.5px solid '+(c.fatto?'var(--go)':(scaduto?'var(--permr)':'var(--line)'))+';background:'+(c.fatto?'var(--go)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#06140d;font-size:13px">'+(c.fatto?'&#10003;':'')+'</div>'+
+    '<div class="main" style="flex:1;margin-left:10px;'+testoStyle+'">'+c.testo+dueLine+'</div>'+
     pdfBadge+
     '<button class="btn btn-ghost btn-sm" style="padding:4px 8px;color:var(--muted)" onclick="delCompito('+"'"+c.id+"'"+')">&#128465;</button>'+
     '</div>';
@@ -917,12 +930,15 @@ function addCompito(){
   const inp=document.getElementById('compInput');
   const testo=inp.value.trim();
   if(!testo){toast('Scrivi un compito prima di aggiungerlo');return;}
-  const c={id:'c'+Date.now(),testo:testo,fatto:false,pdfName:_compPendingPdf?_compPendingPdf.name:null,pdfData:_compPendingPdf?_compPendingPdf.data:null};
+  const c={id:'c'+Date.now(),testo:testo,fatto:false,pdfName:_compPendingPdf?_compPendingPdf.name:null,pdfData:_compPendingPdf?_compPendingPdf.data:null,scadenza:_compPendingDue||null};
   D.compiti=D.compiti||[];
   D.compiti.push(c);
   inp.value='';
   _compPendingPdf=null;
+  _compPendingDue=null;
   document.getElementById('compPending').style.display='none';
+  document.getElementById('compDuePending').style.display='none';
+  document.getElementById('compDueInput').value='';
   save();renderCompiti();
 }
 function toggleCompito(id){
@@ -957,6 +973,21 @@ document.getElementById('compFile').addEventListener('change',function(e){
     p.textContent='📎 '+file.name;
   };
   reader.readAsDataURL(file);
+});
+let _compPendingDue=null;
+document.getElementById('compDueBtn').addEventListener('click',function(){
+  const inp=document.getElementById('compDueInput');
+  if(inp.showPicker)inp.showPicker();else inp.click();
+});
+document.getElementById('compDueInput').addEventListener('change',function(e){
+  _compPendingDue=e.target.value||null;
+  const p=document.getElementById('compDuePending');
+  if(_compPendingDue){
+    p.style.display='block';
+    p.textContent='📅 Scade il '+fmtCompitoData(_compPendingDue);
+  }else{
+    p.style.display='none';
+  }
 });
 document.getElementById('compAddBtn').addEventListener('click',addCompito);
 
