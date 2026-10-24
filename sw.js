@@ -1,5 +1,5 @@
 /* E-Wallet — PWA cache v10 */
-const CACHE = 'ewallet-allinone-v13-casa';
+const CACHE = 'ewallet-allinone-v14-pass';
 const CORE = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', event => {
