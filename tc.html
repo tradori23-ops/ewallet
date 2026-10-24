@@ -2499,6 +2499,68 @@ body.light .fixed-item .name { color: #111122; }
 body.light .custom-fixed-item { background: #f0f0fa; }
 @media(max-width:768px) { .new-fixed-form { grid-template-columns: 1fr 1fr; } }
 
+/* ===== SPESE CASA ===== */
+.casa-voce{background:var(--dark3);border:1.5px solid var(--border);border-radius:16px;padding:18px 20px;margin-bottom:16px;transition:border-color .2s;}
+.casa-voce:hover{border-color:rgba(201,168,76,0.3);}
+.casa-voce-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:4px;}
+.casa-voce-id{display:flex;align-items:center;gap:10px;}
+.casa-voce-icon{font-size:26px;line-height:1;}
+.casa-voce-name{font-size:16px;font-weight:700;color:var(--text);}
+.casa-voce-actions{display:flex;gap:6px;flex-shrink:0;}
+.casa-icon-btn{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);border-radius:7px;padding:4px 7px;font-size:12px;cursor:pointer;font-family:var(--font);}
+.casa-icon-btn:hover{border-color:var(--gold);color:var(--gold);}
+.casa-icon-btn.danger:hover{border-color:var(--red);color:var(--red);}
+.casa-status{font-size:12.5px;color:var(--text-muted);margin:2px 0 6px;}
+.casa-status b{color:var(--text);font-weight:700;}
+.casa-nota{font-size:11.5px;color:var(--text-muted);background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:8px;padding:6px 10px;margin-bottom:14px;line-height:1.5;}
+.casa-kpirow{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:8px;margin-bottom:16px;}
+.casa-kpi{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:10px;padding:9px 11px;}
+.casa-kpi .l{font-size:9.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:3px;}
+.casa-kpi .v{font-size:15px;font-weight:700;color:var(--text);}
+.casa-kpi.gold .v{color:var(--gold);}
+.casa-prevwrap{margin-bottom:16px;}
+.casa-prevtop{display:flex;justify-content:space-between;font-size:11.5px;color:var(--text-muted);margin-bottom:5px;}
+.casa-prevtop b{color:var(--gold);}
+.casa-pbar{background:rgba(255,255,255,0.07);border-radius:6px;height:7px;overflow:hidden;}
+.casa-pbar-fill{height:100%;border-radius:6px;background:linear-gradient(90deg,#4ae87a,#c9a84c);transition:width .4s;}
+.casa-prevedit{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--text-muted);margin-bottom:16px;flex-wrap:wrap;}
+.casa-prevedit input{width:100px;background:var(--dark4);border:1px solid var(--border);border-radius:7px;padding:5px 8px;color:var(--text);font-size:12px;font-family:var(--font);outline:none;}
+.casa-prevedit input:focus{border-color:var(--gold);}
+.casa-yearnav{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.casa-yearnav button{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--text-muted);width:26px;height:26px;border-radius:7px;cursor:pointer;font-size:12px;}
+.casa-yearnav button:hover{border-color:var(--gold);color:var(--gold);}
+.casa-yearnav .yr{font-size:13px;font-weight:700;color:var(--text);min-width:40px;text-align:center;}
+.casa-chart{display:flex;align-items:flex-end;gap:4px;height:70px;margin-bottom:6px;}
+.casa-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;cursor:pointer;}
+.casa-bar{width:100%;max-width:22px;border-radius:4px 4px 2px 2px;background:rgba(201,168,76,0.3);transition:all .15s;min-height:3px;}
+.casa-bar-col:hover .casa-bar,.casa-bar-col.sel .casa-bar{background:var(--gold);}
+.casa-bar-col.has .casa-bar{background:rgba(201,168,76,0.55);}
+.casa-bar-col.has:hover .casa-bar,.casa-bar-col.sel.has .casa-bar{background:var(--gold);}
+.casa-bar-m{font-size:8.5px;color:var(--text-muted);margin-top:4px;}
+.casa-bar-col.sel .casa-bar-m{color:var(--gold);font-weight:700;}
+.casa-chart-detail{font-size:12px;color:var(--text-muted);min-height:16px;margin-bottom:14px;padding-left:2px;}
+.casa-chart-detail b{color:var(--gold);}
+.casa-vtoggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;padding:8px 2px;border-top:1px solid var(--border);font-size:12.5px;color:var(--text-muted);user-select:none;}
+.casa-vtoggle:hover{color:var(--gold);}
+.casa-vlist{display:none;flex-direction:column;gap:6px;margin:10px 0;}
+.casa-vlist.open{display:flex;}
+.casa-vrow{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:9px;padding:8px 11px;font-size:12.5px;}
+.casa-vrow .casa-vdata{color:var(--text-muted);min-width:66px;}
+.casa-vrow .casa-vimp{font-weight:700;color:var(--gold);flex:1;}
+.casa-vrow .casa-vnote{color:var(--text-muted);font-style:italic;flex:2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.casa-vrow .casa-vdel{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:13px;padding:2px 4px;}
+.casa-vrow .casa-vdel:hover{color:var(--red);}
+.casa-empty{font-size:12px;color:var(--text-muted);font-style:italic;padding:8px 2px;}
+.casa-addform{display:grid;grid-template-columns:1fr 1fr 1.4fr auto;gap:8px;margin-top:12px;align-items:end;}
+@media(max-width:768px){ .casa-addform{grid-template-columns:1fr 1fr;} }
+.casa-week-warn{background:rgba(201,168,76,0.1);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:12px 16px;margin-bottom:16px;display:flex;gap:10px;align-items:flex-start;}
+.casa-week-warn .ic{font-size:18px;line-height:1.3;}
+.casa-week-warn .tx{font-size:12.5px;line-height:1.5;color:var(--text);}
+.casa-week-warn .tx b{color:var(--gold);}
+body.light .casa-voce{background:#f0f0fa;}
+body.light .casa-voce-name{color:#111122;}
+body.light .casa-vrow,body.light .casa-kpi{background:#f6f6fb;}
+
 /* ===== INCOME TABLE ===== */
 .income-table-wrap { overflow-x:auto; }
 
@@ -4603,6 +4665,9 @@ setTimeout(_updateOfflineBanner, 500);
       <div class="nav-item" onclick="showSection('speseFisse', this); closeSidebar()">
         <span class="icon">🏠</span> Spese Fisse
       </div>
+      <div class="nav-item" onclick="showSection('speseCasa', this); closeSidebar()">
+        <span class="icon">🏘️</span> Spese Casa
+      </div>
 
       <!-- ── BANCA ── -->
       <div style="padding:10px 16px 4px;font-size:9px;color:var(--gold);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;opacity:0.6;">Banca</div>
@@ -5159,6 +5224,19 @@ setTimeout(_updateOfflineBanner, 500);
           </div>
         </div>
       </div>
+
+    <!-- ===== SPESE CASA ===== -->
+    <div id="sec-speseCasa" class="section">
+      <div class="card mb-20">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:4px;">
+          <div class="card-title" style="margin:0;">🏘️ Spese Casa</div>
+          <button class="btn btn-gold" onclick="openAddCasaVoceForm()" style="font-size:13px;padding:8px 16px;">➕ Nuova voce</button>
+        </div>
+        <p style="font-size:13px;color:var(--text-muted);margin-bottom:4px;">Condominio e riscaldamento, con gli importi reali che versi di volta in volta — non una rata fissa. Ogni versamento costruisce l'andamento e ti dice a che punto sei.</p>
+        <div id="casaVoceFormBox"></div>
+      </div>
+      <div id="casaVociContainer"></div>
+    </div>
 
     <!-- ===== ENTRATE ===== -->
     <div id="sec-entrate" class="section">
@@ -5912,6 +5990,8 @@ setTimeout(_updateOfflineBanner, 500);
         </div>
         <!-- BUDGET BAR -->
         <div id="weekBudgetBar" style="display:none;margin-bottom:16px;"></div>
+        <!-- AVVISO SPESE CASA (condominio/riscaldamento in scadenza questa settimana) -->
+        <div id="casaWeekWarning"></div>
         <div class="week-grid" id="weekGrid"></div>
       </div>
 
@@ -10105,6 +10185,7 @@ function showSection(id, el) {
     dashboard:'📊 Dashboard',
     contocorrente:'💳 Conto Corrente',
     speseFisse:'🏠 Spese Fisse',
+    speseCasa:'🏘️ Spese Casa',
     entrate:'💰 Entrate',
     aggiungiSpesa:'➕ Aggiungi Spesa',
     settimanale:'📅 Questa Settimana',
@@ -10118,6 +10199,7 @@ function showSection(id, el) {
   };
   document.getElementById('pageTitle').textContent = titles[id]||id;
   if(id==='speseFisse') { renderSalvadanai(); }
+  if(id==='speseCasa') { renderCasa(); }
   requestAnimationFrame(() => applyBlurState());
   if(id==='grafici') {
     // Aggiorna preview budget
@@ -11716,6 +11798,7 @@ function renderWeek() {
       <div style="padding:4px 8px;font-size:10px;color:var(--text-muted);text-align:center;border-top:1px solid rgba(201,168,76,0.15);">🔍 clicca per dettaglio</div>
     </div>`;
   });
+  renderCasaWeekWarning();
 }
 
 function selectWeekDay(ds, label) {
@@ -17258,6 +17341,271 @@ function updateRataProgress(amount, desc) {
   saveRata(rate);
   fbPushToCloud();
   renderRate();
+}
+
+// ════════════════════════════════════════════════════════════
+// ===== SPESE CASA (condominio / riscaldamento — versamenti variabili) =====
+// Diversa dalle Rate: nessuna rata fissa su un totale — versamenti
+// liberi (data+importo) che costruiscono l'andamento mese per mese.
+// ════════════════════════════════════════════════════════════
+
+const CASA_VOCI_DEFAULTS = [
+  { id:'casa_condominio', icon:'🏢', name:'Condominio', preventivo:674.41,
+    nota:'Preventivo 2026/27: €405,94 + saldo pregresso €268,47 = €674,41 totale · 12 rate da €56,20 (1ª scad. 27/10/2026)' },
+  { id:'casa_riscaldamento', icon:'🔥', name:'Riscaldamento', preventivo:842.50,
+    nota:'Preventivo 2026/27: €727,40 + saldo pregresso €115,11 = €842,50 totale · 8 rate da €105,31 (1ª scad. 30/10/2026)' },
+];
+function getCasaVoci() { return load('casaVoci', CASA_VOCI_DEFAULTS); }
+function saveCasaVoci(arr) { save('casaVoci', arr); fbPushToCloud(); }
+function getCasaPagamenti() { return load('casaPagamenti', []); }
+function saveCasaPagamenti(arr) { save('casaPagamenti', arr); fbPushToCloud(); }
+
+let casaCurrentYear = {};
+let casaExpanded = {};
+
+function casaFmt(v) { return (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.',','); }
+function casaFmtDateIt(ds) { const p = ds.split('-'); return `${p[2]}/${p[1]}/${p[0]}`; }
+function casaMonthShort(i) { return ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'][i]; }
+
+function casaPagamentiFiltrati(voceId, year) {
+  return getCasaPagamenti()
+    .filter(p => p.voceId===voceId && p.data && p.data.slice(0,4)===String(year))
+    .sort((a,b)=> a.data < b.data ? 1 : -1);
+}
+
+function renderCasa() {
+  const voci = getCasaVoci();
+  const box = document.getElementById('casaVociContainer');
+  if(!box) return;
+  voci.forEach(v => { if(!casaCurrentYear[v.id]) casaCurrentYear[v.id] = new Date().getFullYear(); });
+  box.innerHTML = voci.map(renderCasaVoceCard).join('');
+}
+
+function renderCasaVoceCard(v) {
+  const yr = casaCurrentYear[v.id] || new Date().getFullYear();
+  const yrPag = casaPagamentiFiltrati(v.id, yr);
+  const totAnno = yrPag.reduce((s,p)=>s+p.importo,0);
+  const nVers = yrPag.length;
+  const media = nVers ? totAnno/nVers : 0;
+  const ultimo = yrPag[0];
+
+  const monthly = Array(12).fill(0);
+  yrPag.forEach(p=>{ const mi = parseInt(p.data.slice(5,7))-1; if(mi>=0&&mi<12) monthly[mi]+=p.importo; });
+  const maxMonth = Math.max(...monthly, 1);
+
+  const pct = v.preventivo ? Math.min(100, (totAnno/v.preventivo)*100) : null;
+
+  const statusLine = ultimo
+    ? `Ultimo versamento: <b>${casaFmtDateIt(ultimo.data)}</b> · <b>${casaFmt(ultimo.importo)}</b>${ultimo.note?' — '+ultimo.note:''}`
+    : `Nessun versamento registrato per il ${yr}`;
+
+  const chartBars = monthly.map((val,i)=>{
+    const h = Math.max(3, Math.round((val/maxMonth)*62));
+    const has = val>0;
+    return `<div class="casa-bar-col${has?' has':''}" onclick="casaShowMonthDetail('${v.id}',${i})" id="casaBar-${v.id}-${i}">
+      <div class="casa-bar" style="height:${h}px;"></div>
+      <div class="casa-bar-m">${casaMonthShort(i)}</div>
+    </div>`;
+  }).join('');
+
+  const vlist = yrPag.length
+    ? yrPag.map(p=>`<div class="casa-vrow">
+        <span class="casa-vdata">📅 ${casaFmtDateIt(p.data)}</span>
+        <span class="casa-vimp">${casaFmt(p.importo)}</span>
+        <span class="casa-vnote">${p.note||''}</span>
+        <button class="casa-vdel" onclick="delCasaVersamento('${p.id}')" title="Elimina">🗑</button>
+      </div>`).join('')
+    : `<div class="casa-empty">Nessun versamento nel ${yr} — aggiungine uno qui sotto ↓</div>`;
+
+  return `<div class="casa-voce" id="casaVoce-${v.id}">
+    <div class="casa-voce-head">
+      <div class="casa-voce-id">
+        <span class="casa-voce-icon">${v.icon}</span>
+        <span class="casa-voce-name">${v.name}</span>
+      </div>
+      <div class="casa-voce-actions">
+        <button class="casa-icon-btn" onclick="renameCasaVoce('${v.id}')" title="Rinomina">✏️</button>
+        <button class="casa-icon-btn danger" onclick="delCasaVoce('${v.id}')" title="Elimina voce">🗑</button>
+      </div>
+    </div>
+    <div class="casa-status">${statusLine}</div>
+    ${v.nota ? `<div class="casa-nota">ℹ️ ${v.nota}</div>` : ''}
+
+    <div class="casa-kpirow">
+      <div class="casa-kpi gold"><div class="l">Pagato ${yr}</div><div class="v">${casaFmt(totAnno)}</div></div>
+      <div class="casa-kpi"><div class="l">Versamenti</div><div class="v">${nVers}</div></div>
+      <div class="casa-kpi"><div class="l">Media/versamento</div><div class="v">${casaFmt(media)}</div></div>
+    </div>
+
+    ${v.preventivo ? `
+    <div class="casa-prevwrap">
+      <div class="casa-prevtop"><span>🎯 Preventivo annuo: <b>${casaFmt(v.preventivo)}</b></span><span><b style="color:var(--gold)">${pct.toFixed(0)}%</b></span></div>
+      <div class="casa-pbar"><div class="casa-pbar-fill" style="width:${pct}%;"></div></div>
+    </div>` : `
+    <div class="casa-prevedit">
+      <span>Nessun preventivo annuo impostato —</span>
+      <input type="number" placeholder="es. 674,41" id="casaPrevInput-${v.id}">
+      <button class="btn btn-outline" style="padding:6px 11px;font-size:11.5px;" onclick="setCasaPreventivo('${v.id}')">Imposta</button>
+    </div>`}
+
+    <div class="casa-yearnav">
+      <button onclick="changeCasaYear('${v.id}',-1)">◀</button>
+      <span class="yr">${yr}</span>
+      <button onclick="changeCasaYear('${v.id}',1)">▶</button>
+      <span style="font-size:11px;color:var(--text-muted);margin-left:4px;">andamento mensile</span>
+    </div>
+    <div class="casa-chart">${chartBars}</div>
+    <div class="casa-chart-detail" id="casaDetail-${v.id}">Clicca un mese per il dettaglio →</div>
+
+    <div class="casa-vtoggle" onclick="toggleCasaVersamenti('${v.id}')">
+      <span>🧾 Versamenti ${yr} (${nVers})</span>
+      <span id="casaChev-${v.id}">${casaExpanded[v.id] ? '▲' : '▼'}</span>
+    </div>
+    <div class="casa-vlist${casaExpanded[v.id] ? ' open' : ''}" id="casaVlist-${v.id}">${vlist}</div>
+
+    <div class="casa-addform">
+      <div class="fld"><label>Data</label><input type="date" id="casaNewData-${v.id}" value="${localDateStr()}"></div>
+      <div class="fld"><label>Importo €</label><input type="number" step="0.01" placeholder="0,00" id="casaNewImporto-${v.id}"></div>
+      <div class="fld"><label>Nota (opz.)</label><input type="text" placeholder="es. acconto, conguaglio..." id="casaNewNote-${v.id}"></div>
+      <button class="btn btn-gold" onclick="addCasaVersamento('${v.id}')">➕ Aggiungi</button>
+    </div>
+  </div>`;
+}
+
+function casaShowMonthDetail(voceId, mi) {
+  document.querySelectorAll(`#casaVoce-${voceId} .casa-bar-col`).forEach(b=>b.classList.remove('sel'));
+  const el = document.getElementById(`casaBar-${voceId}-${mi}`);
+  if(el) el.classList.add('sel');
+  const yr = casaCurrentYear[voceId];
+  const pagsMese = casaPagamentiFiltrati(voceId, yr).filter(p => parseInt(p.data.slice(5,7))-1 === mi);
+  const box = document.getElementById(`casaDetail-${voceId}`);
+  if(!box) return;
+  if(!pagsMese.length){ box.innerHTML = `<b>${casaMonthShort(mi)} ${yr}</b> — nessun versamento`; return; }
+  const tot = pagsMese.reduce((s,p)=>s+p.importo,0);
+  const lines = pagsMese.map(p=>`${casaFmtDateIt(p.data)} · ${casaFmt(p.importo)}${p.note?' — '+p.note:''}`).join(' · ');
+  box.innerHTML = `<b>${casaMonthShort(mi)} ${yr}</b> — ${casaFmt(tot)} (${pagsMese.length}) · ${lines}`;
+}
+
+function changeCasaYear(voceId, delta) {
+  casaCurrentYear[voceId] = (casaCurrentYear[voceId]||new Date().getFullYear()) + delta;
+  renderCasa();
+}
+
+function toggleCasaVersamenti(voceId) {
+  casaExpanded[voceId] = !casaExpanded[voceId];
+  const list = document.getElementById(`casaVlist-${voceId}`);
+  const chev = document.getElementById(`casaChev-${voceId}`);
+  if(list) list.classList.toggle('open');
+  if(chev) chev.textContent = casaExpanded[voceId] ? '▲' : '▼';
+}
+
+function addCasaVersamento(voceId) {
+  const data = document.getElementById(`casaNewData-${voceId}`).value;
+  const importo = parseFloat(document.getElementById(`casaNewImporto-${voceId}`).value);
+  const note = document.getElementById(`casaNewNote-${voceId}`).value.trim();
+  if(!data){ showToast('⚠️ Inserisci una data'); return; }
+  if(!importo || importo<=0){ showToast('⚠️ Inserisci un importo valido'); return; }
+  const arr = getCasaPagamenti();
+  arr.push({ id:'casap_'+Date.now(), voceId, data, importo, note });
+  saveCasaPagamenti(arr);
+  casaCurrentYear[voceId] = parseInt(data.slice(0,4));
+  casaExpanded[voceId] = true;
+  bumpVersion();
+  renderCasa();
+  renderCasaWeekWarning();
+  showToast('✅ Versamento registrato');
+}
+
+function delCasaVersamento(id) {
+  tcAsk('Eliminare questo versamento?', '🏘️', 'Elimina', '#e05c5c', '_doDelCasaVersamento', id);
+}
+function _doDelCasaVersamento(id) {
+  saveCasaPagamenti(getCasaPagamenti().filter(p=>p.id!==id));
+  bumpVersion();
+  renderCasa();
+  renderCasaWeekWarning();
+  showToast('🗑 Versamento eliminato');
+}
+
+function setCasaPreventivo(voceId) {
+  const inp = document.getElementById(`casaPrevInput-${voceId}`);
+  const val = parseFloat(inp.value);
+  if(!val || val<=0){ showToast('⚠️ Inserisci un preventivo valido'); return; }
+  const voci = getCasaVoci();
+  const v = voci.find(v=>v.id===voceId);
+  if(!v) return;
+  v.preventivo = val;
+  saveCasaVoci(voci);
+  bumpVersion();
+  renderCasa();
+  showToast('🎯 Preventivo impostato');
+}
+
+function renameCasaVoce(voceId) {
+  const voci = getCasaVoci();
+  const v = voci.find(v=>v.id===voceId);
+  if(!v) return;
+  const n = prompt('Nome voce:', v.name);
+  if(n && n.trim()) { v.name = n.trim(); saveCasaVoci(voci); bumpVersion(); renderCasa(); }
+}
+
+function delCasaVoce(voceId) {
+  tcAsk('Eliminare questa voce e tutti i suoi versamenti?', '🏘️', 'Elimina', '#e05c5c', '_doDelCasaVoce', voceId);
+}
+function _doDelCasaVoce(voceId) {
+  saveCasaVoci(getCasaVoci().filter(v=>v.id!==voceId));
+  saveCasaPagamenti(getCasaPagamenti().filter(p=>p.voceId!==voceId));
+  bumpVersion();
+  renderCasa();
+  renderCasaWeekWarning();
+  showToast('🗑 Voce eliminata');
+}
+
+function openAddCasaVoceForm() {
+  const box = document.getElementById('casaVoceFormBox');
+  if(!box) return;
+  if(box.innerHTML){ box.innerHTML=''; return; }
+  box.innerHTML = `<div class="casa-addform" style="grid-template-columns:70px 1fr auto;margin-top:14px;">
+    <div class="fld"><label>Icona</label><input type="text" id="casaNewVoceIcon" placeholder="🧾" maxlength="4" style="text-align:center;font-size:18px;"></div>
+    <div class="fld"><label>Nome voce</label><input type="text" id="casaNewVoceName" placeholder="es. Acqua, Ascensore..."></div>
+    <button class="btn btn-gold" onclick="addCasaVoce()">➕ Crea</button>
+  </div>`;
+}
+function addCasaVoce() {
+  const icon = document.getElementById('casaNewVoceIcon').value.trim() || '🧾';
+  const name = document.getElementById('casaNewVoceName').value.trim();
+  if(!name){ showToast('⚠️ Inserisci il nome della voce'); return; }
+  const voci = getCasaVoci();
+  const id = 'casa_'+Date.now();
+  voci.push({id, icon, name, preventivo:null, nota:''});
+  saveCasaVoci(voci);
+  casaCurrentYear[id] = new Date().getFullYear();
+  bumpVersion();
+  document.getElementById('casaVoceFormBox').innerHTML='';
+  renderCasa();
+  showToast('✅ Voce "'+name+'" creata');
+}
+
+// ── Collegamento con Spese Settimanali: SOLO avviso, non tocca il budget reale ──
+function renderCasaWeekWarning() {
+  const box = document.getElementById('casaWeekWarning');
+  if(!box) return;
+  const dates = getWeekDates(typeof weekOffset !== 'undefined' ? weekOffset : 0);
+  const monIso = localDateStr(dates[0]), sunIso = localDateStr(dates[6]);
+  const pagamenti = getCasaPagamenti().filter(p => p.data >= monIso && p.data <= sunIso);
+  if(!pagamenti.length) { box.innerHTML = ''; return; }
+  const voci = getCasaVoci();
+  const budget = load('vs_budget_sett', 130);
+  const totWeek = pagamenti.reduce((s,p)=>s+p.importo,0);
+  const left = budget - totWeek;
+  const righe = pagamenti.map(p=>{
+    const v = voci.find(v=>v.id===p.voceId);
+    return `${v?v.icon:'🏘️'} ${v?v.name:'Spesa casa'} <b>${casaFmt(p.importo)}</b> (${casaFmtDateIt(p.data)})`;
+  }).join(' · ');
+  box.innerHTML = `<div class="casa-week-warn">
+    <div class="ic">⚠️</div>
+    <div class="tx">Questa settimana — Spese Casa: ${righe}.<br>Budget ${casaFmt(budget)} − questo pagamento = <b>${left>=0?casaFmt(left):'-'+casaFmt(Math.abs(left))}</b> ${left>=0?'liberi per il resto della settimana':'oltre il budget libero'}.</div>
+  </div>`;
 }
 
 // ===== SYNC CALENDAR / WEEK =====
