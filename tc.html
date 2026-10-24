@@ -7961,6 +7961,29 @@ function load(k, def) { const r = localStorage.getItem(getKey(k)); return r ? JS
 function getUsers() { return JSON.parse(localStorage.getItem('tc_users') || '[]'); }
 function saveUsers(u) { localStorage.setItem('tc_users', JSON.stringify(u)); }
 
+// ── Cambia password locale (profilo già autenticato, nessuna verifica vecchia pwd richiesta) ──
+function changeLocalPassword() {
+  const inp = document.getElementById('profileNewPass');
+  const msg = document.getElementById('profilePassMsg');
+  const val = (inp?.value || '').trim();
+  if(!currentUser?.email) { if(msg){ msg.style.color='#e05c5c'; msg.textContent='Devi essere loggato.'; } return; }
+  if(val.length < 6) { if(msg){ msg.style.color='#e05c5c'; msg.textContent='Minimo 6 caratteri.'; } return; }
+  const users = getUsers();
+  const idx = users.findIndex(u => u.email === currentUser.email);
+  if(idx === -1) { if(msg){ msg.style.color='#e05c5c'; msg.textContent='Profilo non trovato in locale.'; } return; }
+  users[idx].pass = val;
+  delete users[idx]._passHash;
+  saveUsers(users);
+  currentUser.pass = val;
+  currentUser._encPass = val;
+  if(inp) inp.value = '';
+  if(msg){ msg.style.color='var(--gold)'; msg.textContent='⏳ Salvo nel backup cloud…'; }
+  try {
+    fbPushToCloud(true);
+  } catch(e) {}
+  setTimeout(() => { if(msg){ msg.style.color='var(--green)'; msg.textContent='✅ Password aggiornata (anche nel backup cloud).'; } }, 1200);
+}
+
 function periodKey() {
   return `${document.getElementById('globalYear').value}_${document.getElementById('globalMonth').value}`;
 }
@@ -28321,6 +28344,16 @@ window.addEventListener('beforeprint', function() {
 
       <!-- TAB: PROFILO (lavoro + reddito) -->
       <div id="profileTabContent-info">
+        <!-- Cambia Password -->
+        <div class="fld" style="margin-bottom:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:14px;">
+          <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px;">🔑 Password di accesso</label>
+          <div style="display:flex;gap:8px;">
+            <input type="password" id="profileNewPass" placeholder="Nuova password (min 6 caratteri)" autocomplete="new-password"
+              style="flex:1;min-width:0;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:10px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;">
+            <button type="button" onclick="changeLocalPassword()" class="btn btn-gold" style="padding:10px 16px;white-space:nowrap;">Cambia</button>
+          </div>
+          <div id="profilePassMsg" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
+        </div>
         <!-- Professione -->
         <div class="fld" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">💼 Professione</label>
