@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261025-v307-aggiornaora';
+  var BUILD = '20261025-v308-backup';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -9148,6 +9148,7 @@ function deleteProfile(email) {
   modal.style.display = 'flex';
   document.getElementById('confirmDeleteBtn').onclick = function() {
     modal.style.display = 'none';
+    bkSafety('before-delete-profile', 'Prima di eliminare il profilo');
     saveUsers(getUsers().filter(u => u.email !== email));
     localStorage.removeItem('tc_last_user');
     renderProfilesGrid();
@@ -10467,6 +10468,7 @@ function togglePagamento(fid) {
 
 async function resetPagamenti() {
   if(!await tcConfirm('Resettare tutti i pagamenti del mese?', '♻️', 'Reset', '#c9a84c')) return;
+  bkSafety('before-reset-pagamenti', 'Prima di «Reset pagamenti»');
   savePagamenti({});
   bumpVersion();
   renderFixed();
@@ -16966,13 +16968,19 @@ function switchProfileTab(tab) {
     const curEl = document.getElementById('currentDeviceBuild');
     if(curEl && typeof BUILD !== 'undefined') curEl.textContent = BUILD;
   }
-  ['info','dati','stats','sfondo','aggiorna'].forEach(t => {
+  ['info','dati','stats','sfondo','aggiorna','backup'].forEach(t => {
     const btn = document.getElementById('profileTab-' + t);
     const cnt = document.getElementById('profileTabContent-' + t);
     if(btn) { btn.style.borderBottomColor = t===tab ? 'var(--gold)' : 'transparent'; btn.style.color = t===tab ? 'var(--gold)' : 'var(--text-muted)'; }
     if(cnt) cnt.style.display = t===tab ? 'block' : 'none';
   });
   if(tab === 'stats') renderProfileStatsDetail();
+  if(tab === 'backup') { try { bkOnOpen(); } catch(e) {} }
+  // la barra delle schede scorre: porta in vista quella attiva
+  try {
+    const bar = document.getElementById('profileTabsBar'), ab = document.getElementById('profileTab-' + tab);
+    if(bar && ab) bar.scrollLeft = ab.offsetLeft - (bar.clientWidth - ab.offsetWidth) / 2;
+  } catch(e) {}
 }
 
 function renderProfileStats() {
@@ -22162,6 +22170,7 @@ function resetMonth() {
     '♻️ Resetta Mese',
     'linear-gradient(135deg,#c9a84c,#a07a28)',
     () => {
+      bkSafety('before-reset-month', `Prima di «Reset ${moName} ${yr}»`);
       saveIncome([]);
       saveExpenses([]);
       const notes = getNotes();
@@ -22191,6 +22200,7 @@ function resetYear() {
     '🗑️ Elimina Anno',
     'linear-gradient(135deg,#c0392b,#922b21)',
     () => {
+      bkSafety('before-reset-year', `Prima di «Cancella anno ${yr}»`);
       const email  = currentUser?.email || 'guest';
       const prefix = `tc_${email}_`;
 
@@ -28313,6 +28323,692 @@ window.addEventListener('beforeprint', function() {
 </div>
 
 
+<style>
+/* ══════ Scheda 💾 Backup (Impostazioni) ══════ */
+#profileTabsBar { display:flex; border-bottom:1px solid var(--border); margin:0 24px; overflow-x:auto; overflow-y:hidden; -webkit-overflow-scrolling:touch; scrollbar-width:none; }
+#profileTabsBar::-webkit-scrollbar { display:none; }
+#profileModal #profileTabsBar [id^="profileTab-"] { flex:0 0 auto !important; white-space:nowrap; padding:10px 12px !important; font-size:13px !important; }
+
+#profileTabContent-backup .bk { --bk-warn:#ffb340; --bk-ok:var(--green,#32d74b); --bk-bad:var(--red,#ff453a); display:flex; flex-direction:column; gap:12px; font-family:var(--font); }
+body.light #profileTabContent-backup .bk { --bk-warn:#b86e00; --bk-ok:#1f9d3a; --bk-bad:#d6342a; }
+.bk * { box-sizing:border-box; }
+.bk [hidden] { display:none !important; }
+.bk-card { background:var(--surface2,#1c1c1e); border:1px solid var(--border); border-radius:14px; padding:14px; display:flex; flex-direction:column; gap:10px; }
+.bk-card h3 { margin:0; font-size:11px; font-weight:800; letter-spacing:.9px; text-transform:uppercase; color:var(--gold); }
+.bk-card p { margin:0; font-size:12.5px; line-height:1.45; color:var(--text-muted); }
+.bk-card p b { color:var(--text); }
+.bk-status { border-width:1.5px; }
+.bk-status.bk-ok   { border-color:color-mix(in srgb, var(--bk-ok) 50%, transparent);   background:linear-gradient(180deg, color-mix(in srgb, var(--bk-ok) 12%, transparent), var(--surface2,#1c1c1e) 70%); }
+.bk-status.bk-warn { border-color:color-mix(in srgb, var(--bk-warn) 55%, transparent); background:linear-gradient(180deg, color-mix(in srgb, var(--bk-warn) 13%, transparent), var(--surface2,#1c1c1e) 70%); }
+.bk-status.bk-bad  { border-color:color-mix(in srgb, var(--bk-bad) 55%, transparent);  background:linear-gradient(180deg, color-mix(in srgb, var(--bk-bad) 13%, transparent), var(--surface2,#1c1c1e) 70%); }
+.bk-big { font-size:17px; font-weight:800; line-height:1.25; display:flex; gap:8px; align-items:flex-start; color:var(--text); }
+.bk-sub { font-size:12.5px; line-height:1.45; color:var(--text-muted); margin-top:-4px; }
+.bk-rows { display:flex; flex-direction:column; }
+.bk-row { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:9px 0; border-top:1px solid var(--border); font-size:13px; color:var(--text); }
+.bk-row > span:first-child { color:var(--text-muted); flex:0 0 auto; }
+.bk-row > span:last-child { font-weight:700; text-align:right; min-width:0; }
+.bk-row small { display:block; font-weight:500; font-size:11px; color:var(--text-muted); margin-top:1px; }
+.bk-goodc { color:var(--bk-ok); } .bk-warnc { color:var(--bk-warn); } .bk-badc { color:var(--bk-bad); }
+.bk-act { border:0; border-radius:11px; padding:11px 14px; font-size:13.5px; font-weight:800; color:#1c1406; background:linear-gradient(135deg,var(--gold-light,#f5cb72),var(--gold)); display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:42px; cursor:pointer; font-family:inherit; }
+.bk-act:active { transform:scale(.98); }
+.bk-act:disabled { opacity:.6; cursor:default; }
+.bk-ghost { border:1px solid var(--border); background:var(--dark3,#1c1c1e); color:var(--text); border-radius:10px; padding:9px 12px; font-size:12.5px; font-weight:700; min-height:38px; cursor:pointer; font-family:inherit; }
+.bk-danger { background:linear-gradient(135deg,#ff8a80,#ff453a); color:#2a0502; }
+.bk-full { width:100%; }
+.bk-spin { width:14px; height:14px; border-radius:50%; border:2px solid rgba(28,20,6,.25); border-top-color:#1c1406; animation:bkspin .7s linear infinite; display:inline-block; }
+@keyframes bkspin { to { transform:rotate(360deg); } }
+@media (prefers-reduced-motion:reduce) { .bk-spin { animation-duration:2.4s; } }
+.bk-result { font-size:12.5px; line-height:1.45; border-radius:10px; padding:10px 12px; background:color-mix(in srgb, var(--bk-ok) 12%, transparent); border:1px solid color-mix(in srgb, var(--bk-ok) 40%, transparent); color:var(--text); }
+.bk-result.bk-err { background:color-mix(in srgb, var(--bk-bad) 12%, transparent); border-color:color-mix(in srgb, var(--bk-bad) 45%, transparent); }
+.bk-result.bk-note { background:color-mix(in srgb, var(--bk-warn) 12%, transparent); border-color:color-mix(in srgb, var(--bk-warn) 45%, transparent); }
+.bk-result code { font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:12px; word-break:break-all; }
+.bk-result small { display:block; color:var(--text-muted); margin-top:4px; font-size:11.5px; }
+.bk-analysis { border:1px solid color-mix(in srgb, var(--gold) 40%, transparent); background:color-mix(in srgb, var(--gold) 8%, transparent); border-radius:12px; padding:12px; display:flex; flex-direction:column; gap:8px; }
+.bk-analysis .bk-fname { font-family:ui-monospace,'SF Mono',Menlo,monospace; font-size:12px; word-break:break-all; color:var(--text); }
+.bk-analysis .bk-row { padding:6px 0; font-size:12.5px; }
+.bk-flag { font-size:12.5px; line-height:1.45; border-radius:10px; padding:9px 11px; background:color-mix(in srgb, var(--bk-warn) 13%, transparent); border:1px solid color-mix(in srgb, var(--bk-warn) 45%, transparent); color:var(--bk-warn); }
+.bk-btns { display:flex; gap:8px; flex-wrap:wrap; }
+.bk-group { font-size:11px; font-weight:700; color:var(--text-muted); margin-top:2px; }
+.bk-copy { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:9px 0; border-top:1px solid var(--border); }
+.bk-copy .bk-t { min-width:0; }
+.bk-copy .bk-t b { display:block; font-size:13px; color:var(--text); }
+.bk-copy .bk-t small { color:var(--text-muted); font-size:11.5px; }
+.bk-copy .bk-ask { font-size:12.5px; min-width:0; color:var(--text); }
+.bk-copy .bk-ask small { display:block; color:var(--text-muted); }
+.bk-copy .bk-cb { display:flex; gap:6px; flex:0 0 auto; }
+.bk-empty { font-size:12px; color:var(--text-muted); padding:8px 0; border-top:1px solid var(--border); }
+.bk-switch { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.bk-switch label { font-size:13px; font-weight:700; color:var(--text); }
+.bk-switch small { display:block; color:var(--text-muted); font-weight:400; font-size:11.5px; }
+.bk-sw { position:relative; width:46px; height:28px; flex:0 0 auto; }
+.bk-sw input { position:absolute; inset:0; opacity:0; width:100%; height:100%; margin:0; cursor:pointer; }
+.bk-sw i { position:absolute; inset:0; border-radius:999px; background:var(--dark4,#2c2c2e); border:1px solid var(--border); transition:background .15s; }
+.bk-sw i::after { content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:transform .15s; }
+.bk-sw input:checked + i { background:var(--bk-ok); }
+.bk-sw input:checked + i::after { transform:translateX(18px); }
+.bk-flash { animation:bkfl 1.2s ease; }
+@keyframes bkfl { 0%,100% { box-shadow:0 0 0 0 transparent; } 30% { box-shadow:0 0 0 4px color-mix(in srgb, var(--gold) 55%, transparent); } }
+</style>
+<script>
+/* ══════ EWBK · motore dei backup (stesso codice in index.html e tc.html) ══════
+   - collect(): i dati dell'app (tutto il localStorage tranne chiavi segrete / interne)
+   - copie di sicurezza locali in IndexedDB (database «ew_backup_v1»)
+   - hashEntries(): impronta dei dati, per sapere se qualcosa è cambiato
+   Non tocca mai la rete e non cancella mai dati dell'app. */
+(function(){
+  if (window.EWBK) return;
+  var DB_NAME = 'ew_backup_v1', MAX_COPIES = 12;
+
+  // Chiavi che NON entrano mai in un backup: sessione/token, chiavi API, stato interno di sync/backup, versioni di build.
+  function isExcluded(key) {
+    var k = String(key == null ? '' : key).toLowerCase();
+    return k === 'ew_sb_last_sync' || k === 'ew_sb_session_v2' || k === 'ew_sb_known_updated_at' ||
+      k.indexOf('supabase') >= 0 || k.indexOf('sb-') === 0 ||
+      k.indexOf('gist_token') >= 0 || k.indexOf('gisttoken') >= 0 || k.indexOf('github_token') >= 0 ||
+      k === 'tc_ai_api_key' || k === 'tc_ai_api_key_global' ||
+      k.indexOf('ew_bk_') === 0 || /_build$/.test(k);
+  }
+
+  function collect() {
+    var out = {}, i, k;
+    for (i = 0; i < localStorage.length; i++) {
+      k = localStorage.key(i);
+      if (k !== null && !isExcluded(k)) out[k] = localStorage.getItem(k);
+    }
+    return out;
+  }
+
+  // Impronta a 53 bit (cyrb53) su chiavi ordinate + valori, senza costruire una stringa gigante.
+  function hashEntries(obj) {
+    var h1 = 0xdeadbeef, h2 = 0x41c6ce57, keys = Object.keys(obj).sort(), n = 0, i, k, s, j, c;
+    function feed(str) {
+      for (j = 0; j < str.length; j++) {
+        c = str.charCodeAt(j);
+        h1 = Math.imul(h1 ^ c, 2654435761);
+        h2 = Math.imul(h2 ^ c, 1597334677);
+      }
+      n += str.length;
+    }
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      s = obj[k];
+      feed(k); feed('\u0001'); feed(typeof s === 'string' ? s : String(s)); feed('\u0002');
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36) + ':' + keys.length + ':' + n;
+  }
+
+  function emailOf(entries) {
+    var v, u;
+    try { u = JSON.parse(entries.ew_user || 'null'); if (u && u.email) return String(u.email).toLowerCase(); } catch (e) {}
+    v = entries.tc_last_user;
+    if (typeof v === 'string' && v) {
+      try { u = JSON.parse(v); } catch (e) { u = v; }
+      if (typeof u === 'string' && u.indexOf('@') > 0) return u.toLowerCase();
+      if (u && u.email) return String(u.email).toLowerCase();
+    }
+    try { u = JSON.parse(entries.tc_users || '[]'); if (u && u[0] && u[0].email) return String(u[0].email).toLowerCase(); } catch (e) {}
+    return '';
+  }
+
+  // Riassunto leggibile: utente, quante voci, ultima spesa GoBank, ultima giornata GoWork.
+  function summarize(entries, email) {
+    email = String(email || emailOf(entries) || '').toLowerCase();
+    var keys = Object.keys(entries), re = /^tc_(.+)_expenses_(\d{4})_(\d{1,2})$/;
+    var lastExp = '', lastWork = '', bytes = 0, i, j, k, m, arr, d, g;
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      bytes += k.length + String(entries[k]).length;
+      m = re.exec(k);
+      if (m && (!email || m[1].toLowerCase() === email)) {
+        try {
+          arr = JSON.parse(entries[k]);
+          if (Array.isArray(arr)) {
+            for (j = 0; j < arr.length; j++) {
+              d = arr[j] && arr[j].date;
+              if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d) && d.slice(0, 10) > lastExp) lastExp = d.slice(0, 10);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    if (email) {
+      try {
+        g = JSON.parse(entries['gw_' + email + '_data'] || 'null');
+        if (g && g.giornate) {
+          Object.keys(g.giornate).forEach(function (x) { if (/^\d{4}-\d{2}-\d{2}$/.test(x) && x > lastWork) lastWork = x; });
+        }
+      } catch (e) {}
+    }
+    return { user: email, keys: keys.length, bytes: bytes, lastExpense: lastExp, lastWork: lastWork };
+  }
+
+  // Scrive le voci nel localStorage senza cancellare nulla. I contatori «_version» non scendono mai.
+  function apply(entries) {
+    var written = 0, failed = [];
+    Object.keys(entries || {}).forEach(function (k) {
+      if (isExcluded(k)) return;
+      var v = entries[k], inc, cur;
+      if (typeof v !== 'string') v = String(v);
+      if (/_version$/.test(k)) {
+        inc = parseInt(v, 10); cur = parseInt(localStorage.getItem(k) || '0', 10);
+        if (!isNaN(inc) && !isNaN(cur) && inc < cur) return;
+      }
+      try { localStorage.setItem(k, v); written++; } catch (e) { failed.push(k); }
+    });
+    return { written: written, failed: failed };
+  }
+
+  /* ── copie di sicurezza locali (IndexedDB) ── */
+  function openDb() {
+    return new Promise(function (res, rej) {
+      var r;
+      try { r = indexedDB.open(DB_NAME, 1); } catch (e) { return rej(e); }
+      r.onupgradeneeded = function () {
+        var d = r.result;
+        if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('blobs')) d.createObjectStore('blobs', { keyPath: 'id' });
+      };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error || new Error('idb')); };
+      r.onblocked = function () { rej(new Error('idb-blocked')); };
+    });
+  }
+
+  // I dati vengono catturati SUBITO (sincrono): chi chiama può cancellare subito dopo, la copia è già al sicuro in memoria.
+  function saveCopy(reason, label, entries) {
+    var e = entries || collect(), json, s, meta;
+    try { json = JSON.stringify(e); } catch (x) { return Promise.reject(x); }
+    s = summarize(e);
+    meta = {
+      id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      createdAt: Date.now(), reason: reason || 'manual', label: label || '',
+      user: s.user, keys: s.keys, bytes: json.length, lastExpense: s.lastExpense, lastWork: s.lastWork
+    };
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx;
+        try { tx = db.transaction(['meta', 'blobs'], 'readwrite'); } catch (x) { db.close(); return rej(x); }
+        tx.objectStore('meta').put(meta);
+        tx.objectStore('blobs').put({ id: meta.id, json: json });
+        tx.oncomplete = function () { db.close(); res(meta); };
+        tx.onerror = tx.onabort = function () { db.close(); rej(tx.error || new Error('idb-tx')); };
+      });
+    }).then(function (m) {
+      return prune().then(function () { return m; }, function () { return m; });
+    });
+  }
+
+  function listCopies() {
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(['meta'], 'readonly'), rq = tx.objectStore('meta').getAll();
+        rq.onsuccess = function () { db.close(); res((rq.result || []).sort(function (a, b) { return b.createdAt - a.createdAt; })); };
+        rq.onerror = function () { db.close(); rej(rq.error || new Error('idb-list')); };
+      });
+    });
+  }
+
+  function getCopy(id) {
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(['meta', 'blobs'], 'readonly'), a = tx.objectStore('meta').get(id), b = tx.objectStore('blobs').get(id);
+        tx.oncomplete = function () {
+          db.close();
+          if (!a.result || !b.result) return rej(new Error('copia-non-trovata'));
+          try { res({ meta: a.result, entries: JSON.parse(b.result.json) }); } catch (x) { rej(x); }
+        };
+        tx.onerror = tx.onabort = function () { db.close(); rej(tx.error || new Error('idb-get')); };
+      });
+    });
+  }
+
+  function prune() {
+    return listCopies().then(function (list) {
+      var old = list.slice(MAX_COPIES);
+      if (!old.length) return;
+      return openDb().then(function (db) {
+        return new Promise(function (res) {
+          var tx = db.transaction(['meta', 'blobs'], 'readwrite');
+          old.forEach(function (m) { tx.objectStore('meta').delete(m.id); tx.objectStore('blobs').delete(m.id); });
+          tx.oncomplete = tx.onerror = tx.onabort = function () { db.close(); res(); };
+        });
+      });
+    });
+  }
+
+  /* ── formati (italiano) ── */
+  var MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDay(iso) { // 2026-09-14 → 14 set 2026
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? (parseInt(m[3], 10) + ' ' + MESI[parseInt(m[2], 10) - 1] + ' ' + m[1]) : '—';
+  }
+  function fmtDayTs(ts) { var d = new Date(ts); return d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear(); }
+  function fmtDateTime(ts) { var d = new Date(ts); return d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); }
+  function fmtWhen(ts) { // Oggi, 06:12 · Ieri, 18:40 · 23 ott, 06:11
+    var d = new Date(ts), n = new Date(), hm = p2(d.getHours()) + ':' + p2(d.getMinutes());
+    var a = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime(), b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    var diff = Math.round((a - b) / 86400000);
+    if (diff === 0) return 'Oggi, ' + hm;
+    if (diff === 1) return 'Ieri, ' + hm;
+    return d.getDate() + ' ' + MESI[d.getMonth()] + (d.getFullYear() !== n.getFullYear() ? ' ' + d.getFullYear() : '') + ', ' + hm;
+  }
+  function fmtAgo(ts) {
+    if (!ts) return 'mai';
+    var s = Math.max(0, Math.floor((Date.now() - ts) / 1000)), m = Math.floor(s / 60), h = Math.floor(m / 60), g = Math.floor(h / 24);
+    if (s < 45) return 'proprio ora';
+    if (m < 60) return (m < 1 ? 1 : m) + (m === 1 || m < 1 ? ' minuto fa' : ' minuti fa');
+    if (h < 24) return h + (h === 1 ? ' ora fa' : ' ore fa');
+    return g + (g === 1 ? ' giorno fa' : ' giorni fa');
+  }
+  function fmtSpan(ms) { // durata: «9 giorni», «3 ore»
+    var m = Math.floor(ms / 60000), h = Math.floor(m / 60), g = Math.floor(h / 24);
+    if (g >= 1) return g + (g === 1 ? ' giorno' : ' giorni');
+    if (h >= 1) return h + (h === 1 ? ' ora' : ' ore');
+    m = Math.max(1, m);
+    return m + (m === 1 ? ' minuto' : ' minuti');
+  }
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(0) + ' KB';
+    return (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  }
+
+  window.EWBK = {
+    isExcluded: isExcluded, collect: collect, hashEntries: hashEntries, emailOf: emailOf, summarize: summarize, apply: apply,
+    saveCopy: saveCopy, listCopies: listCopies, getCopy: getCopy,
+    fmtDay: fmtDay, fmtDayTs: fmtDayTs, fmtDateTime: fmtDateTime, fmtWhen: fmtWhen, fmtAgo: fmtAgo, fmtSpan: fmtSpan, fmtBytes: fmtBytes
+  };
+})();
+</script>
+<script>
+/* ══════ BACKUP · scheda Impostazioni → 💾 Backup ══════
+   Usa il motore condiviso window.EWBK (raccolta dati, copie di sicurezza locali) e, quando GoBank è
+   dentro l'Hub, le funzioni del cloud che l'Hub espone (window.top.ewSyncStatus / ewSaveNow / ewCloudHistory). */
+var BK = { asking: null, parsed: null, cloud: 'loading', cloudErr: '', local: [], busy: false, timer: 0 };
+
+function bkEl(id) { return document.getElementById(id); }
+function bkTop() { try { if (window.top && window.top !== window) return window.top; } catch (e) {} return null; }
+function bkHub(name) { try { var t = bkTop(); return (t && typeof t[name] !== 'undefined' && t[name]) ? t : null; } catch (e) { return null; } }
+function bkEsc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+function bkEmail() { try { return (currentUser && currentUser.email) ? String(currentUser.email).toLowerCase() : ''; } catch (e) { return ''; } }
+function bkLastFile() { return parseInt(localStorage.getItem('ew_bk_last_file') || '0', 10) || 0; }
+function bkStatus() { var h = bkHub('ewSyncStatus'); if (!h) return null; try { return h.ewSyncStatus(); } catch (e) { return null; } }
+function bkP2(n) { return (n < 10 ? '0' : '') + n; }
+
+// Copia di sicurezza immediata (prima di cancellazioni). I dati vengono catturati subito: si può cancellare subito dopo.
+function bkSafety(reason, label) {
+  try {
+    if (!window.EWBK) return;
+    window.EWBK.saveCopy(reason, label).catch(function () {
+      try { showToast('⚠️ Copia di sicurezza non riuscita'); } catch (e) {}
+    });
+  } catch (e) {}
+}
+
+/* ── stato ── */
+function bkRenderStatus() {
+  var card = bkEl('bkStatusCard'); if (!card || !window.EWBK) return;
+  var E = window.EWBK, st = bkStatus(), now = Date.now();
+  var cls = 'bk-ok', ic = '✅', head = 'Tutto salvato', sub = '', cloud = '—', btn = '🔄 Salva ora', mode = 'sync';
+  // "da quanto" = dall'ultima volta che il cloud aveva davvero gli stessi dati di questo telefono
+  var lastOk = st ? (st.lastOkAt || 0) : 0;
+  var since = lastOk ? E.fmtSpan(now - lastOk) : '';
+  if (!st) {
+    cls = 'bk-warn'; ic = 'ℹ️'; head = 'Cloud non disponibile qui';
+    sub = 'Apri E-Wallet dalla schermata principale per salvare nel cloud. Intanto puoi scaricare un backup su file.';
+    cloud = '<span class="bk-warnc">Non disponibile</span>'; mode = 'none';
+  } else if (st.code === 'nosession') {
+    cls = 'bk-warn'; ic = '⚠️'; head = 'Dati solo su questo dispositivo';
+    sub = 'Non sei collegato al cloud. Accedi per salvarli, oppure scarica un backup su file.';
+    cloud = '<span class="bk-warnc">Non collegato</span>'; btn = '🔑 Accedi'; mode = 'login';
+  } else if (st.code === 'offline') {
+    cls = 'bk-warn'; ic = '📵'; head = 'Sei offline';
+    sub = st.dirty ? 'Le ultime modifiche sono su questo telefono e andranno nel cloud appena torna la rete.' : 'I dati sono al sicuro su questo telefono. Il cloud si aggiorna quando torna la rete.';
+    cloud = '<span class="bk-warnc">Offline</span>';
+  } else if (st.code === 'stale') {
+    cls = 'bk-bad'; ic = '⚠️';
+    if (st.authExpired) {
+      head = 'Il cloud non salva: accesso scaduto';
+      sub = 'Accedi di nuovo per rimettere in sicurezza i dati. Intanto scarica un backup su file.';
+      cloud = '<span class="bk-badc">Accesso scaduto</span>'; btn = '🔑 Accedi'; mode = 'login';
+    } else {
+      head = since ? ('Il cloud non salva da ' + since) : 'Il cloud non salva';
+      sub = 'Quello che inserisci da allora è solo su questo telefono. Tocca Salva ora; se non basta, scarica un backup su file.';
+      cloud = '<span class="bk-badc">Fermo' + (since ? ' da ' + since : '') + '</span>' + (st.error ? '<small>' + bkEsc(st.error) + '</small>' : '');
+    }
+  } else if (st.code === 'noreach') {
+    cls = 'bk-warn'; ic = '⚠️'; head = 'Il cloud non risponde';
+    sub = 'Non riesco a raggiungere il cloud. I dati restano su questo telefono: intanto scarica un backup su file.';
+    cloud = '<span class="bk-warnc">Non raggiungibile</span>' + (st.error ? '<small>' + bkEsc(st.error) + '</small>' : '');
+  } else if (st.code === 'saving' || st.code === 'retry') {
+    cls = 'bk-ok'; ic = '⏳'; head = st.code === 'retry' ? 'Riprovo a salvare…' : 'Salvataggio in corso…';
+    sub = 'Sto mandando le ultime modifiche al cloud.';
+    cloud = '<span>Salvo…</span>';
+  } else if (st.code === 'checking') {
+    cls = 'bk-ok'; ic = '⏳'; head = 'Controllo il cloud…'; sub = '';
+    cloud = '<span>…</span>';
+  } else { // saved
+    sub = 'Il cloud è aggiornato. Se perdi il telefono, ritrovi i dati accedendo da un altro dispositivo.';
+    cloud = '<span class="bk-goodc">Aggiornato</span>' + (lastOk ? '<small>verificato ' + E.fmtAgo(lastOk) + '</small>' : '');
+  }
+  card.className = 'bk-card bk-status ' + cls;
+  bkEl('bkStIcon').textContent = ic;
+  bkEl('bkStHead').textContent = head;
+  bkEl('bkStSub').textContent = sub;
+  bkEl('bkStSub').style.display = sub ? '' : 'none';
+  bkEl('bkRowCloud').innerHTML = cloud;
+
+  var lf = bkLastFile(), ft, fc = '';
+  if (!lf) { ft = 'Mai fatto'; fc = 'bk-warnc'; }
+  else { ft = E.fmtAgo(lf); if (now - lf > 30 * 86400000) fc = 'bk-warnc'; }
+  bkEl('bkRowFile').innerHTML = '<span class="' + fc + '">' + bkEsc(ft) + '</span>';
+  bkRenderCopiesRow();
+
+  var b = bkEl('bkBtnSync');
+  if (b && !b.disabled) {
+    b.style.display = mode === 'none' ? 'none' : '';
+    b.innerHTML = btn;
+    b.setAttribute('data-mode', mode);
+  }
+}
+
+function bkRenderCopiesRow() {
+  var el = bkEl('bkRowCopies'); if (!el) return;
+  var loc = Array.isArray(BK.local) ? BK.local.length : 0, cl;
+  if (Array.isArray(BK.cloud)) cl = BK.cloud.length + ' nel cloud';
+  else if (BK.cloud === 'loading') cl = '…';
+  else if (BK.cloudErr === 'nohistory') cl = 'cloud: non attive';
+  else if (BK.cloudErr === 'error') cl = 'cloud: non raggiungibile';
+  else if (BK.cloudErr) cl = 'cloud: —';
+  else cl = 'nessuna nel cloud';
+  el.textContent = cl + ' · ' + loc + ' qui';
+}
+
+async function bkSyncNow() {
+  var b = bkEl('bkBtnSync'), msg = bkEl('bkSyncMsg'), st = bkStatus();
+  msg.hidden = true;
+  if (b.getAttribute('data-mode') === 'login' || (st && (!st.loggedIn || st.authExpired))) {
+    var hl = bkHub('ewShowLogin');
+    if (hl) { closeProfileModal(); hl.ewShowLogin(); }
+    return;
+  }
+  var h = bkHub('ewSaveNow'); if (!h) return;
+  b.disabled = true; b.innerHTML = '<span class="bk-spin"></span>Salvo…';
+  var r;
+  try { r = await h.ewSaveNow(); } catch (e) { r = { ok: false, error: String((e && e.message) || e) }; }
+  b.disabled = false;
+  if (r && r.ok) { try { showToast('✅ Cloud aggiornato'); } catch (e) {} }
+  else {
+    msg.hidden = false; msg.className = 'bk-result bk-err';
+    msg.textContent = 'Non sono riuscito a salvare nel cloud: ' + ((r && r.error) || 'errore sconosciuto') + ' Intanto scarica un backup su file.';
+  }
+  bkRenderStatus();
+  bkLoadLists();
+}
+
+/* ── scarica ── */
+function bkBuildBackup() {
+  var entries = window.EWBK.collect(), s = window.EWBK.summarize(entries, bkEmail());
+  var tcb = ''; try { tcb = (typeof BUILD !== 'undefined') ? BUILD : ''; } catch (e) {}
+  var hub = ''; try { hub = (bkTop() && bkTop().EW_BUILD) || ''; } catch (e) {}
+  return {
+    app: 'ewallet', format: 1, createdAt: new Date().toISOString(), user: s.user || bkEmail(),
+    builds: { gobank: tcb, hub: hub },
+    summary: { keys: s.keys, lastExpense: s.lastExpense, lastWork: s.lastWork },
+    data: entries
+  };
+}
+function bkFileName() {
+  var d = new Date();
+  return 'ewallet-backup-' + d.getFullYear() + '-' + bkP2(d.getMonth() + 1) + '-' + bkP2(d.getDate()) + '-' + bkP2(d.getHours()) + bkP2(d.getMinutes()) + '.json';
+}
+function bkAnchorDownload(json, name) {
+  var blob = new Blob([json], { type: 'application/json' }), url = URL.createObjectURL(blob), a = document.createElement('a');
+  a.href = url; a.download = name; a.style.display = 'none';
+  document.body.appendChild(a); a.click();
+  setTimeout(function () { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) {} }, 5000);
+}
+// Consegna il file: foglio di condivisione («Salva su File») su telefono/tablet, download classico altrove.
+// Va chiamata direttamente dal tocco dell'utente (altrimenti iOS rifiuta la condivisione).
+function bkDeliver(json, name) {
+  return new Promise(function (resolve, reject) {
+    var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    var shared = null;
+    try {
+      if (mobile && navigator.share && navigator.canShare && typeof File !== 'undefined') {
+        var cands = [
+          new File([json], name, { type: 'application/json' }),
+          new File([json], name, { type: 'text/plain' }),
+          new File([json], name + '.txt', { type: 'text/plain' })
+        ];
+        for (var i = 0; i < cands.length && !shared; i++) {
+          var ok = false; try { ok = navigator.canShare({ files: [cands[i]] }); } catch (e) {}
+          if (ok) shared = navigator.share({ files: [cands[i]], title: 'Backup E-Wallet' });
+        }
+      }
+    } catch (e) { shared = null; }
+    if (shared) {
+      shared.then(function () { resolve('shared'); }, function (err) {
+        if (err && err.name === 'AbortError') return resolve('cancelled');
+        try { bkAnchorDownload(json, name); resolve('downloaded'); } catch (e2) { reject(e2); }
+      });
+      return;
+    }
+    try { bkAnchorDownload(json, name); resolve('downloaded'); } catch (e) { reject(e); }
+  });
+}
+function bkDownload() {
+  var b = bkEl('bkBtnDownload'), r = bkEl('bkDlResult'), json, name;
+  r.hidden = true;
+  try { json = JSON.stringify(bkBuildBackup()); name = bkFileName(); }
+  catch (e) { r.hidden = false; r.className = 'bk-result bk-err'; r.textContent = 'Non sono riuscito a preparare il backup.'; return; }
+  b.disabled = true; b.innerHTML = '<span class="bk-spin"></span>Preparo il file…';
+  var E = window.EWBK;
+  bkDeliver(json, name).then(function (how) {
+    b.disabled = false; b.textContent = '⬇️ Scarica backup';
+    r.hidden = false;
+    if (how === 'cancelled') {
+      r.className = 'bk-result bk-note';
+      r.innerHTML = 'Salvataggio annullato: il backup <b>non</b> è stato salvato.';
+      return;
+    }
+    try { localStorage.setItem('ew_bk_last_file', String(Date.now())); localStorage.setItem('ew_bk_last_file_info', JSON.stringify({ name: name, bytes: json.length })); } catch (e) {}
+    r.className = 'bk-result';
+    r.innerHTML = '✅ Backup pronto<br><code>' + bkEsc(name) + '</code> · ' + E.fmtBytes(json.length) +
+      '<small>' + (how === 'shared' ? 'Scegli «Salva su File» per tenerlo su iCloud Drive o sul telefono. ' : 'Lo trovi tra i download del dispositivo (su iPhone: app File). ') +
+      'Contiene i tuoi dati e la password: non condividerlo.</small>';
+    bkRenderStatus();
+    try { var hh = bkHub('ewHealthRefresh'); if (hh) hh.ewHealthRefresh(); } catch (e) {}
+  }, function () {
+    b.disabled = false; b.textContent = '⬇️ Scarica backup';
+    r.hidden = false; r.className = 'bk-result bk-err';
+    r.textContent = 'Non sono riuscito a salvare il file su questo dispositivo. Riprova, oppure usa le copie di sicurezza qui sotto.';
+  });
+}
+
+/* ── ripristina da file ── */
+function bkPickFile() { var i = bkEl('bkFileInput'); i.value = ''; i.click(); }
+function bkRestoreMsg(html, kind) {
+  var r = bkEl('bkRsResult'); r.hidden = !html; if (!html) return;
+  r.className = 'bk-result' + (kind === 'err' ? ' bk-err' : (kind === 'note' ? ' bk-note' : ''));
+  r.innerHTML = html;
+}
+function bkFilePicked(input) {
+  var f = input.files && input.files[0]; if (!f) return;
+  bkEl('bkAnalysis').hidden = true; bkRestoreMsg('');
+  var rd = new FileReader();
+  rd.onload = function () { bkAnalyze(String(rd.result || ''), f); };
+  rd.onerror = function () { bkRestoreMsg('Non riesco a leggere il file.', 'err'); };
+  rd.readAsText(f);
+}
+function bkParseBackup(text) {
+  var o, k, keys, i;
+  try { o = JSON.parse(text); } catch (e) { return { error: 'Questo file non è un backup di E-Wallet (non riesco a leggerlo).' }; }
+  if (!o || typeof o !== 'object' || o.app !== 'ewallet' || !o.data || typeof o.data !== 'object' || Array.isArray(o.data)) return { error: 'Questo file non è un backup di E-Wallet.' };
+  if (o.format && o.format > 1) return { error: 'Il backup viene da una versione più nuova dell\'app. Aggiorna l\'app e riprova.' };
+  keys = Object.keys(o.data);
+  if (!keys.length) return { error: 'Il backup è vuoto.' };
+  for (i = 0; i < keys.length; i++) { k = keys[i]; if (typeof o.data[k] !== 'string') return { error: 'Il file è danneggiato (voce «' + k.slice(0, 40) + '»).' }; }
+  return { ok: o };
+}
+function bkAnalyze(text, file) {
+  var E = window.EWBK, p = bkParseBackup(text);
+  if (p.error) { bkRestoreMsg(bkEsc(p.error), 'err'); return; }
+  var o = p.ok, me = bkEmail();
+  var bs = E.summarize(o.data, o.user || ''), cur = E.summarize(E.collect(), me);
+  var created = Date.parse(o.createdAt || '') || (file && file.lastModified) || 0;
+  BK.parsed = { obj: o, name: file && file.name || 'backup.json', created: created, bs: bs, cur: cur };
+  var older = (bs.lastExpense && cur.lastExpense && bs.lastExpense < cur.lastExpense) || (bs.lastWork && cur.lastWork && bs.lastWork < cur.lastWork);
+  var other = bs.user && me && bs.user !== me;
+  var h = '<div class="bk-fname">' + bkEsc(BK.parsed.name) + '</div><div class="bk-rows">' +
+    '<div class="bk-row"><span>Creato il</span><span>' + (created ? E.fmtDateTime(created) : '—') + '</span></div>' +
+    '<div class="bk-row"><span>Utente</span><span>' + bkEsc(bs.user || '—') + '</span></div>' +
+    '<div class="bk-row"><span>Ultima spesa GoBank</span><span>' + E.fmtDay(bs.lastExpense) + '</span></div>' +
+    '<div class="bk-row"><span>Ultima giornata GoWork</span><span>' + E.fmtDay(bs.lastWork) + '</span></div>' +
+    '<div class="bk-row"><span>Dati attuali: ultima spesa</span><span>' + E.fmtDay(cur.lastExpense) + '</span></div></div>';
+  if (older) h += '<div class="bk-flag">⚠️ Questo backup è più vecchio dei dati che hai adesso. Dove coincidono, vincono i dati del backup; quello che nel backup non c\'è (per esempio i mesi più recenti) resta com\'è.</div>';
+  if (other) h += '<div class="bk-flag">⚠️ Questo backup è di un altro utente (' + bkEsc(bs.user) + ').</div>';
+  h += '<div class="bk-btns"><button type="button" class="bk-act bk-danger" id="bkBtnRestore" onclick="bkConfirmRestoreFile()">Ripristina questo backup</button>' +
+       '<button type="button" class="bk-ghost" onclick="bkCancelRestore()">Annulla</button></div>';
+  var a = bkEl('bkAnalysis'); a.innerHTML = h; a.hidden = false;
+  try { a.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {}
+}
+function bkCancelRestore() { BK.parsed = null; bkEl('bkAnalysis').hidden = true; }
+function bkConfirmRestoreFile() {
+  if (!BK.parsed) return;
+  var P = BK.parsed, what = 'Backup del ' + (P.created ? window.EWBK.fmtDayTs(P.created) : 'file');
+  bkDoRestore(P.obj.data, what, bkEl('bkBtnRestore'));
+}
+
+// Cuore del ripristino: 1) copia di sicurezza dei dati attuali (se non riesce, non tocca nulla) 2) scrive 3) salva nel cloud 4) ricarica.
+async function bkDoRestore(entries, what, btn) {
+  if (BK.busy) return; BK.busy = true;
+  var E = window.EWBK;
+  var step = function (t) { if (btn) { btn.disabled = true; btn.innerHTML = '<span class="bk-spin"></span>' + t; } };
+  try {
+    step('Salvo una copia dei dati attuali…');
+    try { await E.saveCopy('before-restore', 'Prima di un ripristino'); }
+    catch (e) { throw new Error('Non riesco a salvare la copia di sicurezza dei dati attuali, quindi non ho toccato niente.'); }
+    step('Ripristino i dati…');
+    var res = E.apply(entries);
+    if (res.failed.length) throw new Error('Ripristino incompleto: ' + res.failed.length + ' voci non scritte (memoria piena?). I dati di prima sono nelle Copie di sicurezza, in «Prima di un ripristino».');
+    step('Salvo nel cloud…');
+    var sv = bkHub('ewSaveNow'), saved = null;
+    if (sv) { try { saved = await sv.ewSaveNow(); } catch (e) { saved = { ok: false }; } }
+    localStorage.setItem('ew_bk_notice', JSON.stringify({ t: Date.now(), msg: '✅ ' + what + ' ripristinato. I dati di prima sono nelle Copie di sicurezza (Impostazioni → Backup).', cloud: saved ? !!saved.ok : null }));
+    step('Ricarico l\'app…');
+    var an = bkEl('bkAnalysis'); if (an) an.hidden = true;
+    bkRestoreMsg('✅ ' + bkEsc(what) + ' ripristinato.' + (saved && !saved.ok ? '<small>Il cloud non è raggiungibile: i dati ripristinati restano su questo telefono e andranno nel cloud appena possibile.</small>' : ''));
+    setTimeout(function () { try { (bkTop() || window).location.reload(); } catch (e) { location.reload(); } }, 900);
+  } catch (err) {
+    BK.busy = false;
+    if (btn) { btn.disabled = false; btn.textContent = 'Ripristina questo backup'; }
+    bkRestoreMsg(bkEsc((err && err.message) || 'Ripristino non riuscito.'), 'err');
+    bkLoadLists();
+  }
+}
+
+/* ── copie di sicurezza (nel cloud / su questo dispositivo) ── */
+function bkCloudApi() {
+  var t = bkHub('ewCloudHistory'), st = bkStatus();
+  if (!t || !st || !st.loggedIn) return null;
+  return t.ewCloudHistory;
+}
+function bkLoadLists() {
+  var E = window.EWBK; if (!E) return;
+  E.listCopies().then(function (l) { BK.local = l; bkRenderLists(); bkRenderCopiesRow(); },
+    function () { BK.local = null; bkRenderLists(); bkRenderCopiesRow(); });
+  var st = bkStatus(), api = bkCloudApi();
+  if (!api) { BK.cloud = null; BK.cloudErr = (!st) ? 'na' : 'nosession'; bkRenderLists(); bkRenderCopiesRow(); return; }
+  if (!Array.isArray(BK.cloud)) { BK.cloud = 'loading'; bkRenderLists(); }
+  api.list().then(function (rows) { BK.cloud = rows; BK.cloudErr = ''; bkRenderLists(); bkRenderCopiesRow(); },
+    function (err) { BK.cloud = null; BK.cloudErr = (err && err.code === 'nohistory') ? 'nohistory' : 'error'; bkRenderLists(); bkRenderCopiesRow(); });
+}
+function bkCopyRow(id, kind, title, sub) {
+  if (BK.asking === kind + ':' + id) {
+    return '<div class="bk-copy"><div class="bk-ask"><b>Ripristinare «' + bkEsc(title) + '»?</b><small>Salvo prima una copia dei dati attuali.</small></div>' +
+      '<div class="bk-cb"><button type="button" class="bk-act bk-danger" style="min-height:38px;padding:8px 12px" onclick="bkYes(\'' + bkEsc(id) + '\',\'' + kind + '\',this)">Sì</button>' +
+      '<button type="button" class="bk-ghost" onclick="bkNo()">No</button></div></div>';
+  }
+  return '<div class="bk-copy"><div class="bk-t"><b>' + bkEsc(title) + '</b><small>' + bkEsc(sub) + '</small></div>' +
+    '<div class="bk-cb"><button type="button" class="bk-ghost" onclick="bkAsk(\'' + bkEsc(id) + '\',\'' + kind + '\')">Ripristina</button></div></div>';
+}
+function bkRenderLists() {
+  var E = window.EWBK, lc = bkEl('bkListCloud'), ll = bkEl('bkListLocal'), h = '';
+  if (!lc || !ll || !E) return;
+  if (Array.isArray(BK.cloud)) {
+    if (!BK.cloud.length) h = '<div class="bk-empty">Ancora nessuna copia: la prima arriva al prossimo salvataggio.</div>';
+    else BK.cloud.slice(0, 8).forEach(function (c) {
+      var t = Date.parse(c.source_updated_at || c.saved_at || '') || Date.parse(c.saved_at || '') || 0;
+      h += bkCopyRow(String(c.id), 'cloud', t ? E.fmtWhen(t) : 'Copia', 'Copia automatica · ' + E.fmtBytes(c.bytes || 0));
+    });
+  } else if (BK.cloud === 'loading') h = '<div class="bk-empty">Carico…</div>';
+  else if (BK.cloudErr === 'nosession') h = '<div class="bk-empty">Accedi al cloud per vedere le copie.</div>';
+  else if (BK.cloudErr === 'nohistory') h = '<div class="bk-empty">Le copie nel cloud non sono ancora attive: serve eseguire una volta lo script «ewallet_history.sql» su Supabase.</div>';
+  else if (BK.cloudErr === 'na') h = '<div class="bk-empty">Disponibili aprendo E-Wallet dalla schermata principale.</div>';
+  else h = '<div class="bk-empty">Non riesco a leggere le copie nel cloud.</div>';
+  lc.innerHTML = h;
+  h = '';
+  if (!Array.isArray(BK.local)) h = '<div class="bk-empty">Su questo browser non posso salvare copie locali.</div>';
+  else if (!BK.local.length) h = '<div class="bk-empty">Nessuna per ora: ne creo una prima di ogni cancellazione o ripristino.</div>';
+  else BK.local.slice(0, 8).forEach(function (m) { h += bkCopyRow(m.id, 'local', m.label || 'Copia', E.fmtWhen(m.createdAt) + ' · ' + E.fmtBytes(m.bytes || 0)); });
+  ll.innerHTML = h;
+}
+function bkAsk(id, kind) { BK.asking = kind + ':' + id; bkRenderLists(); }
+function bkNo() { BK.asking = null; bkRenderLists(); }
+async function bkYes(id, kind, btn) {
+  var E = window.EWBK;
+  BK.asking = null;
+  try {
+    if (kind === 'local') {
+      var c = await E.getCopy(id);
+      await bkDoRestore(c.entries, 'Copia «' + (c.meta.label || 'di sicurezza') + '»', btn);
+    } else {
+      var api = bkCloudApi(); if (!api) throw new Error('Cloud non disponibile.');
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="bk-spin"></span>'; }
+      var row = await api.get(id);
+      if (!row || !row.data) throw new Error('Copia non trovata nel cloud.');
+      var when = Date.parse(row.source_updated_at || row.saved_at || '') || 0;
+      await bkDoRestore(row.data, 'Copia del cloud' + (when ? ' del ' + E.fmtDayTs(when) : ''), btn);
+    }
+  } catch (err) {
+    BK.busy = false;
+    bkRestoreMsg(bkEsc((err && err.message) || 'Ripristino non riuscito.'), 'err');
+    bkRenderLists();
+  }
+}
+
+/* ── promemoria + avvio scheda ── */
+function bkSetRemind(on) { try { localStorage.setItem('ew_bk_remind', on ? '1' : '0'); } catch (e) {} try { var h = bkHub('ewHealthRefresh'); if (h) h.ewHealthRefresh(); } catch (e) {} }
+function bkOnOpen() {
+  var r = bkEl('bkRemind'); if (r) r.checked = localStorage.getItem('ew_bk_remind') !== '0';
+  BK.asking = null;
+  bkRenderStatus();
+  bkLoadLists();
+  if (!BK.timer) {
+    BK.timer = setInterval(function () {
+      var m = bkEl('profileModal'), c = bkEl('profileTabContent-backup');
+      if (m && m.style.display !== 'none' && c && c.style.display !== 'none') bkRenderStatus();
+      else { clearInterval(BK.timer); BK.timer = 0; }
+    }, 4000);
+  }
+}
+// Se l'app non è dentro l'Hub, l'avviso «ripristinato» lo mostra GoBank stessa.
+(function () {
+  function show() {
+    try {
+      if (bkTop()) return;
+      var raw = localStorage.getItem('ew_bk_notice'); if (!raw) return;
+      localStorage.removeItem('ew_bk_notice');
+      var n = JSON.parse(raw); if (n && n.msg && Date.now() - n.t < 600000) setTimeout(function () { showToast(n.msg, 7000); }, 1200);
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', show); else show();
+})();
+</script>
 <!-- ══ MODAL PROFILO ESTESO ════════════════════════════════════════ -->
 <div id="profileModal" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;width:100%;max-width:520px;box-shadow:0 24px 80px rgba(0,0,0,0.5);position:relative;overflow:hidden;margin:auto;">
@@ -28340,12 +29036,13 @@ window.addEventListener('beforeprint', function() {
     </div>
 
     <!-- TAB NAVIGAZIONE -->
-    <div style="display:flex;border-bottom:1px solid var(--border);margin:0 24px;">
+    <div id="profileTabsBar" style="display:flex;border-bottom:1px solid var(--border);margin:0 24px;">
       <button onclick="switchProfileTab('info')" id="profileTab-info" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid var(--gold);color:var(--gold);cursor:pointer;font-family:var(--font);">👤 Profilo</button>
       <button onclick="switchProfileTab('dati')" id="profileTab-dati" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">📋 Dati</button>
       <button onclick="switchProfileTab('stats')" id="profileTab-stats" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">📊 Statistiche</button>
       <button onclick="switchProfileTab('sfondo')" id="profileTab-sfondo" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">🎨 Sfondo</button>
       <button onclick="switchProfileTab('aggiorna')" id="profileTab-aggiorna" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">🔄 Aggiorna</button>
+      <button onclick="switchProfileTab('backup')" id="profileTab-backup" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">💾 Backup</button>
     </div>
 
     <div style="padding:20px 24px 24px;">
@@ -28530,6 +29227,63 @@ window.addEventListener('beforeprint', function() {
         <!-- Avviso -->
         <div style="margin-top:16px;padding:10px 14px;background:rgba(255,200,0,0.05);border:1px solid rgba(255,200,0,0.15);border-radius:10px;font-size:11px;color:var(--text-muted);line-height:1.5;">
           ⚠️ Il QR è valido per <strong>10 minuti</strong>. Dopo la scansione l'altro dispositivo si ricarica automaticamente.
+        </div>
+      </div>
+
+      <!-- TAB: BACKUP -->
+      <div id="profileTabContent-backup" style="display:none;">
+        <div class="bk" id="bkRoot">
+
+          <!-- STATO -->
+          <div class="bk-card bk-status bk-ok" id="bkStatusCard">
+            <h3>Stato dei dati</h3>
+            <div class="bk-big"><span id="bkStIcon">⏳</span><span id="bkStHead">Controllo…</span></div>
+            <div class="bk-sub" id="bkStSub"></div>
+            <div class="bk-rows">
+              <div class="bk-row"><span>☁️ Cloud</span><span id="bkRowCloud">—</span></div>
+              <div class="bk-row"><span>💾 Backup su file</span><span id="bkRowFile">—</span></div>
+              <div class="bk-row"><span>🛡️ Copie di sicurezza</span><span id="bkRowCopies">—</span></div>
+            </div>
+            <button type="button" class="bk-act bk-full" id="bkBtnSync" onclick="bkSyncNow()">🔄 Salva ora</button>
+            <div class="bk-result bk-note" id="bkSyncMsg" hidden></div>
+          </div>
+
+          <!-- SCARICA -->
+          <div class="bk-card">
+            <h3>Scarica un backup</h3>
+            <p>Un solo file con <b>GoBank, GoWork e impostazioni</b>. Salvalo in iCloud Drive o altrove, fuori dal telefono: se i dati del browser vengono cancellati, il file resta.</p>
+            <button type="button" class="bk-act bk-full" id="bkBtnDownload" onclick="bkDownload()">⬇️ Scarica backup</button>
+            <div class="bk-result" id="bkDlResult" hidden></div>
+          </div>
+
+          <!-- RIPRISTINA -->
+          <div class="bk-card">
+            <h3>Ripristina da file</h3>
+            <p>Scegli un backup scaricato in precedenza. Prima di sostituire i dati, l'app salva una copia di quelli attuali.</p>
+            <input type="file" id="bkFileInput" style="display:none" onchange="bkFilePicked(this)">
+            <button type="button" class="bk-ghost bk-full" onclick="bkPickFile()">📂 Scegli file…</button>
+            <div class="bk-analysis" id="bkAnalysis" hidden></div>
+            <div class="bk-result" id="bkRsResult" hidden></div>
+          </div>
+
+          <!-- COPIE -->
+          <div class="bk-card">
+            <h3>Copie di sicurezza</h3>
+            <p>Le crea l'app da sola: <b>ogni 12 ore nel cloud</b>, e <b>su questo dispositivo</b> prima di ogni cancellazione o ripristino. Quelle su questo dispositivo spariscono se cancelli i dati del sito: per quel caso c'è il backup su file.</p>
+            <div class="bk-group">Nel cloud</div>
+            <div id="bkListCloud"></div>
+            <div class="bk-group">Su questo dispositivo</div>
+            <div id="bkListLocal"></div>
+          </div>
+
+          <!-- PROMEMORIA -->
+          <div class="bk-card">
+            <div class="bk-switch">
+              <div><label for="bkRemind">Promemoria backup su file</label><small>Ti avviso se passano più di 30 giorni</small></div>
+              <span class="bk-sw"><input type="checkbox" id="bkRemind" checked onchange="bkSetRemind(this.checked)"><i></i></span>
+            </div>
+          </div>
+
         </div>
       </div>
 
