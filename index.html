@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20260911-ew-v126';
+  var BUILD='20261025-ew-v127';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -563,6 +563,26 @@ body.ew-day .ew-conflict-btn{ background:rgba(0,0,0,0.05); border-color:rgba(0,0
 .ew-sub-title{ font-size:16px; font-weight:700; }
 .ew-sub-grid{ padding:14px 20px 30px; max-width:1600px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
 @media(max-width:520px){ .ew-sub-grid{ grid-template-columns:1fr; } }
+/* ── Stato del cloud: pillola, banner, pannello ── */
+#ewSyncBtn.ok{ background:rgba(52,210,122,0.12); border-color:rgba(52,210,122,0.38); color:#34d27a; }
+#ewSyncBtn.warn{ background:rgba(255,179,64,0.14); border-color:rgba(255,179,64,0.45); color:#ffb340; }
+#ewSyncBtn.bad{ background:rgba(255,95,86,0.15); border-color:rgba(255,95,86,0.5); color:#ff7a70; }
+body.ew-day #ewSyncBtn.ok{ color:#1f8a4c; }
+body.ew-day #ewSyncBtn.warn{ color:#b86e00; }
+body.ew-day #ewSyncBtn.bad{ color:#c9342a; }
+.ew-health{ display:flex; align-items:center; justify-content:space-between; gap:10px 14px; flex-wrap:wrap; margin:12px 20px 0; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,179,64,0.45); background:rgba(255,179,64,0.13); }
+.ew-health[hidden]{ display:none; }
+.ew-health.bad{ border-color:rgba(255,95,86,0.5); background:rgba(255,95,86,0.14); }
+.ew-health.ok{ border-color:rgba(52,210,122,0.4); background:rgba(52,210,122,0.12); }
+.ew-health-text{ flex:1 1 220px; font-size:13px; line-height:1.45; color:var(--text); }
+.ew-health-btns{ display:flex; gap:8px; }
+.ew-health-btn{ border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:var(--text); border-radius:10px; padding:8px 13px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; min-height:36px; }
+.ew-health-btn.primary{ background:linear-gradient(135deg,#f5cb72,#e8b44a); border-color:transparent; color:#1c1406; }
+body.ew-day .ew-health-btn{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.14); }
+body.ew-day .ew-health-btn.primary{ background:linear-gradient(135deg,#f5cb72,#e8b44a); border-color:transparent; color:#1c1406; }
+.ew-syncpanel-hint{ font-size:12.5px; line-height:1.5; color:var(--muted); margin:-6px 0 14px; text-align:left; }
+.ew-syncpanel-syncbtn.alt{ background:rgba(232,180,74,0.14); border-color:rgba(232,180,74,0.45); color:#e8b44a; }
+body.ew-day .ew-syncpanel-syncbtn.alt{ color:#9a6a00; }
 </style>
 <link rel="manifest" href="manifest.json"></head>
 <body>
@@ -804,6 +824,13 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
       <button class="ew-abtn" onclick="closeLauncher()">‹ Wallet</button>
     </div>
   </div>
+  <div class="ew-health" id="ewHealth" hidden role="status" aria-live="polite">
+    <div class="ew-health-text" id="ewHealthText"></div>
+    <div class="ew-health-btns">
+      <button type="button" class="ew-health-btn primary" id="ewHealthGo" onclick="ewHealthGo()">Controlla</button>
+      <button type="button" class="ew-health-btn" id="ewHealthLater" onclick="ewHealthLater()">Più tardi</button>
+    </div>
+  </div>
   <div class="ew-grid">
     <div class="ew-tile big" onclick="openTcSection('dashboard')">
       <div>
@@ -949,15 +976,18 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
     <button class="ew-syncpanel-close" onclick="ewCloseSyncPanel()">✕</button>
     <div class="ew-syncpanel-icon" id="ewSyncPanelIcon">📶</div>
     <div class="ew-syncpanel-status" id="ewSyncPanelStatus">Online</div>
+    <div class="ew-syncpanel-hint" id="ewSyncPanelHint" style="display:none"></div>
     <div class="ew-syncpanel-row"><span>Account</span><span id="ewSyncPanelEmail">—</span></div>
     <div class="ew-syncpanel-row"><span>Ultima sincronizzazione</span><span id="ewSyncPanelLast">—</span></div>
     <div id="ewConflictBox" style="display:none;">
-      <div class="ew-conflict-msg">ℹ️ Un altro dispositivo aveva sincronizzato nel frattempo. Le tue modifiche qui sono comunque state salvate normalmente — nessun dato perso.</div>
+      <div class="ew-conflict-msg">ℹ️ Un altro dispositivo aveva salvato dei dati nel frattempo. Le tue modifiche qui sono state salvate; i dati dell’altro dispositivo, prima di essere sostituiti, sono in una copia: Impostazioni → Backup → «Su questo dispositivo».</div>
       <div class="ew-conflict-actions">
         <button class="ew-conflict-btn primary" onclick="ewDismissConflict()">✓ Ho capito</button>
       </div>
     </div>
     <button class="ew-syncpanel-syncbtn" id="ewSyncNowBtn" onclick="ewManualSync()">🔄 Sincronizza ora</button>
+    <button class="ew-syncpanel-syncbtn alt" id="ewSyncLoginBtn" style="display:none" onclick="ewHealthLogin()">🔑 Accedi</button>
+    <button class="ew-syncpanel-syncbtn alt" onclick="ewOpenBackup()">💾 Backup e ripristino</button>
   </div>
 </div>
 
@@ -1146,38 +1176,154 @@ function ewFormatRelativeTime(ts){
   var d=Math.floor(h/24);
   return d+' giorn'+(d===1?'o':'i')+' fa';
 }
+// ════════ STATO DEL CLOUD + AVVISI (pillola, banner, pannello) ════════
+function ewHealthStatus(){
+  try{ return (typeof window.ewSyncStatus==='function') ? window.ewSyncStatus() : null; }catch(e){ return null; }
+}
 function ewUpdateSyncBtn(){
   var btn=document.getElementById('ewSyncBtn');
   if(!btn) return;
-  var online=navigator.onLine;
-  if(window._ewSyncConflict){
-    btn.textContent='ℹ️ Nota sync';
-    btn.classList.remove('offline');
-    btn.classList.add('conflict');
+  var st=ewHealthStatus();
+  btn.classList.remove('offline','conflict','warn','bad','ok');
+  if(!st){
+    var online=navigator.onLine;
+    btn.textContent = online ? '📶 Online' : '📵 Offline';
+    btn.classList.toggle('offline', !online);
     return;
   }
-  btn.classList.remove('conflict');
-  btn.textContent = online ? '📶 Online' : '📵 Offline';
-  btn.classList.toggle('offline', !online);
+  var label='☁️ Salvato', cls='ok';
+  switch(st.code){
+    case 'stale':     label='⚠️ Cloud fermo'; cls='bad'; break;
+    case 'noreach':   label='⚠️ Cloud non risponde'; cls='warn'; break;
+    case 'offline':   label='📵 Offline'; cls='offline'; break;
+    case 'nosession': label='☁️ Non collegato'; cls='warn'; break;
+    case 'saving': case 'retry': label='☁️ Salvo…'; cls=''; break;
+    case 'checking':  label='☁️ …'; cls=''; break;
+  }
+  if(st.conflict && st.code==='saved'){ label='ℹ️ Nota sync'; cls='conflict'; }
+  btn.textContent=label;
+  if(cls) btn.classList.add(cls);
+}
+var EW_SNOOZE_MS={stale:3*3600000, noreach:6*3600000, nosession:24*3600000, file:24*3600000};
+function ewSnoozed(kind){ var u=parseInt(localStorage.getItem('ew_bk_snooze_'+kind)||'0',10); return u>Date.now(); }
+function ewHealthPick(st){
+  var now=Date.now(), E=window.EWBK;
+  // 1) avviso dopo un ripristino / un aggiornamento che ha messo da parte dei dati
+  try{
+    var raw=localStorage.getItem('ew_bk_notice');
+    if(raw){
+      var n=JSON.parse(raw);
+      if(n && n.msg && now-n.t<86400000) return {kind:'notice', level:'ok', text:n.msg, go:null};
+      localStorage.removeItem('ew_bk_notice');
+    }
+  }catch(e){}
+  if(st && E){
+    if(st.code==='stale' && !ewSnoozed('stale')){
+      var since=st.lastOkAt?E.fmtSpan(now-st.lastOkAt):'';
+      if(st.authExpired) return {kind:'stale', level:'bad', text:'Il cloud non salva: l’accesso è scaduto. Accedi di nuovo per rimettere in sicurezza i dati.', go:'login', goLabel:'Accedi'};
+      return {kind:'stale', level:'bad', text: since ? ('Il cloud non salva da '+since+': i dati recenti sono solo su questo telefono.') : 'Il cloud non salva: i dati recenti sono solo su questo telefono.', go:'backup', goLabel:'Controlla'};
+    }
+    if(st.code==='noreach' && !ewSnoozed('noreach')){
+      return {kind:'noreach', level:'warn', text:'Il cloud non risponde da '+E.fmtSpan(now-st.failSince)+'. I dati restano su questo telefono.', go:'backup', goLabel:'Controlla'};
+    }
+    if(st.code==='nosession' && !ewSnoozed('nosession')){
+      return {kind:'nosession', level:'warn', text:'Sei in modalità offline: i dati restano solo su questo dispositivo.', go:'login', goLabel:'Accedi'};
+    }
+  }
+  // 2) promemoria del backup su file
+  if(E && localStorage.getItem('ew_bk_remind')!=='0' && !ewSnoozed('file')){
+    var lf=parseInt(localStorage.getItem('ew_bk_last_file')||'0',10)||0;
+    if(!lf || now-lf>30*86400000){
+      return {kind:'file', level:'warn', go:'backup', goLabel:'Scarica ora',
+        text: lf ? ('Non scarichi un backup su file da '+E.fmtSpan(now-lf)+'.') : 'Non hai ancora scaricato un backup su file: è la copia che resta anche se il telefono perde i dati.'};
+    }
+  }
+  return null;
+}
+function ewRenderHealthBanner(st){
+  var box=document.getElementById('ewHealth');
+  if(!box) return;
+  var pick=ewHealthPick(st);
+  box._pick=pick;
+  if(!pick){ box.hidden=true; box.removeAttribute('data-kind'); return; }
+  box.hidden=false;
+  box.className='ew-health '+pick.level;
+  box.setAttribute('data-kind',pick.kind);
+  document.getElementById('ewHealthText').textContent=pick.text;
+  var go=document.getElementById('ewHealthGo'), later=document.getElementById('ewHealthLater');
+  go.style.display = pick.go ? '' : 'none';
+  if(pick.go) go.textContent=pick.goLabel;
+  later.textContent = pick.kind==='notice' ? 'OK' : 'Più tardi';
+}
+function ewHealthRefresh(){
+  ewUpdateSyncBtn();
+  ewRenderHealthBanner(ewHealthStatus());
+  if(document.getElementById('ewSyncPanel').classList.contains('open')) ewRefreshSyncPanel();
+}
+function ewHealthGo(){
+  var box=document.getElementById('ewHealth'), pick=box && box._pick;
+  if(!pick || !pick.go) return;
+  if(pick.go==='login') ewHealthLogin(); else ewOpenBackup();
+}
+function ewHealthLater(){
+  var box=document.getElementById('ewHealth'), pick=box && box._pick;
+  if(!pick) return;
+  if(pick.kind==='notice'){ try{ localStorage.removeItem('ew_bk_notice'); }catch(e){} }
+  else { try{ localStorage.setItem('ew_bk_snooze_'+pick.kind, String(Date.now()+(EW_SNOOZE_MS[pick.kind]||3600000))); }catch(e){} }
+  ewRenderHealthBanner(ewHealthStatus());
+}
+function ewHealthLogin(){
+  ewCloseSyncPanel();
+  if(typeof window.ewShowLogin==='function') window.ewShowLogin();
+}
+function ewOpenBackup(){
+  ewCloseSyncPanel();
+  document.getElementById('ewLauncher').classList.remove('open');
+  document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
+  ewRunInTc(function(win){
+    if(typeof win.openProfileModal==='function'){
+      win.openProfileModal();
+      if(typeof win.switchProfileTab==='function') win.switchProfileTab('backup');
+    }
+  });
 }
 function ewInitSyncStatus(){
-  ewUpdateSyncBtn();
+  ewHealthRefresh();
   if(!window._ewSyncListenersAdded){
-    window.addEventListener('online', ewUpdateSyncBtn);
-    window.addEventListener('offline', ewUpdateSyncBtn);
-    window.addEventListener('ew-sync-conflict', ewUpdateSyncBtn);
-    window.addEventListener('ew-sync-conflict-clear', ewUpdateSyncBtn);
+    window.addEventListener('online', ewHealthRefresh);
+    window.addEventListener('offline', ewHealthRefresh);
+    window.addEventListener('ew-sync-conflict', ewHealthRefresh);
+    window.addEventListener('ew-sync-conflict-clear', ewHealthRefresh);
+    window.addEventListener('ew-sync-status', ewHealthRefresh);
+    window._ewHealthTimer=setInterval(ewHealthRefresh, 30000);
     window._ewSyncListenersAdded=true;
   }
 }
-function ewOpenSyncPanel(){
+function ewRefreshSyncPanel(){
+  var st=ewHealthStatus();
   var online=navigator.onLine;
   var iconEl=document.getElementById('ewSyncPanelIcon');
   var statusEl=document.getElementById('ewSyncPanelStatus');
   var emailEl=document.getElementById('ewSyncPanelEmail');
   var lastEl=document.getElementById('ewSyncPanelLast');
-  if(iconEl) iconEl.textContent = online ? '📶' : '📵';
-  if(statusEl){ statusEl.textContent = online ? 'Sei online' : 'Sei offline'; statusEl.className='ew-syncpanel-status '+(online?'online':'offline'); }
+  var hintEl=document.getElementById('ewSyncPanelHint');
+  var loginBtn=document.getElementById('ewSyncLoginBtn');
+  var icon = online ? '📶' : '📵', text = online ? 'Sei online' : 'Sei offline', cls = online ? 'online' : 'offline', hint='';
+  var needLogin=false;
+  if(st){
+    switch(st.code){
+      case 'saved':     icon='☁️'; text='Tutto salvato'; cls='online'; hint='Il cloud ha gli stessi dati di questo dispositivo.'; break;
+      case 'saving': case 'retry': case 'checking': icon='⏳'; text='Salvataggio in corso…'; cls='online'; hint=st.error||''; break;
+      case 'stale':     icon='⚠️'; text='Il cloud non salva'; cls='offline'; hint=(st.error?st.error+' ':'')+'I dati recenti sono solo su questo dispositivo: apri Backup per metterli al sicuro.'; needLogin=!!st.authExpired; break;
+      case 'noreach':   icon='⚠️'; text='Il cloud non risponde'; cls='offline'; hint=st.error||''; break;
+      case 'nosession': icon='☁️'; text='Non collegato'; cls='offline'; hint='Accedi per salvare i dati nel cloud.'; needLogin=true; break;
+      case 'offline':   icon='📵'; text='Sei offline'; cls='offline'; hint=st.dirty?'Le ultime modifiche andranno nel cloud appena torna la rete.':''; break;
+    }
+  }
+  if(iconEl) iconEl.textContent=icon;
+  if(statusEl){ statusEl.textContent=text; statusEl.className='ew-syncpanel-status '+cls; }
+  if(hintEl){ hintEl.textContent=hint; hintEl.style.display=hint?'block':'none'; }
+  if(loginBtn) loginBtn.style.display=needLogin?'block':'none';
   var sess=null;
   try{ sess=JSON.parse(localStorage.getItem('ew_sb_session_v2')||'null'); }catch(e){}
   if(emailEl) emailEl.textContent = (sess && sess.user && sess.user.email) ? sess.user.email : 'Non connesso a Supabase';
@@ -1185,6 +1331,9 @@ function ewOpenSyncPanel(){
   if(lastEl) lastEl.textContent = ewFormatRelativeTime(lastTs);
   var box=document.getElementById('ewConflictBox');
   if(box) box.style.display = window._ewSyncConflict ? 'block' : 'none';
+}
+function ewOpenSyncPanel(){
+  ewRefreshSyncPanel();
   document.getElementById('ewSyncPanel').classList.add('open');
 }
 function ewCloseSyncPanel(){
@@ -2259,6 +2408,241 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
 <div id="statusScrim"></div>
 
 <script>
+/* ══════ EWBK · motore dei backup (stesso codice in index.html e tc.html) ══════
+   - collect(): i dati dell'app (tutto il localStorage tranne chiavi segrete / interne)
+   - copie di sicurezza locali in IndexedDB (database «ew_backup_v1»)
+   - hashEntries(): impronta dei dati, per sapere se qualcosa è cambiato
+   Non tocca mai la rete e non cancella mai dati dell'app. */
+(function(){
+  if (window.EWBK) return;
+  var DB_NAME = 'ew_backup_v1', MAX_COPIES = 12;
+
+  // Chiavi che NON entrano mai in un backup: sessione/token, chiavi API, stato interno di sync/backup, versioni di build.
+  function isExcluded(key) {
+    var k = String(key == null ? '' : key).toLowerCase();
+    return k === 'ew_sb_last_sync' || k === 'ew_sb_session_v2' || k === 'ew_sb_known_updated_at' ||
+      k.indexOf('supabase') >= 0 || k.indexOf('sb-') === 0 ||
+      k.indexOf('gist_token') >= 0 || k.indexOf('gisttoken') >= 0 || k.indexOf('github_token') >= 0 ||
+      k === 'tc_ai_api_key' || k === 'tc_ai_api_key_global' ||
+      k.indexOf('ew_bk_') === 0 || /_build$/.test(k);
+  }
+
+  function collect() {
+    var out = {}, i, k;
+    for (i = 0; i < localStorage.length; i++) {
+      k = localStorage.key(i);
+      if (k !== null && !isExcluded(k)) out[k] = localStorage.getItem(k);
+    }
+    return out;
+  }
+
+  // Impronta a 53 bit (cyrb53) su chiavi ordinate + valori, senza costruire una stringa gigante.
+  function hashEntries(obj) {
+    var h1 = 0xdeadbeef, h2 = 0x41c6ce57, keys = Object.keys(obj).sort(), n = 0, i, k, s, j, c;
+    function feed(str) {
+      for (j = 0; j < str.length; j++) {
+        c = str.charCodeAt(j);
+        h1 = Math.imul(h1 ^ c, 2654435761);
+        h2 = Math.imul(h2 ^ c, 1597334677);
+      }
+      n += str.length;
+    }
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      s = obj[k];
+      feed(k); feed('\u0001'); feed(typeof s === 'string' ? s : String(s)); feed('\u0002');
+    }
+    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507); h1 ^= Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507); h2 ^= Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+    return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36) + ':' + keys.length + ':' + n;
+  }
+
+  function emailOf(entries) {
+    var v, u;
+    try { u = JSON.parse(entries.ew_user || 'null'); if (u && u.email) return String(u.email).toLowerCase(); } catch (e) {}
+    v = entries.tc_last_user;
+    if (typeof v === 'string' && v) {
+      try { u = JSON.parse(v); } catch (e) { u = v; }
+      if (typeof u === 'string' && u.indexOf('@') > 0) return u.toLowerCase();
+      if (u && u.email) return String(u.email).toLowerCase();
+    }
+    try { u = JSON.parse(entries.tc_users || '[]'); if (u && u[0] && u[0].email) return String(u[0].email).toLowerCase(); } catch (e) {}
+    return '';
+  }
+
+  // Riassunto leggibile: utente, quante voci, ultima spesa GoBank, ultima giornata GoWork.
+  function summarize(entries, email) {
+    email = String(email || emailOf(entries) || '').toLowerCase();
+    var keys = Object.keys(entries), re = /^tc_(.+)_expenses_(\d{4})_(\d{1,2})$/;
+    var lastExp = '', lastWork = '', bytes = 0, i, j, k, m, arr, d, g;
+    for (i = 0; i < keys.length; i++) {
+      k = keys[i];
+      bytes += k.length + String(entries[k]).length;
+      m = re.exec(k);
+      if (m && (!email || m[1].toLowerCase() === email)) {
+        try {
+          arr = JSON.parse(entries[k]);
+          if (Array.isArray(arr)) {
+            for (j = 0; j < arr.length; j++) {
+              d = arr[j] && arr[j].date;
+              if (typeof d === 'string' && /^\d{4}-\d{2}-\d{2}/.test(d) && d.slice(0, 10) > lastExp) lastExp = d.slice(0, 10);
+            }
+          }
+        } catch (e) {}
+      }
+    }
+    if (email) {
+      try {
+        g = JSON.parse(entries['gw_' + email + '_data'] || 'null');
+        if (g && g.giornate) {
+          Object.keys(g.giornate).forEach(function (x) { if (/^\d{4}-\d{2}-\d{2}$/.test(x) && x > lastWork) lastWork = x; });
+        }
+      } catch (e) {}
+    }
+    return { user: email, keys: keys.length, bytes: bytes, lastExpense: lastExp, lastWork: lastWork };
+  }
+
+  // Scrive le voci nel localStorage senza cancellare nulla. I contatori «_version» non scendono mai.
+  function apply(entries) {
+    var written = 0, failed = [];
+    Object.keys(entries || {}).forEach(function (k) {
+      if (isExcluded(k)) return;
+      var v = entries[k], inc, cur;
+      if (typeof v !== 'string') v = String(v);
+      if (/_version$/.test(k)) {
+        inc = parseInt(v, 10); cur = parseInt(localStorage.getItem(k) || '0', 10);
+        if (!isNaN(inc) && !isNaN(cur) && inc < cur) return;
+      }
+      try { localStorage.setItem(k, v); written++; } catch (e) { failed.push(k); }
+    });
+    return { written: written, failed: failed };
+  }
+
+  /* ── copie di sicurezza locali (IndexedDB) ── */
+  function openDb() {
+    return new Promise(function (res, rej) {
+      var r;
+      try { r = indexedDB.open(DB_NAME, 1); } catch (e) { return rej(e); }
+      r.onupgradeneeded = function () {
+        var d = r.result;
+        if (!d.objectStoreNames.contains('meta')) d.createObjectStore('meta', { keyPath: 'id' });
+        if (!d.objectStoreNames.contains('blobs')) d.createObjectStore('blobs', { keyPath: 'id' });
+      };
+      r.onsuccess = function () { res(r.result); };
+      r.onerror = function () { rej(r.error || new Error('idb')); };
+      r.onblocked = function () { rej(new Error('idb-blocked')); };
+    });
+  }
+
+  // I dati vengono catturati SUBITO (sincrono): chi chiama può cancellare subito dopo, la copia è già al sicuro in memoria.
+  function saveCopy(reason, label, entries) {
+    var e = entries || collect(), json, s, meta;
+    try { json = JSON.stringify(e); } catch (x) { return Promise.reject(x); }
+    s = summarize(e);
+    meta = {
+      id: 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+      createdAt: Date.now(), reason: reason || 'manual', label: label || '',
+      user: s.user, keys: s.keys, bytes: json.length, lastExpense: s.lastExpense, lastWork: s.lastWork
+    };
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx;
+        try { tx = db.transaction(['meta', 'blobs'], 'readwrite'); } catch (x) { db.close(); return rej(x); }
+        tx.objectStore('meta').put(meta);
+        tx.objectStore('blobs').put({ id: meta.id, json: json });
+        tx.oncomplete = function () { db.close(); res(meta); };
+        tx.onerror = tx.onabort = function () { db.close(); rej(tx.error || new Error('idb-tx')); };
+      });
+    }).then(function (m) {
+      return prune().then(function () { return m; }, function () { return m; });
+    });
+  }
+
+  function listCopies() {
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(['meta'], 'readonly'), rq = tx.objectStore('meta').getAll();
+        rq.onsuccess = function () { db.close(); res((rq.result || []).sort(function (a, b) { return b.createdAt - a.createdAt; })); };
+        rq.onerror = function () { db.close(); rej(rq.error || new Error('idb-list')); };
+      });
+    });
+  }
+
+  function getCopy(id) {
+    return openDb().then(function (db) {
+      return new Promise(function (res, rej) {
+        var tx = db.transaction(['meta', 'blobs'], 'readonly'), a = tx.objectStore('meta').get(id), b = tx.objectStore('blobs').get(id);
+        tx.oncomplete = function () {
+          db.close();
+          if (!a.result || !b.result) return rej(new Error('copia-non-trovata'));
+          try { res({ meta: a.result, entries: JSON.parse(b.result.json) }); } catch (x) { rej(x); }
+        };
+        tx.onerror = tx.onabort = function () { db.close(); rej(tx.error || new Error('idb-get')); };
+      });
+    });
+  }
+
+  function prune() {
+    return listCopies().then(function (list) {
+      var old = list.slice(MAX_COPIES);
+      if (!old.length) return;
+      return openDb().then(function (db) {
+        return new Promise(function (res) {
+          var tx = db.transaction(['meta', 'blobs'], 'readwrite');
+          old.forEach(function (m) { tx.objectStore('meta').delete(m.id); tx.objectStore('blobs').delete(m.id); });
+          tx.oncomplete = tx.onerror = tx.onabort = function () { db.close(); res(); };
+        });
+      });
+    });
+  }
+
+  /* ── formati (italiano) ── */
+  var MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDay(iso) { // 2026-09-14 → 14 set 2026
+    var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || '');
+    return m ? (parseInt(m[3], 10) + ' ' + MESI[parseInt(m[2], 10) - 1] + ' ' + m[1]) : '—';
+  }
+  function fmtDayTs(ts) { var d = new Date(ts); return d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear(); }
+  function fmtDateTime(ts) { var d = new Date(ts); return d.getDate() + ' ' + MESI[d.getMonth()] + ' ' + d.getFullYear() + ', ' + p2(d.getHours()) + ':' + p2(d.getMinutes()); }
+  function fmtWhen(ts) { // Oggi, 06:12 · Ieri, 18:40 · 23 ott, 06:11
+    var d = new Date(ts), n = new Date(), hm = p2(d.getHours()) + ':' + p2(d.getMinutes());
+    var a = new Date(n.getFullYear(), n.getMonth(), n.getDate()).getTime(), b = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    var diff = Math.round((a - b) / 86400000);
+    if (diff === 0) return 'Oggi, ' + hm;
+    if (diff === 1) return 'Ieri, ' + hm;
+    return d.getDate() + ' ' + MESI[d.getMonth()] + (d.getFullYear() !== n.getFullYear() ? ' ' + d.getFullYear() : '') + ', ' + hm;
+  }
+  function fmtAgo(ts) {
+    if (!ts) return 'mai';
+    var s = Math.max(0, Math.floor((Date.now() - ts) / 1000)), m = Math.floor(s / 60), h = Math.floor(m / 60), g = Math.floor(h / 24);
+    if (s < 45) return 'proprio ora';
+    if (m < 60) return (m < 1 ? 1 : m) + (m === 1 || m < 1 ? ' minuto fa' : ' minuti fa');
+    if (h < 24) return h + (h === 1 ? ' ora fa' : ' ore fa');
+    return g + (g === 1 ? ' giorno fa' : ' giorni fa');
+  }
+  function fmtSpan(ms) { // durata: «9 giorni», «3 ore»
+    var m = Math.floor(ms / 60000), h = Math.floor(m / 60), g = Math.floor(h / 24);
+    if (g >= 1) return g + (g === 1 ? ' giorno' : ' giorni');
+    if (h >= 1) return h + (h === 1 ? ' ora' : ' ore');
+    m = Math.max(1, m);
+    return m + (m === 1 ? ' minuto' : ' minuti');
+  }
+  function fmtBytes(n) {
+    if (n < 1024) return n + ' B';
+    if (n < 1048576) return (n / 1024).toFixed(0) + ' KB';
+    return (n / 1048576).toFixed(1).replace('.', ',') + ' MB';
+  }
+
+  window.EWBK = {
+    isExcluded: isExcluded, collect: collect, hashEntries: hashEntries, emailOf: emailOf, summarize: summarize, apply: apply,
+    saveCopy: saveCopy, listCopies: listCopies, getCopy: getCopy,
+    fmtDay: fmtDay, fmtDayTs: fmtDayTs, fmtDateTime: fmtDateTime, fmtWhen: fmtWhen, fmtAgo: fmtAgo, fmtSpan: fmtSpan, fmtBytes: fmtBytes
+  };
+})();
+</script>
+
+<script>
 (function(){
   'use strict';
   const SB_URL='https://qjevhdpxsuwjskksudcn.supabase.co';
@@ -2267,6 +2651,9 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
   const SESSION_KEY='ew_sb_session_v2';
   const META_KEY='ew_sb_last_sync';
   const KNOWN_KEY='ew_sb_known_updated_at';
+  const PUSHED_KEY='ew_bk_pushed_hash';     // impronta dei dati già presenti nel cloud (solo questo dispositivo)
+  const FAILSINCE_KEY='ew_bk_fail_since';   // da quando il cloud non risponde (solo questo dispositivo)
+  let lastError='', lastErrorAt=0, lastContactOkAt=0, pushing=false, bootDone=false, dirtySince=0, lastPushStart=0, authExpired=false;
   // Nota: il collegamento sessione→profilo locale vive ora SOLO nella funzione BOOT esterna
   // (gira prima di questo script, quindi è l'unico punto in cui il controllo di avvio della shell
   // può vederlo in tempo) — qui non serve più ripeterlo.
@@ -2286,7 +2673,8 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
   }
   function isSecretOrInternalKey(key){
     const k=String(key||'').toLowerCase();
-    return k===META_KEY || k===SESSION_KEY || k.includes('supabase') || k.startsWith('sb-') ||
+    // KNOWN_KEY e le chiavi ew_bk_* sono stato interno di QUESTO dispositivo: non vanno nel cloud e non devono far partire un nuovo salvataggio
+    return k===META_KEY || k===SESSION_KEY || k===KNOWN_KEY || k.startsWith('ew_bk_') || k.includes('supabase') || k.startsWith('sb-') ||
       k.includes('gist_token') || k.includes('gisttoken') || k.includes('github_token') ||
       k==='tc_ai_api_key' || k==='tc_ai_api_key_global';
   }
@@ -2317,6 +2705,7 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
       });
       localStorage.setItem(META_KEY,String(Date.now()));
       if(knownUpdatedAt) localStorage.setItem(KNOWN_KEY,knownUpdatedAt);
+      try{ var _h=hashData(snapshot()); if(_h) localStorage.setItem(PUSHED_KEY,_h); }catch(_){}
     } finally { applyingCloud=false; }
   }
   function authHeaders(){
@@ -2388,14 +2777,77 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
       try{ window.dispatchEvent(new CustomEvent('ew-sync-conflict-clear')); }catch(_){}
     }
   }
+  /* ── stato di salute del cloud: alimenta la pillola, il banner e la scheda Backup ── */
+  function parseMs(s){ var t=Date.parse(s||''); return isNaN(t)?0:t; }
+  function hashData(o){ try{ return window.EWBK?window.EWBK.hashEntries(o):''; }catch(_){ return ''; } }
+  function emitStatus(){ try{ window.dispatchEvent(new CustomEvent('ew-sync-status')); }catch(_){} }
+  function isAuthErr(err){
+    var m=(err&&err.message?String(err.message):'').toLowerCase(), s=err&&err.status;
+    return s===401 || m.indexOf('jwt')>=0 || (m.indexOf('refresh')>=0 && (m.indexOf('invalid')>=0 || m.indexOf('not found')>=0 || m.indexOf('already used')>=0)) || m==='no-refresh' || m==='refresh-failed';
+  }
+  function friendly(err){
+    var m=(err&&err.message?String(err.message):'').toLowerCase(), s=err&&err.status;
+    if(isAuthErr(err)) return 'Accesso al cloud scaduto: serve accedere di nuovo.';
+    if(s===403 || m.indexOf('row-level')>=0 || m.indexOf('permission')>=0) return 'Il cloud rifiuta il salvataggio (permessi).';
+    if(s>=500 || m.indexOf('timeout')>=0) return 'Il cloud non risponde (progetto in pausa o fuori servizio?).';
+    if(m.indexOf('failed to fetch')>=0 || m.indexOf('networkerror')>=0 || m.indexOf('load failed')>=0 || m.indexOf('abort')>=0 || m.indexOf('network')>=0) return 'Non riesco a raggiungere il cloud.';
+    return (err&&err.message)?String(err.message).slice(0,140):'Errore sconosciuto.';
+  }
+  function clearFail(){
+    lastError=''; lastErrorAt=0; authExpired=false;
+    try{ localStorage.removeItem(FAILSINCE_KEY); }catch(_){}
+    emitStatus();
+  }
+  function markOk(){ lastContactOkAt=Date.now(); clearFail(); }
+  function markFail(err){
+    lastError=friendly(err); lastErrorAt=Date.now(); authExpired=isAuthErr(err);
+    // offline: non è un guasto del cloud, i dati partiranno appena torna la rete
+    if(navigator.onLine!==false){ try{ if(!localStorage.getItem(FAILSINCE_KEY)) localStorage.setItem(FAILSINCE_KEY,String(Date.now())); }catch(_){} }
+    emitStatus();
+  }
+  let dirtyMemo={t:0,v:true};
+  function isDirty(fresh){
+    var now=Date.now();
+    if(!fresh && now-dirtyMemo.t<2500) return dirtyMemo.v;
+    var p=localStorage.getItem(PUSHED_KEY), h=hashData(snapshot());
+    dirtyMemo={t:now, v:(!h)?true:(p?h!==p:true)};
+    return dirtyMemo.v;
+  }
+  async function saveSafetyCopy(reason,label){
+    try{ if(!window.EWBK) return false; await window.EWBK.saveCopy(reason,label); return true; }
+    catch(e){ console.warn('Copia di sicurezza non riuscita:',e); return false; }
+  }
+  function cloudEntries(data){
+    var o={}; Object.keys(data||{}).forEach(function(k){ if(!isSecretOrInternalKey(k)) o[k]=String(data[k]); }); return o;
+  }
+
+  // Un altro dispositivo ha salvato nel cloud dopo l'ultima volta che l'ho visto: prima di sostituire quei dati
+  // con i miei ne tengo una copia su questo dispositivo (se non riesce, si salva comunque: i miei dati hanno la precedenza).
+  async function keepCloudCopy(){
+    try{
+      if(!window.EWBK) return;
+      const rows=await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
+        method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
+      });
+      const row=Array.isArray(rows)?rows[0]:null;
+      if(row && row.data) await window.EWBK.saveCopy('cloud-before-overwrite','Dati dell’altro dispositivo, prima di sostituirli',cloudEntries(row.data));
+    }catch(e){ console.warn('Copia dei dati del cloud non riuscita:',e); }
+  }
   let pushInFlight=null;
-  async function pushNow(force,keepalive){
+  async function pushNow(force,keepalive,always){
     if(!session || !session.user || applyingCloud) return;
     // Un solo push alla volta: se ce n'è già uno in corso, questa chiamata aspetta e riusa
     // lo stesso risultato invece di partire in parallelo (altrimenti due controlli-conflitto
     // possono incrociarsi e creare un falso allarme anche senza nessun conflitto reale).
     if(pushInFlight) return pushInFlight;
+    const data=snapshot();
+    const h=hashData(data);
+    // Niente di nuovo da salvare: il cloud ha già esattamente questi dati. Non si rimanda nulla
+    // (prima l'app rimandava 1 MB al cloud di continuo, e una pagina ferma poteva sovrascrivere dati più nuovi).
+    if(!always && h && h===localStorage.getItem(PUSHED_KEY)) return;
+    lastPushStart=Date.now();
     pushInFlight=(async()=>{
+      pushing=true; emitStatus();
       try{
         // Il controllo NON blocca più il salvataggio — i dati di questo dispositivo vanno
         // sempre salvati per primi (non si perde mai una modifica locale). Se un altro
@@ -2404,11 +2856,12 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
           try{
             const known=localStorage.getItem(KNOWN_KEY);
             const serverNow=await checkServerUpdatedAt();
-            if(known && serverNow && serverNow!==known){ setConflict(serverNow); }
+            // confronto sul momento reale, non sul testo (il server e questo dispositivo scrivono la data in formati diversi)
+            if(known && serverNow && parseMs(serverNow)!==parseMs(known)){ setConflict(serverNow); await keepCloudCopy(); }
           }catch(e){ /* controllo non riuscito (offline?): si prosegue comunque col salvataggio */ }
         }
         const nowIso=new Date().toISOString();
-        const payload={user_id:session.user.id,data:snapshot(),updated_at:nowIso};
+        const payload={user_id:session.user.id,data:data,updated_at:nowIso};
         var _bodyStr=JSON.stringify(payload);
         // In chiusura pagina (pagehide) il fetch normale rischia di essere interrotto a metà dal
         // browser prima di completarsi — keepalive lo lascia proseguire in background. Ha un limite
@@ -2419,33 +2872,151 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
         await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',_opts);
         localStorage.setItem(META_KEY,String(Date.now()));
         localStorage.setItem(KNOWN_KEY,nowIso);
-      } finally { pushInFlight=null; }
+        if(h) localStorage.setItem(PUSHED_KEY,h);
+        dirtySince=0; dirtyMemo.t=0;
+        markOk();
+      } catch(err){ markFail(err); throw err; }
+      finally { pushing=false; pushInFlight=null; emitStatus(); afterPush(); }
     })();
     return pushInFlight;
+  }
+  // Se mentre salvavo è cambiato altro, riparte un solo nuovo salvataggio (mai a raffica).
+  function afterPush(){
+    try{
+      if(!session || applyingCloud || lastError) return;
+      dirtyMemo.t=0;
+      if(isDirty(true)) schedulePush();
+    }catch(_){}
   }
   async function pullCloudNow(){
     const rows=await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
       method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
     });
     const row=Array.isArray(rows)?rows[0]:null;
-    if(row && row.data){ applySnapshot(row.data, row.updated_at); clearConflict(); }
+    if(row && row.data){
+      await saveSafetyCopy('before-pull','Prima di usare i dati del cloud');
+      applySnapshot(row.data, row.updated_at); clearConflict();
+    }
   }
-  window._ewForceSync=function(){ return pushNow(true); };
+  window._ewForceSync=function(){ return pushNow(true,false,true); };
   window._ewPullCloud=function(){ return pullCloudNow(); };
-  window._ewSyncNow=function(){ return pushNow(false); };
+  window._ewSyncNow=function(){ return pushNow(false,false,true); };
   function schedulePush(){
+    dirtyMemo.t=0;                                 // qualcosa può essere cambiato: il prossimo controllo "ci sono modifiche?" rifà il conto
     if(applyingCloud || !session) return;
     clearTimeout(saveTimer);
-    saveTimer=setTimeout(function(){pushNow().catch(function(e){console.error('Supabase sync:',e);});},400);
+    var wait=400, gap=Date.now()-lastPushStart;
+    if(gap<4000) wait=Math.max(wait,4000-gap);     // mai più di un invio ogni 4 secondi
+    saveTimer=setTimeout(function(){pushNow().catch(function(e){console.error('Supabase sync:',e);});},wait);
+  }
+
+  // Al riavvio: il cloud NON deve cancellare modifiche più nuove fatte su questo dispositivo.
+  //  - cloud cambiato da un altro dispositivo dopo l'ultima sincronizzazione → vince il cloud (come prima), ma se qui
+  //    c'erano modifiche non salvate se ne tiene prima una copia di sicurezza
+  //  - cloud uguale a come l'avevo lasciato (o tornato indietro) → si tengono i dati di questo dispositivo e si inviano
+  function decidePull(row){
+    var serverMs=parseMs(row.updated_at), knownMs=parseMs(localStorage.getItem(KNOWN_KEY));
+    var pushed=localStorage.getItem(PUSHED_KEY);
+    var local=snapshot(), lh=hashData(local);
+    var dirty=pushed?(lh!==pushed):null;                       // null = non lo so (prima volta dopo l'aggiornamento)
+    var differs=lh!==hashData(cloudEntries(row.data));
+    var haveLocal=Object.keys(local).length>=3;
+    if(!knownMs) return {apply:true, backup:haveLocal && differs, dirty:dirty};
+    if(serverMs>knownMs) return {apply:true, backup:haveLocal && differs && dirty!==false, dirty:dirty};
+    if(serverMs<knownMs) return {apply:false, push:true};
+    return {apply:false, push:dirty!==false};
   }
   async function syncAfterLogin(){
     const rows=await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
       method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
     });
+    markOk();
     const row=Array.isArray(rows)?rows[0]:null;
-    if(row && row.data && Object.keys(row.data).length) applySnapshot(row.data, row.updated_at);
-    else await pushNow(true);
+    if(row && row.data && Object.keys(row.data).length){
+      const d=decidePull(row);
+      if(d.apply){
+        if(d.backup){
+          await saveSafetyCopy('before-pull','Prima di aggiornare dal cloud');
+          if(d.dirty===true){ try{ localStorage.setItem('ew_bk_notice',JSON.stringify({t:Date.now(),msg:'Su questo dispositivo c’erano modifiche non ancora salvate nel cloud: ho aggiornato i dati dal cloud e ne ho tenuto una copia in Impostazioni → Backup.'})); }catch(_){} }
+        }
+        applySnapshot(row.data, row.updated_at);
+      } else if(d.push){
+        await pushNow(true,false,true);
+      } else {
+        try{ localStorage.setItem(META_KEY,String(Date.now())); }catch(_){}
+      }
+    } else await pushNow(true,false,true);
   }
+
+  // Controllo leggero ogni 5 minuti (e quando si torna sull'app): il cloud risponde? c'è qualcosa rimasto indietro?
+  async function heartbeat(){
+    if(!session || !session.user || applyingCloud || pushInFlight) return;
+    if(document.visibilityState==='hidden' || navigator.onLine===false) return;
+    try{
+      const serverNow=await checkServerUpdatedAt();
+      lastContactOkAt=Date.now();
+      if(!serverNow && Object.keys(snapshot()).length>=3) await pushNow(true,false,true);   // riga sparita dal cloud: la ricreo
+      else if(isDirty(true)) await pushNow(false);                                           // cloud di nuovo raggiungibile: invio ciò che era rimasto indietro
+      else { try{ localStorage.setItem(META_KEY,String(Date.now())); }catch(_){} clearFail(); }
+    }catch(e){ markFail(e); }
+  }
+
+  /* ── funzioni che l'Hub e GoBank usano per la scheda Backup e per la pillola di stato ── */
+  window.ewSyncStatus=function(){
+    var now=Date.now();
+    var loggedIn=!!(session && session.user);
+    var online=navigator.onLine!==false;
+    var lastOk=parseInt(localStorage.getItem(META_KEY)||'0',10)||0;
+    var failSince=parseInt(localStorage.getItem(FAILSINCE_KEY)||'0',10)||0;
+    var dirty=loggedIn?isDirty():null;
+    if(dirty){ if(!dirtySince) dirtySince=now; } else dirtySince=0;
+    var code, level;
+    if(!loggedIn){ code='nosession'; level='warn'; }
+    else if(!online){ code='offline'; level='warn'; }
+    else if(!bootDone){ code='checking'; level='neutral'; }
+    // un guasto già lungo resta segnalato anche mentre l'app riprova (altrimenti l'avviso lampeggia a ogni tentativo)
+    else if(failSince && dirty && now-failSince>120000){ code='stale'; level='bad'; }
+    else if(failSince && !dirty && now-failSince>1800000){ code='noreach'; level='warn'; }
+    else if(pushing){ code='saving'; level='neutral'; }
+    else if(failSince){ code='retry'; level='neutral'; }
+    else if(dirty && now-dirtySince>300000){ code='stale'; level='bad'; }
+    else if(dirty){ code='saving'; level='neutral'; }
+    else { code='saved'; level='ok'; }
+    return {code:code, level:level, loggedIn:loggedIn, online:online, email:(loggedIn&&session.user.email)||'', dirty:dirty,
+            lastOkAt:lastOk, lastContactOkAt:lastContactOkAt, failSince:failSince, error:lastError, authExpired:authExpired,
+            conflict:!!window._ewSyncConflict, now:now};
+  };
+  window.ewSaveNow=async function(){
+    if(!session || !session.user) return {ok:false, error:'Non sei collegato al cloud.', needsLogin:true};
+    if(navigator.onLine===false) return {ok:false, error:'Sei offline.'};
+    try{ await pushNow(false,false,true); return {ok:true}; }
+    catch(e){ return {ok:false, error:friendly(e), needsLogin:authExpired}; }
+  };
+  window.ewShowLogin=function(){ if(gate) gate.classList.remove('sb-hidden'); };
+  function historyUrl(q){ return SB_URL+'/rest/v1/ewallet_data_history?'+q; }
+  async function historyList(){
+    if(!session || !session.user) throw new Error('Non sei collegato al cloud.');
+    try{
+      const rows=await authApi(historyUrl('select=id,saved_at,source_updated_at,bytes&user_id=eq.'+encodeURIComponent(session.user.id)+'&order=saved_at.desc&limit=40'),{
+        method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
+      });
+      return Array.isArray(rows)?rows:[];
+    }catch(err){
+      var m=String(err&&err.message||'').toLowerCase();
+      if(err && (err.status===404 || m.indexOf('schema cache')>=0 || m.indexOf('does not exist')>=0 || m.indexOf('could not find the table')>=0)){
+        var e2=new Error('Copie nel cloud non attive.'); e2.code='nohistory'; throw e2;
+      }
+      throw err;
+    }
+  }
+  async function historyGet(id){
+    if(!session || !session.user) throw new Error('Non sei collegato al cloud.');
+    const rows=await authApi(historyUrl('select=id,data,saved_at,source_updated_at&id=eq.'+encodeURIComponent(id)+'&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1'),{
+      method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
+    });
+    return Array.isArray(rows)?(rows[0]||null):null;
+  }
+  window.ewCloudHistory={list:historyList, get:historyGet};
   function reveal(){if(gate) gate.classList.add('sb-hidden');}
   async function requestPasswordReset(){
     const e=(email&&email.value||'').trim();
@@ -2519,17 +3090,21 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
     try{session=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');}catch(_){session=null;}
     if(session && session.access_token && session.user){
       reveal();
-      try{await syncAfterLogin();}catch(e){console.warn('Sync non riuscita (offline?), uso i dati locali:',e);}
+      try{await syncAfterLogin();}catch(e){markFail(e); console.warn('Sync non riuscita (offline?), uso i dati locali:',e);}
     }
+    bootDone=true; emitStatus();
     const nativeSet=Storage.prototype.setItem, nativeRemove=Storage.prototype.removeItem, nativeClear=Storage.prototype.clear;
     Storage.prototype.setItem=function(k,v){nativeSet.call(this,k,v);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
     Storage.prototype.removeItem=function(k){nativeRemove.call(this,k);if(this===localStorage&&!isSecretOrInternalKey(k))schedulePush();};
     Storage.prototype.clear=function(){nativeClear.call(this);if(this===localStorage)schedulePush();};
     window.addEventListener('pagehide',function(){if(session)pushNow(true,true).catch(function(){});});
     document.addEventListener('visibilitychange',function(){if(document.visibilityState==='hidden'&&session)pushNow(true,true).catch(function(){});});
-    window.addEventListener('online',schedulePush);
+    window.addEventListener('online',function(){ schedulePush(); setTimeout(heartbeat,1500); emitStatus(); });
+    window.addEventListener('offline',emitStatus);
     window.addEventListener('storage',schedulePush);
+    document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'){ setTimeout(heartbeat,800); emitStatus(); } });
     setInterval(schedulePush,30000);
+    setInterval(heartbeat,300000);
   }
   if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',boot,{once:true}); else boot();
 })();

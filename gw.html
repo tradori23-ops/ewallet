@@ -976,8 +976,7 @@ document.getElementById('compFile').addEventListener('change',function(e){
 });
 let _compPendingDue=null;
 document.getElementById('compDueBtn').addEventListener('click',function(){
-  const inp=document.getElementById('compDueInput');
-  if(inp.showPicker)inp.showPicker();else inp.click();
+  document.getElementById('compDueInput').click();
 });
 document.getElementById('compDueInput').addEventListener('change',function(e){
   _compPendingDue=e.target.value||null;
@@ -1286,6 +1285,7 @@ function resetMese(){
   const label=MESI[m]+' '+y;
   gwAsk('Cancellare tutte le giornate di '+label+'? Non si può annullare.','🗑️','Cancella','var(--permr)',function(ok){
     if(!ok)return;
+    gwSafety('before-gw-reset-month','Prima di «Reset '+label+'» (GoWork)');
     Object.keys(D.giornate).forEach(k=>{const d=parseDay(k);if(d.getFullYear()===y&&d.getMonth()===m)delete D.giornate[k];});
     save();renderRegistro();renderOggi();toast(label+' resettato');
   });
@@ -2137,6 +2137,7 @@ let _setSaveTimer=null;
 function scheduleSettingsSave(){clearTimeout(_setSaveTimer);_setSaveTimer=setTimeout(()=>{collectSettings();renderPensione();renderCarriera();},500);}
 function saveSettings(){collectSettings();renderOggi();renderPensione();renderCarriera();toast('Impostazioni salvate ✓');}
 function flushSettings(){const sv=document.getElementById('view-set');if(sv&&sv.classList.contains('active')&&currentUser){clearTimeout(_setSaveTimer);collectSettings();}}
+function gwSafety(reason,label){try{var t=(window.top&&window.top!==window)?window.top:null;var E=(t&&t.EWBK)||window.EWBK;if(E&&E.saveCopy)E.saveCopy(reason,label).catch(function(){});}catch(e){}}
 function exportData(){
   const blob=new Blob([JSON.stringify(D,null,2)],{type:'application/json'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);
@@ -2144,10 +2145,10 @@ function exportData(){
 }
 function importData(e){
   const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const o=JSON.parse(r.result);if(!o.version)throw 0;D=Object.assign(DEFAULTS(),o);save();applyTheme();renderOggi();renderSettings();toast('Dati importati');}catch(x){toast('File non valido');}};
+  r.onload=()=>{try{const o=JSON.parse(r.result);if(!o.version)throw 0;gwSafety('before-gw-import','Prima di importare un file in GoWork');D=Object.assign(DEFAULTS(),o);save();applyTheme();renderOggi();renderSettings();toast('Dati importati');}catch(x){toast('File non valido');}};
   r.readAsText(f);e.target.value='';
 }
-function resetAll(){gwAsk('Cancellare TUTTI i dati di questo profilo? Operazione irreversibile.','🔥','Cancella tutto',null,ok=>{if(!ok)return;localStorage.removeItem(dataKey());D=DEFAULTS();save();applyTheme();renderOggi();renderSettings();toast('Dati azzerati');});}
+function resetAll(){gwAsk('Cancellare TUTTI i dati di questo profilo? Operazione irreversibile.','🔥','Cancella tutto',null,ok=>{if(!ok)return;gwSafety('before-gw-reset-all','Prima di «Cancella tutto» (GoWork)');localStorage.removeItem(dataKey());D=DEFAULTS();save();applyTheme();renderOggi();renderSettings();toast('Dati azzerati');});}
 
 /* ================= AVVIO ================= */
 // ricalcola il tempo quando si riapre l'app (anche dopo cell. spento): i timestamp restano corretti
