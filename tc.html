@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261025-v308-backup';
+  var BUILD = '20261025-v309-aziende';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -11234,14 +11234,17 @@ function addExpense() {
     return;
   }
   const exp = getExpenses();
+  const _sbSub = (window.EWSUB && EWSUB.value('expCat')) || '';
   exp.push({ id: Date.now(), cat, amount, desc, pay, date,
     source: pay==='satispay'?'satispay':pay==='tickets'?'tickets':pay==='bancomat'||pay==='bonifico'?'sella':'manuale',
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    ...(_sbSub ? { sub: _sbSub } : {})
   });
   saveExpenses(exp);
   bumpVersion();
   document.getElementById('expAmount').value='';
   document.getElementById('expDesc').value='';
+  try { if(window.EWSUB) EWSUB.reset('expCat'); } catch(_) {}
   // Se la categoria è rata, aggiorna il progresso del finanziamento
   if(cat === 'rata') updateRataProgress(amount, desc);
   // Aggiorna periodo al mese della data inserita
@@ -11277,7 +11280,7 @@ function renderExpenses() {
       tbody.innerHTML += `<tr>
         <td style="white-space:nowrap;font-size:12px;">${_dayLabel}${_timeLabel}</td>
         <td><span class="badge badge-cat">${catIconHtml(e.cat)} ${e.cat}</span></td>
-        <td>${e.desc}</td>
+        <td>${e.desc}${_sbChip(e)}</td>
         <td><span class="badge badge-pay">${PAY_ICONS[e.pay]||''} ${e.pay}</span></td>
         <td class="negative">€${e.amount.toFixed(2).replace('.',',')}</td>
         <td style="display:flex;gap:4px;">
@@ -11439,6 +11442,7 @@ function openEditExpense(id, dateHint) {
     }
   }
 
+  try { if(window.EWSUB) EWSUB.setFor('editExpCat', found); } catch(_) {}
   const modal = document.getElementById('editExpenseModal');
   modal.style.display = 'flex';
   setTimeout(() => document.getElementById('editExpAmount').focus(), 200);
@@ -11456,6 +11460,7 @@ function saveEditExpense() {
   const cat    = document.getElementById('editExpCat').value;
   const pay    = document.getElementById('editExpPay').value;
   const date   = document.getElementById('editExpDate').value;
+  const _sbSub = (window.EWSUB && EWSUB.value('editExpCat')) || '';
 
   if(!amount || amount <= 0) { showToast('⚠️ Importo non valido'); return; }
   if(!date)                   { showToast('⚠️ Seleziona una data'); return; }
@@ -11467,7 +11472,7 @@ function saveEditExpense() {
   // Rimuovi dalla chiave originale
   const origArr = load(_editExpOrigDate, []);
   const updated = origArr.map(e => String(e.id) === String(_editExpId)
-    ? { ...e, amount, desc, cat, pay, date, updatedAt: new Date().toISOString() }
+    ? { ...e, amount, desc, cat, pay, date, updatedAt: new Date().toISOString(), sub: _sbSub || undefined }
     : e
   );
 
@@ -13459,6 +13464,7 @@ let _catDetailPeriod = 'month';
 function openCatDetail(cat) {
   _catDetailCat = cat;
   _catDetailPeriod = 'month';
+  try { if(window.EWSUB) EWSUB.resetReport(cat); } catch(_) {}
   document.getElementById('catDetailModal').style.display = 'flex';
   document.getElementById('catDetailList').innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);">Caricamento...</div>';
   document.querySelectorAll('.cat-detail-period').forEach((b,i) => {
@@ -13473,6 +13479,7 @@ function openCatDetail(cat) {
 
 function setCatDetailPeriod(period, btn) {
   _catDetailPeriod = period;
+  try { if(window.EWSUB) EWSUB.resetReport(_catDetailCat); } catch(_) {}
   document.querySelectorAll('.cat-detail-period').forEach(b => {
     b.style.background = 'transparent';
     b.style.color = 'var(--text-muted)';
@@ -13496,7 +13503,7 @@ function renderCatDetail() {
   } else if(_catDetailPeriod === 'year') {
     const yr = document.getElementById('globalYear').value;
     for(let m=1; m<=12; m++) {
-      const key = `${yr}_${String(m).padStart(2,'0')}`;
+      const key = `${yr}_${m}`;
       (load(`expenses_${key}`,[]) || []).filter(e=>e.cat===cat).forEach(e=>expenses.push(e));
     }
   } else {
@@ -13526,6 +13533,20 @@ function renderCatDetail() {
     return;
   }
 
+  // ── Resoconto per azienda (Viaggi / Supermercato) ──
+  let _sbToggle = '';
+  if(window.EWSUB && EWSUB.has(cat)) {
+    try {
+      const _sbBox = document.getElementById('catDetailList');
+      EWSUB.bind(_sbBox);
+      _sbToggle = EWSUB.toggleHtml(cat);
+      if(EWSUB.view(cat) === 'az') {
+        _sbBox.innerHTML = _sbToggle + EWSUB.report(cat, expenses);
+        return;
+      }
+    } catch(err) { console.error('EWSUB resoconto', err); _sbToggle = ''; }
+  }
+
   // Raggruppa per descrizione
   const grouped = {};
   expenses.forEach(e => {
@@ -13544,7 +13565,7 @@ function renderCatDetail() {
   const PAY_ICONS  = {satispay:'📱',revolut:'💜',sella:'🏦',contanti:'💵',bonifico:'📋',carta:'💳',bancomat:'🏧',vs_manual:'✏️',klarna:'🅺',scalapay:'🔷'};
   const PAY_COLORS = {satispay:'#ff6b6b',revolut:'#a78bfa',sella:'#4a90e8',contanti:'#10b981',bonifico:'#f59e0b',carta:'#ec4899',bancomat:'#64748b',vs_manual:'#d4a843',klarna:'#ff69b4',scalapay:'#6fd4b7'};
 
-  document.getElementById('catDetailList').innerHTML = `
+  document.getElementById('catDetailList').innerHTML = _sbToggle + `
     <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-bottom:10px;">
       📍 ${sorted.length} posti/voci — ordinati per importo
     </div>
@@ -13631,7 +13652,7 @@ function renderPayDetail() {
   } else if(_payDetailPeriod === 'year') {
     const yr = document.getElementById('globalYear').value;
     for(let m = 1; m <= 12; m++) {
-      const arr = load(`expenses_${yr}_${String(m).padStart(2,'0')}`, []);
+      const arr = load(`expenses_${yr}_${m}`, []);
       arr.forEach(e => {
         const src = e.source || e.pay || '';
         if(key === 'satispay' && src === 'satispay') expenses.push(e);
@@ -22466,6 +22487,7 @@ function addVSExpense() {
   const desc   = document.getElementById('vs-exp-desc').value.trim() || '—';
   const amount = parseFloat(document.getElementById('vs-exp-amount').value);
   const date   = document.getElementById('vs-exp-date').value;
+  const _sbSub = (window.EWSUB && EWSUB.value('vs-exp-cat')) || '';
   if(!amount || amount <= 0) { showToast('⚠️ Inserisci un importo valido'); return; }
   if(!date) { showToast('⚠️ Inserisci una data'); return; }
   const d   = new Date(date + 'T12:00:00');
@@ -22474,12 +22496,13 @@ function addVSExpense() {
   // Mappa pay → source per i badge settimanali
   const payToSource = { satispay:'satispay', revolut:'revolut', bancomat:'sella', bonifico:'sella' };
   const source = payToSource[pay] || 'vs_manual';
-  arr.push({ id: Date.now(), cat, amount, desc, pay, date, source, createdAt: new Date().toISOString() });
+  arr.push({ id: Date.now(), cat, amount, desc, pay, date, source, createdAt: new Date().toISOString(), ...(_sbSub ? { sub: _sbSub } : {}) });
   save(key, arr);
   bumpVersion();
   fbPushToCloud();
   document.getElementById('vs-exp-amount').value = '';
   document.getElementById('vs-exp-desc').value   = '';
+  try { if(window.EWSUB) EWSUB.reset('vs-exp-cat'); } catch(_) {}
   renderVSAll();
   showConfirmAnim('expense', amount);
   showToast('✅ Spesa aggiunta alla settimana');
@@ -26208,6 +26231,7 @@ function updateNavTodayLabel(){
 if(document.readyState!=='loading')updateNavTodayLabel();else document.addEventListener('DOMContentLoaded',updateNavTodayLabel);
 try{setInterval(updateNavTodayLabel,30000);}catch(e){}
 
+function _sbChip(e, flex) { try { return (window.EWSUB && EWSUB.chip) ? EWSUB.chip(e, flex) : ''; } catch(_) { return ''; } }
 function _expTimeBadge(e) {
   if(!e || !e.createdAt) return '';
   var t = new Date(e.createdAt);
@@ -26242,7 +26266,7 @@ function _weekExpRowsWithRata(exps, fmt) {
       <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;flex-wrap:wrap;">
         ${badge}${rataBadge}${exclBadge}
         <span style="font-size:13px;">${catIconHtml(e.cat)}</span>
-        <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}${_expTimeBadge(e)}</span>
+        <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}${_expTimeBadge(e)}${_sbChip(e,'ln')}</span>
       </div>
       <span style="font-size:14px;font-weight:700;color:#ffb400;margin-left:10px;white-space:nowrap;">${fmt(e.amount)}</span>
     </div>`;
@@ -26309,7 +26333,7 @@ function _weekExpRows(exps, fmt) {
       <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;">
         <div style="display:flex;align-items:center;gap:6px;flex:1;min-width:0;">
           ${badge}<span style="font-size:13px;">${catIconHtml(e.cat)}</span>
-          <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}${_expTimeBadge(e)}</span>
+          <span style="font-size:13px;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${e.desc==='—'?e.cat:_cleanDescBySource(e)}${_expTimeBadge(e)}${_sbChip(e,'ln')}</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
           <button onclick="weekExpAddNota('${e.id}','${e.date}',this)" style="background:none;border:none;cursor:pointer;font-size:14px;opacity:0.5;padding:2px 4px;" title="Aggiungi nota">${e.nota?'📝':'📄'}</button>
@@ -26338,6 +26362,7 @@ function weekDetailToggleAdd() {
     document.getElementById('wdMsg').textContent = '';
     document.getElementById('wdCat').value = 'ristorante';
     document.getElementById('wdPay').value = 'bancomat';
+    try { if(window.EWSUB) EWSUB.reset('wdCat'); } catch(_) {}
     setTimeout(() => document.getElementById('wdAmount').focus(), 80);
   }
 }
@@ -26352,6 +26377,7 @@ function weekDetailSaveExpense() {
   const desc   = document.getElementById('wdDesc').value.trim() || '—';
   const pay    = document.getElementById('wdPay').value;
   const note   = document.getElementById('wdNote').value.trim();
+  const _sbSub = (window.EWSUB && EWSUB.value('wdCat')) || '';
 
   if(!amount || amount <= 0) {
     msgEl.style.color = 'var(--red)';
@@ -26372,6 +26398,7 @@ function weekDetailSaveExpense() {
     : pay === 'contanti' ? 'manuale'
     : 'manuale';
   const newEntry = { id: Date.now(), cat, amount, desc, pay, date: ds, source: src, createdAt: new Date().toISOString() };
+  if(_sbSub) newEntry.sub = _sbSub;
   exp.push(newEntry);
   save(key, exp);
 
@@ -29463,6 +29490,1531 @@ self.addEventListener('fetch', e => {
 })();
 // ══════════════════════════════════════════════════════════════
 
+</script>
+<script>
+/* ═══ Azienda (Viaggi / Supermercato) — catalogo ═══ */
+/* ───────────── CATALOGO AZIENDE ─────────────
+   Formato voce:  "Nome|alias|alias…"
+     ~Nome…   → voce generica (si usa solo se nessuna voce specifica corrisponde)
+     =alias   → il testo della spesa deve coincidere ESATTAMENTE con l'alias
+     ^alias   → il testo della spesa deve INIZIARE con l'alias
+     !alias   → se il testo contiene questo alias la voce NON vale
+   Il nome è già un alias. Gli alias vengono normalizzati (minuscolo, senza accenti/apostrofi). */
+var EWSUB_CATALOG = {
+
+/* ═══════════════ VIAGGI · aziende di trasporto ═══════════════ */
+viaggi: {
+  title: "Azienda di trasporto",
+  ph: "Cerca: Trenitalia, GTT, Ryanair…",
+  noun: "azienda di trasporto",
+  groups: [
+    { id:"treno", ic:"🚆", n:"Treno", items:[
+      "Trenitalia|frecciarossa|frecciargento|frecciabianca|freccia rossa|freccia argento|freccia bianca|trenitalia regionale|trenitalia tper|regionale veloce|^regionale|regio express|regioexpress|intercity|intercity notte|le frecce",
+      "Italo|italo treno|ntv|nuovo trasporto viaggiatori",
+      "Trenord",
+      "EAV|circumvesuviana|ente autonomo volturno",
+      "SNCF|sncf connect|oui sncf|ouigo|inoui|tgv|tgv inoui|ter sncf",
+      "Deutsche Bahn|db fernverkehr|db vertrieb|db regio|bahn de",
+      "Renfe|renfe viajeros",
+      "Iryo",
+      "ÖBB|oebb|obb|nightjet",
+      "SBB|cff|ffs|sbb cff ffs",
+      "Eurostar|thalys",
+      "FlixTrain|flix train",
+      "CP Comboios de Portugal|comboios de portugal|cp comboios",
+      "NS (Paesi Bassi)|nederlandse spoorwegen|ns reizigers|ns international",
+      "SNCB|nmbs|sncb nmbs",
+      "CFR Călători|cfr calatori|cfr",
+      "PKP Intercity|pkp",
+      "Interrail / Eurail|interrail|eurail|eurail pass",
+      "~Treno (altro)|treno|treni|ferrovia|ferrovie|ferroviario|biglietto treno|train|trains|railway|rail"
+    ]},
+    { id:"urbano", ic:"🚇", n:"Trasporto urbano", items:[
+      "GTT|gruppo torinese trasporti|gtt tomove|tomove|gtt torino|gtt spa|metro torino|metropolitana torino|metropolitana di torino",
+      "ATM Milano|atm milano|azienda trasporti milanesi|atm azienda trasporti|atm milano card|atm ticket|metro milano|metropolitana milano|metropolitana di milano",
+      "ATAC Roma|atac|atac roma|metrebus|metro roma|metropolitana roma|metropolitana di roma",
+      "ANM Napoli|anm napoli|azienda napoletana mobilita|unico campania|unicocampania",
+      "AMT Genova|amt genova|azienda mobilita e trasporti",
+      "TPER Bologna|tper|tper bologna|trasporto passeggeri emilia romagna|mi muovo|mimuovo",
+      "ACTV Venezia|actv|avm venezia|veneziaunica|vaporetto",
+      "Autolinee Toscane|at bus|ataf|ataf firenze|gest firenze",
+      "CTM Cagliari|ctm cagliari",
+      "AMAT Palermo|amat palermo",
+      "AMTS Catania|amts catania|amts",
+      "Brescia Trasporti|brescia mobilita|brescia trasporti",
+      "TfL (Londra)|tfl|transport for london|oyster",
+      "RATP (Parigi)|ratp|navigo|ile de france mobilites|idf mobilites",
+      "BVG (Berlino)|bvg|berliner verkehrsbetriebe",
+      "MVG / MVV (Monaco)|mvg|mvv|munchner verkehrsgesellschaft",
+      "Wiener Linien",
+      "Metro de Madrid|crtm|consorcio regional de transportes|emt madrid",
+      "TMB (Barcellona)|tmb|transports metropolitans de barcelona|t casual|t usual",
+      "STIB-MIVB (Bruxelles)|stib|mivb|stib mivb",
+      "GVB / OV-chipkaart|gvb|ov chipkaart|ovchipkaart|ov pay",
+      "MTA (New York)|mta|omny|metrocard",
+      "Metro Lisboa / Carris|metro lisboa|carris|viva viagem|metropolitano de lisboa",
+      "Metrorex (Bucarest)|metrorex",
+      "CTP Cluj|ctp cluj|compania de transport public cluj",
+      "~Trasporto urbano (altro)|metro|metropolitana|tram|tranvia|tramway|subway|underground|autobus urbano|bus urbano|biglietto urbano"
+    ]},
+    { id:"bus", ic:"🚌", n:"Bus e pullman", items:[
+      "FlixBus|flix bus|flixbus com",
+      "Itabus",
+      "Marozzi",
+      "Baltour",
+      "Busitalia|busitalia sita nord|sita nord|busitalia veneto",
+      "Arriva|arriva italia|arriva bus|arriva udine|arriva veneto",
+      "Autostradale|autostradale spa",
+      "Cotral",
+      "Flibco",
+      "Terravision",
+      "Lazzi|lazzi express",
+      "Sais Autolinee|sais autolinee|sais trasporti",
+      "Cuffaro",
+      "Eurolines|isilines",
+      "BlaBlaCar Bus|blablacar bus|ouibus",
+      "Greyhound",
+      "Megabus",
+      "National Express",
+      "Alsa",
+      "RegioJet|student agency",
+      "~Bus / pullman (altro)|bus|autobus|pullman|corriera|navetta|shuttle|coach|autolinee|bus navetta|bus aeroporto"
+    ]},
+    { id:"taxi", ic:"🚕", n:"Taxi e NCC", items:[
+      "WeTaxi|we taxi",
+      "itTaxi|it taxi",
+      "Uber|uber trip|uber bv|!uber eats|!ubereats",
+      "FREE NOW|free now|freenow|mytaxi|my taxi",
+      "Bolt|taxify|bolt ride",
+      "Lyft",
+      "Cabify",
+      "Grab",
+      "Didi|didi chuxing",
+      "Careem",
+      "inDrive|in drive",
+      "~Taxi / NCC (generico)|taxi*|radiotaxi*|radio taxi|pronto taxi|tassi|tassista|ncc|noleggio con conducente|cooperativa taxi"
+    ]},
+    { id:"aereo", ic:"✈️", n:"Aereo", items:[
+      "Ryanair|ryan air|rayanair|rayaner|ryanair com",
+      "easyJet|easy jet",
+      "Wizz Air|wizz|wizzair",
+      "ITA Airways|itaairways",
+      "Alitalia",
+      "Vueling",
+      "Volotea",
+      "Neos|neos air",
+      "Aeroitalia",
+      "Air Dolomiti",
+      "Lufthansa",
+      "Air France|airfrance",
+      "KLM",
+      "British Airways",
+      "Iberia|iberia express",
+      "Air Europa",
+      "Binter|binter canarias",
+      "TAP Air Portugal|tap portugal|flytap|tap air",
+      "SWISS|swiss international air lines|swiss international|swiss air|swiss airlines|=swiss",
+      "Austrian Airlines|austrian",
+      "Brussels Airlines",
+      "Eurowings",
+      "Transavia",
+      "Norwegian|norwegian air|norwegian air shuttle",
+      "SAS|scandinavian airlines|=sas",
+      "Finnair",
+      "Icelandair",
+      "Aer Lingus",
+      "Jet2|jet2 com",
+      "LOT Polish Airlines|lot polish|lot polish airlines",
+      "TAROM",
+      "airBaltic|air baltic",
+      "Aegean Airlines|aegean",
+      "Turkish Airlines|thy|turk hava yollari",
+      "Pegasus|pegasus airlines|flypgs",
+      "SunExpress|sun express",
+      "TUI fly|tuifly",
+      "Condor",
+      "Smartwings",
+      "Luxair",
+      "Air Malta|km malta airlines",
+      "Emirates",
+      "Qatar Airways|qatarairways",
+      "Etihad|etihad airways",
+      "flydubai|fly dubai",
+      "Air Arabia",
+      "Saudia",
+      "EgyptAir",
+      "Royal Air Maroc",
+      "Tunisair",
+      "Ethiopian Airlines|ethiopian",
+      "Delta|=delta|delta air lines|delta airlines|delta air",
+      "American Airlines",
+      "United Airlines",
+      "Air Canada",
+      "Singapore Airlines",
+      "Cathay Pacific",
+      "Qantas",
+      "Air India",
+      "IndiGo|goindigo",
+      "Korean Air",
+      "Japan Airlines|jal",
+      "ANA|all nippon airways|=ana",
+      "~Volo (altro)|volo|voli|aereo|aerei|airline|airlines|airways|flight|flights|biglietto aereo|compagnia aerea"
+    ]},
+    { id:"nave", ic:"⛴️", n:"Traghetti e battelli", items:[
+      "Tirrenia",
+      "Moby",
+      "GNV|grandi navi veloci",
+      "Grimaldi Lines|grimaldi",
+      "Corsica Ferries|corsica sardinia ferries",
+      "Caronte & Tourist|caronte",
+      "Liberty Lines",
+      "SNAV",
+      "Toremar",
+      "Alilauro",
+      "Medmar",
+      "Navigazione Laghi|navigazione laghi|navigarda|navigazione lago",
+      "Minoan Lines|minoan",
+      "Blue Star Ferries|blue star",
+      "ANEK Lines|anek",
+      "Superfast",
+      "Baleària|balearia",
+      "Trasmediterránea|trasmediterranea",
+      "DFDS",
+      "Stena Line",
+      "P&O Ferries|p and o ferries",
+      "Brittany Ferries",
+      "Viking Line",
+      "Tallink",
+      "Color Line",
+      "Jadrolinija",
+      "Hellenic Seaways",
+      "Seajets",
+      "Direct Ferries|directferries|ferryhopper",
+      "~Traghetto (altro)|traghetto|traghetti|ferry|ferries|nave|battello|aliscafo|motonave"
+    ]},
+    { id:"sharing", ic:"🛴", n:"Sharing e mobilità leggera", items:[
+      "Lime",
+      "Dott|=dott|dott bike|dott scooter",
+      "Voi|=voi|voi scooters|voi technology|voiscooters",
+      "Bird|=bird|bird app",
+      "Helbiz",
+      "TIER|=tier|tier mobility",
+      "Share Now|sharenow|car2go|car 2 go",
+      "Getaround",
+      "Zity",
+      "Ubeeqo",
+      "BlueTorino|blue torino",
+      "Enjoy (Eni)|enjoy car sharing|enjoy carsharing|enjoy eni",
+      "ToBike|to bike",
+      "BikeMi|bike mi",
+      "BlaBlaCar|bla bla car",
+      "Cityscoot",
+      "~Sharing (altro)|monopattino|monopattini|bike sharing|bikesharing|car sharing|carsharing|scooter sharing|sharing"
+    ]},
+    { id:"fuel", ic:"⛽", n:"Carburante e ricarica", chip:"Carburante", items:[
+      "Eni|eni station|enistation|agip|agip eni",
+      "IP|=ip|italiana petroli|ip matic|ipmatic|ip station",
+      "Q8|kuwait petroleum|q8 easy",
+      "Esso",
+      "Shell",
+      "TotalEnergies|=total|total energies|total erg|totalerg|total station|total italia",
+      "Tamoil",
+      "BP|british petroleum",
+      "Repsol",
+      "ERG",
+      "Enel X Way|enel x|enelx|enel x way",
+      "Ionity",
+      "Tesla Supercharger|supercharger|tesla",
+      "Be Charge|becharge|plenitude",
+      "~Carburante (altro)|carburante|benzina|gasolio|diesel|rifornimento|distributore|gpl|metano|self service|colonnina|ricarica auto|ricarica elettrica"
+    ]},
+    { id:"toll", ic:"🅿️", n:"Pedaggi e parcheggi", chip:"Pedaggi/parcheggi", items:[
+      "Autostrade per l'Italia|autostrade per l italia|autostrade|aspi",
+      "Telepass|telepass pay|telepass family",
+      "Autobrennero (A22)|autobrennero|a22",
+      "SATAP",
+      "ATIVA",
+      "EasyPark|easy park",
+      "MyCicero|my cicero",
+      "Parkimeter",
+      "Q-Park|q park|qpark",
+      "Saba|saba parking|saba italia",
+      "Interparking",
+      "~Pedaggio (altro)|pedaggio|casello|autostrada|toll|peage|maut|vignette|vignetta",
+      "~Parcheggio (altro)|parcheggio|parking|park|strisce blu|sosta|autorimessa|garage"
+    ]},
+    { id:"rent", ic:"🚘", n:"Noleggio auto", chip:"Noleggio", items:[
+      "Hertz",
+      "Avis",
+      "Europcar",
+      "Sixt",
+      "Enterprise|enterprise rent a car|enterprise rent",
+      "Budget|=budget|budget rent a car",
+      "Rentalcars",
+      "Maggiore|=maggiore|maggiore rent|maggiore noleggio|maggiore autonoleggio",
+      "Locauto",
+      "Noleggiare",
+      "~Noleggio auto (altro)|noleggio|rent a car|rentacar|autonoleggio|car rental"
+    ]},
+    { id:"agenzie", ic:"🧳", n:"Agenzie e prenotazioni", items:[
+      "Trainline|thetrainline|the trainline",
+      "Omio",
+      "Rail Europe|raileurope",
+      "Skyscanner",
+      "Kiwi.com|kiwi com|kiwicom",
+      "eDreams|edreams",
+      "Opodo",
+      "Expedia",
+      "Lastminute.com|lastminute com|lastminute",
+      "Volagratis",
+      "Trip.com|trip com|tripcom",
+      "~Agenzia viaggi (altro)|agenzia viaggi|travel agency|tour operator"
+    ]},
+    { id:"tour", ic:"🗺️", n:"Tour ed escursioni", items:[
+      "Big Bus Tours|big bus|hop on hop off",
+      "City Sightseeing|city sightseeing",
+      "GetYourGuide|get your guide",
+      "Viator",
+      "Civitatis",
+      "Musement",
+      "~Tour / escursione (altro)|tour|escursione|escursioni|gita|visita guidata|guida turistica"
+    ]}
+  ]
+},
+
+/* ═══════════════ SUPERMERCATO · insegne di tutto il mondo ═══════════════ */
+supermercato: {
+  title: "Supermercato / negozio",
+  ph: "Cerca: Coop, Borello, Carrefour…",
+  noun: "supermercato",
+  groups: [
+    { id:"it", ic:"🛒", n:"Supermercati in Italia", chip:"Supermercati", items:[
+      "Coop|nova coop|novacoop|unicoop|ipercoop|coop alleanza|coop lombardia|coop liguria|coop centro italia|coop reno|coop adriatica|coop estense|superstore coop|coop italia",
+      "Conad|conad city|conad superstore|spazio conad|margherita conad|sapori e dintorni",
+      "Esselunga|esselunga a casa",
+      "Carrefour|carrefour express|carrefour market|carrefour iper|carrefour city|carrefour hyper|carrefour contact|carrefour bio|carrefour italia|carrefoursa",
+      "Borello|supermercati borello|borello supermercato",
+      "Pam Panorama|pam|panorama|pam local|pam city|pampanorama",
+      "Despar / Spar|despar|eurospar|interspar|spar|spar express|spar gourmet",
+      "Famila",
+      "Bennet",
+      "Iper La grande i|iper la grande i|la grande i",
+      "Iperal",
+      "Tigros",
+      "U2 Supermercato|u2|unes|u2 supermercato|il viaggiator goloso|viaggiator goloso|unes maxi",
+      "Crai",
+      "Sigma",
+      "Sisa",
+      "Simply Market|simply market|simply supermercato|simplymarket",
+      "Dok|supermercati dok",
+      "Il Gigante|gigante supermercati",
+      "Ekom",
+      "Basko",
+      "Alì / Alìper|aliper|ali supermercati|ali aliper",
+      "Cadoro",
+      "Decò|=deco|deco supermercati|deco spa",
+      "Sole 365|sole365",
+      "Prix Quality",
+      "Nonna Isa",
+      "IperTosano|ipertosano|tosano",
+      "Rossetto|=rossetto|supermercati rossetto|rossetto spa",
+      "RossoTono",
+      "Sidis",
+      "Migross",
+      "Eataly",
+      "NaturaSì|naturasi|natura si|ecornaturasi|eco naturasi"
+    ]},
+    { id:"disc", ic:"🏷️", n:"Discount", chip:"Discount", items:[
+      "Lidl|lidl italia",
+      "Aldi|aldi sud|aldi nord|aldi suisse",
+      "Eurospin",
+      "MD|^md|md discount|md spa|md supermercati",
+      "Penny|penny market|pennymarket",
+      "Todis",
+      "DPiù|dpiu|d piu",
+      "iN's Mercato|ins mercato|in s mercato"
+    ]},
+    { id:"online", ic:"📦", n:"Online e consegna a casa", chip:"Online", items:[
+      "Glovo|glovo spesa|glovo market",
+      "Amazon (spesa)|amazon fresh|amazon|spesa amazon",
+      "Everli|supermercato24|supermercato 24",
+      "Cortilia",
+      "Getir",
+      "Flink",
+      "Picnic|=picnic|picnic app|picnic nl",
+      "Ocado",
+      "Instacart",
+      "Deliveroo",
+      "HelloFresh|hello fresh"
+    ]},
+    { id:"mm", ic:"🏪", n:"Minimarket e convenience", chip:"Minimarket", items:[
+      "7-Eleven|7 eleven|7eleven|seven eleven",
+      "Circle K|circlek",
+      "Żabka|zabka",
+      "OXXO",
+      "FamilyMart|family mart",
+      "Lawson",
+      "Alfamart",
+      "Indomaret",
+      "~Minimarket (altro)|minimarket|mini market|alimentari|gastronomia|macelleria|panetteria|fruttivendolo|ortofrutta|pescheria|salumeria|drogheria|market|bazar|bazaar|emporio|spaccio",
+      "~Supermercato (generico)|supermercato|supermercati|supermarket|ipermercato|hypermarket|spesa|grocery|groceries"
+    ]},
+    { id:"cc", ic:"🏭", n:"Ingrosso e cash & carry", chip:"Ingrosso", items:[
+      "Metro|metro cash and carry|metro cash carry|metro italia|metro canada",
+      "Makro",
+      "Selgros",
+      "Costco|costco wholesale",
+      "Sam's Club|sams club",
+      "BJ's Wholesale|bjs wholesale|bjs",
+      "Docks Market",
+      "~Cash & carry (altro)|cash and carry|cash carry|ingrosso"
+    ]},
+
+    { id:"fr", ic:"🇫🇷", n:"Francia", chip:"Estero", ci:"🌍", items:[
+      "E.Leclerc|e leclerc|leclerc",
+      "Intermarché|intermarche|itm",
+      "Auchan|auchan supermarche|auchan drive",
+      "Casino|=casino|geant casino|casino supermarches|petit casino|vival",
+      "Monoprix|monop",
+      "Franprix",
+      "Système U|systeme u|super u|hyper u|u express|marche u",
+      "Cora|=cora",
+      "Match|=match|supermarches match",
+      "Netto",
+      "Picard",
+      "Biocoop",
+      "Naturalia",
+      "Grand Frais",
+      "Supeco"
+    ]},
+    { id:"de", ic:"🇩🇪", n:"Germania", chip:"Estero", ci:"🌍", items:[
+      "Edeka|edeka center|e center",
+      "Rewe|rewe center|rewe to go",
+      "Kaufland",
+      "Norma|=norma|norma discount",
+      "Globus|globus sb",
+      "Tegut",
+      "Marktkauf",
+      "Alnatura",
+      "Bio Company",
+      "Combi|=combi",
+      "Nahkauf"
+    ]},
+    { id:"atch", ic:"🇦🇹", n:"Austria e Svizzera", chip:"Estero", ci:"🌍", items:[
+      "Billa|billa plus",
+      "Hofer",
+      "Merkur",
+      "MPreis",
+      "ADEG",
+      "Unimarkt",
+      "Sutterlüty|sutterluty",
+      "Maximarkt",
+      "Denn's Biomarkt|denns biomarkt|denns",
+      "Migros",
+      "Denner",
+      "Volg",
+      "Manor|=manor"
+    ]},
+    { id:"espt", ic:"🇪🇸", n:"Spagna e Portogallo", chip:"Estero", ci:"🌍", items:[
+      "Mercadona",
+      "Dia|=dia|supermercados dia|dia market",
+      "Alcampo",
+      "Eroski",
+      "El Corte Inglés|el corte ingles|hipercor|supercor",
+      "Consum",
+      "Caprabo",
+      "Bonpreu|bon preu|esclat",
+      "Condis",
+      "Ahorramas",
+      "Gadis",
+      "Supersol",
+      "BM Supermercados",
+      "Froiz",
+      "Coviran",
+      "Continente",
+      "Pingo Doce",
+      "Minipreço|minipreco",
+      "Meu Super",
+      "Recheio"
+    ]},
+    { id:"ukie", ic:"🇬🇧", n:"Regno Unito e Irlanda", chip:"Estero", ci:"🌍", items:[
+      "Tesco|tesco express|tesco extra|tesco metro",
+      "Sainsbury's|sainsburys|sainsbury",
+      "Asda",
+      "Morrisons|morrisons daily",
+      "Waitrose",
+      "Co-op (Regno Unito)|the co operative|co op food|co operative food",
+      "M&S Food|marks and spencer|m and s|marks spencer",
+      "Iceland",
+      "Booths",
+      "Londis",
+      "Costcutter",
+      "Nisa",
+      "Budgens",
+      "Farmfoods",
+      "Dunnes Stores|dunnes",
+      "SuperValu|super valu",
+      "Centra"
+    ]},
+    { id:"bnl", ic:"🇳🇱", n:"Belgio e Paesi Bassi", chip:"Estero", ci:"🌍", items:[
+      "Albert Heijn|albert heijn",
+      "Jumbo",
+      "Plus|=plus",
+      "Dirk|=dirk|dirk van den broek",
+      "Hoogvliet",
+      "Vomar",
+      "Dekamarkt",
+      "Delhaize|ad delhaize",
+      "Colruyt",
+      "OKay|=okay|okay compact",
+      "Bio-Planet|bio planet"
+    ]},
+    { id:"nord", ic:"🇸🇪", n:"Nord Europa", chip:"Estero", ci:"🌍", items:[
+      "ICA|=ica|ica maxi|ica nara|ica supermarket",
+      "Willys",
+      "Hemköp|hemkop",
+      "City Gross",
+      "REMA 1000|rema 1000|rema1000|rema",
+      "Kiwi|=kiwi|kiwi norge",
+      "Meny",
+      "Joker|=joker",
+      "Bunnpris",
+      "Føtex|fotex",
+      "Bilka",
+      "Fakta",
+      "Irma|=irma",
+      "K-Market|k market|k supermarket|k citymarket",
+      "S-Market|s market",
+      "Prisma|=prisma|prisma market",
+      "Krónan|kronan",
+      "Hagkaup"
+    ]},
+    { id:"est", ic:"🇵🇱", n:"Europa dell'Est e Balcani", chip:"Estero", ci:"🌍", items:[
+      "Biedronka",
+      "Dino|=dino",
+      "Stokrotka",
+      "Lewiatan",
+      "Polomarket",
+      "Albert (Rep. Ceca)|albert supermarket|albert hypermarket|albert cz",
+      "CBA|=cba|cba prima",
+      "Mega Image",
+      "Profi|=profi|profi romania",
+      "Fantastico|=fantastico|fantastico supermarket",
+      "T-Market|t market",
+      "Piccadilly|=piccadilly",
+      "Konzum",
+      "Plodine",
+      "Studenac",
+      "Tommy|=tommy",
+      "Mercator",
+      "Tuš|=tus|tus supermarket",
+      "Idea|=idea",
+      "Univerexport",
+      "Tempo|=tempo",
+      "Roda|=roda",
+      "Magnit",
+      "Pyaterochka|pyatyorochka|5ka",
+      "Perekrestok",
+      "Lenta|=lenta",
+      "Dixy",
+      "VkusVill",
+      "Azbuka Vkusa",
+      "Silpo",
+      "ATB",
+      "Novus|=novus",
+      "Fora|=fora",
+      "Varus",
+      "Maxima|=maxima|maxima latvija",
+      "Rimi",
+      "Iki|=iki",
+      "Barbora"
+    ]},
+    { id:"grtr", ic:"🇬🇷", n:"Grecia e Turchia", chip:"Estero", ci:"🌍", items:[
+      "AB Vassilopoulos|ab vasilopoulos|ab vassilopoulos|=ab",
+      "Sklavenitis",
+      "My Market|mymarket",
+      "Masoutis",
+      "Galaxias",
+      "Kritikos",
+      "BİM|bim magaza|=bim",
+      "A101",
+      "ŞOK|sok market|=sok",
+      "Macrocenter|macro center"
+    ]},
+    { id:"na", ic:"🇺🇸", n:"Nord America", chip:"Estero", ci:"🌍", items:[
+      "Walmart|wal mart|walmart supercenter|walmart neighborhood market",
+      "Kroger",
+      "Target|=target|target stores",
+      "Albertsons",
+      "Safeway",
+      "Publix",
+      "Whole Foods|whole foods market",
+      "Trader Joe's|trader joes",
+      "H-E-B|heb|h e b",
+      "Wegmans",
+      "Meijer",
+      "Food Lion",
+      "Giant Eagle",
+      "Stop & Shop|stop and shop",
+      "Save-A-Lot|save a lot",
+      "WinCo Foods|winco",
+      "Ralphs",
+      "Vons",
+      "Fry's Food|frys food",
+      "Harris Teeter",
+      "Sprouts|=sprouts|sprouts farmers market",
+      "Hy-Vee|hy vee",
+      "Winn-Dixie|winn dixie",
+      "Fred Meyer",
+      "Smith's|smiths food",
+      "King Soopers",
+      "Market Basket",
+      "Raley's|raleys",
+      "Stater Bros",
+      "Grocery Outlet",
+      "Piggly Wiggly",
+      "Loblaws|loblaw",
+      "Real Canadian Superstore|real canadian superstore",
+      "No Frills",
+      "Sobeys",
+      "Food Basics",
+      "FreshCo",
+      "Farm Boy",
+      "T&T Supermarket|t and t supermarket",
+      "Longo's|longos",
+      "Provigo",
+      "IGA|=iga|iga supermarket|iga express",
+      "Giant Tiger",
+      "Soriana",
+      "Chedraui",
+      "Bodega Aurrerá|bodega aurrera",
+      "La Comer",
+      "Casa Ley",
+      "Calimax",
+      "Superama"
+    ]},
+    { id:"latam", ic:"🌎", n:"America Latina", chip:"Estero", ci:"🌍", items:[
+      "Pão de Açúcar|pao de acucar",
+      "Assaí|assai",
+      "Atacadão|atacadao",
+      "Zaffari",
+      "Guanabara",
+      "Mambo|=mambo",
+      "Condor|=condor",
+      "Angeloni",
+      "Coto|=coto",
+      "Disco|=disco",
+      "Vea|=vea",
+      "La Anónima|la anonima",
+      "Changomás|changomas",
+      "Libertad|=libertad",
+      "Santa Isabel",
+      "Líder|lider",
+      "Tottus",
+      "Unimarc",
+      "Acuenta",
+      "Éxito|exito",
+      "Carulla",
+      "Olímpica|olimpica",
+      "Ara|=ara",
+      "D1|=d1",
+      "Alkosto",
+      "PriceSmart",
+      "Wong|=wong",
+      "Plaza Vea",
+      "Vivanda",
+      "Tienda Inglesa",
+      "Devoto",
+      "Ta-Ta|ta ta",
+      "Supermaxi",
+      "Megamaxi",
+      "Mi Comisariato",
+      "Tía|=tia",
+      "Hipermaxi",
+      "La Sirena"
+    ]},
+    { id:"asia", ic:"🌏", n:"Asia", chip:"Estero", ci:"🌍", items:[
+      "AEON|aeon max|aeon mall",
+      "Ito-Yokado|ito yokado",
+      "Seiyu",
+      "Maxvalu",
+      "Daiei",
+      "Don Quijote|donki|don don donki",
+      "Seijo Ishii",
+      "Gyomu Super",
+      "E-mart|emart",
+      "Lotte Mart",
+      "Homeplus",
+      "Hema|freshippo",
+      "RT-Mart|rt mart",
+      "Yonghui",
+      "Wumart",
+      "Lianhua",
+      "PX Mart",
+      "Wellcome",
+      "ParknShop|park n shop|parknshop",
+      "Market Place by Jasons|jasons market place",
+      "city'super|citysuper",
+      "NTUC FairPrice|fairprice",
+      "Cold Storage",
+      "Giant",
+      "Sheng Siong",
+      "Jaya Grocer",
+      "Mydin",
+      "Lotus's|lotuss|tesco lotus",
+      "Big C|bigc",
+      "Tops|=tops",
+      "Foodland",
+      "Villa Market",
+      "WinMart|win mart",
+      "Co.opmart|coopmart|co op mart",
+      "Bách Hóa Xanh|bach hoa xanh",
+      "MM Mega Market",
+      "Hypermart",
+      "Super Indo|superindo",
+      "Transmart",
+      "Ranch Market",
+      "Hero|=hero",
+      "SM Supermarket|sm hypermarket",
+      "Puregold",
+      "Robinsons",
+      "Savemore",
+      "Landmark|=landmark",
+      "DMart|d mart|avenue supermarts",
+      "Reliance Fresh|reliance smart|reliance retail",
+      "BigBasket|big basket",
+      "More Retail|more supermarket",
+      "Spencer's|spencers",
+      "Star Bazaar",
+      "Nature's Basket|natures basket",
+      "Imtiaz",
+      "Al-Fatah|al fatah",
+      "Naheed",
+      "Agora|=agora",
+      "Meena Bazar",
+      "Shwapno",
+      "Keells|keells super",
+      "Cargills Food City|food city",
+      "Arpico",
+      "Laugfs",
+      "Bhat-Bhateni|bhatbhateni|bhat bhateni",
+      "Big Mart"
+    ]},
+    { id:"me", ic:"🏜️", n:"Medio Oriente", chip:"Estero", ci:"🌍", items:[
+      "Lulu Hypermarket|lulu",
+      "Spinneys",
+      "Union Coop|union cooperative",
+      "Panda|=panda|hyperpanda",
+      "Tamimi",
+      "Danube",
+      "Othaim|abdullah al othaim",
+      "BinDawood|bin dawood",
+      "Choithram",
+      "Nesto",
+      "Safeer",
+      "Al Maya",
+      "Shufersal",
+      "Rami Levy",
+      "Yochananof",
+      "Victory|=victory",
+      "Osher Ad|osher ad",
+      "Yenot Bitan"
+    ]},
+    { id:"af", ic:"🌍", n:"Africa", chip:"Estero", ci:"🌍", items:[
+      "Shoprite|shop rite",
+      "Checkers",
+      "Pick n Pay|pick n pay|pnp",
+      "Food Lover's Market|food lovers market",
+      "Boxer|=boxer",
+      "OK Foods",
+      "Usave",
+      "Choppies",
+      "Sefalana",
+      "Naivas",
+      "Quickmart",
+      "Chandarana",
+      "Uchumi",
+      "Marjane",
+      "Aswak Assalam",
+      "Acima",
+      "Label'Vie|labelvie",
+      "Hyper One",
+      "Kazyon",
+      "Seoudi",
+      "Melcom",
+      "Palace|=palace",
+      "MaxMart",
+      "Ebeano",
+      "Justrite",
+      "Magasin Général|magasin general",
+      "Aziza|magasin aziza"
+    ]},
+    { id:"oc", ic:"🦘", n:"Oceania", chip:"Estero", ci:"🌍", items:[
+      "Woolworths|woolies",
+      "Coles",
+      "Harris Farm",
+      "FoodWorks",
+      "Countdown|=countdown|countdown nz",
+      "New World",
+      "PAK'nSAVE|paknsave|pak n save",
+      "Four Square",
+      "Fresh Choice",
+      "SuperValue"
+    ]}
+  ]
+}
+};
+/* ═══════════════════════════════════════════════════════════════
+   EWSUB — «Azienda» per le categorie Viaggi e Supermercato
+   · riconosce l'azienda dalla descrizione (anche per le spese vecchie)
+   · selettore con ricerca nei moduli spesa
+   · resoconto per azienda / per tipo nel dettaglio categoria
+   Dipende da: EWSUB_CATALOG (catalog.js)
+   ═══════════════════════════════════════════════════════════════ */
+(function (global) {
+  'use strict';
+  var CATALOG = global.EWSUB_CATALOG;
+  if (!CATALOG) return;
+
+  /* ───────── utilità ───────── */
+  var MAPCH = { 'ø': 'o', 'æ': 'ae', 'ß': 'ss', 'đ': 'd', 'ł': 'l', 'œ': 'oe', 'ı': 'i' };
+  function norm(s) {
+    s = String(s == null ? '' : s).toLowerCase().replace(/[øæßđłœı]/g, function (c) { return MAPCH[c]; });
+    try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) {}
+    return s.replace(/['’`´]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function money(v) { return '€' + (Math.round((v || 0) * 100) / 100).toFixed(2).replace('.', ','); }
+  function $(id) { return document.getElementById(id); }
+  function dmy(d) {
+    d = String(d || '');
+    var m = d.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return m ? m[3] + '/' + m[2] + '/' + m[1].slice(2) : d;
+  }
+  function dkey(d) {      // chiave ordinabile YYYY-MM-DD
+    d = String(d || '');
+    var m = d.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    return m ? m[3] + '-' + m[2] + '-' + m[1] : d;
+  }
+  function toSet(s) { var o = {}; s.split(' ').forEach(function (w) { if (w) o[w] = 1; }); return o; }
+  function titleCase(s) {
+    return s.toLowerCase().replace(/(^|[\s\-'’\.])([a-zà-ÿ])/g, function (m, a, b) { return a + b.toUpperCase(); });
+  }
+
+  /* ───────── host (sostituibile dalla pagina che ospita il modulo) ───────── */
+  var host = {
+    load: function (k, d) { try { var r = localStorage.getItem('ewsub_' + k); return r ? JSON.parse(r) : d; } catch (e) { return d; } },
+    save: function (k, v) { try { localStorage.setItem('ewsub_' + k, JSON.stringify(v)); } catch (e) {} },
+    sig: function (k) { return null; },        // firma dei dati: se cambia, le cache si svuotano da sole
+    expenses: function (cat) { return []; },
+    changed: function () {},
+    rerender: function () {},
+    toast: function (m) {}
+  };
+
+  var CUSTOM_GROUP = { id: 'mie', ic: '⭐', n: 'Le mie aziende', chip: 'Le mie', ci: '⭐' };
+
+  /* ───────── catalogo compilato ───────── */
+  var COMP = {};
+  function parseItem(sp, gid) {
+    var generic = sp.charAt(0) === '~'; if (generic) sp = sp.slice(1);
+    var parts = sp.split('|'), name = parts[0].trim(), al = [], ex = [], i, p, k, n;
+    for (i = 1; i < parts.length; i++) {
+      p = parts[i].trim(); if (!p) continue;
+      if (p.charAt(0) === '!') { n = norm(p.slice(1)); if (n) ex.push(n); continue; }
+      k = 'w';
+      if (p.charAt(0) === '=') { k = 'x'; p = p.slice(1); } else if (p.charAt(0) === '^') { k = 's'; p = p.slice(1); }
+      else if (p.charAt(p.length - 1) === '*') { k = 'p'; p = p.slice(0, -1); }
+      n = norm(p); if (n) al.push({ t: n, k: k });
+    }
+    if (!/[()\/]/.test(name)) {
+      var nn = norm(name);
+      if (nn && !al.some(function (a) { return a.t === nn; })) al.push({ t: nn, k: 'w' });
+    }
+    return { name: name, gid: gid, generic: generic, al: al, ex: ex,
+             hay: ' ' + norm(name + ' ' + al.map(function (a) { return a.t; }).join(' ')) };
+  }
+  function comp(cat) {
+    if (COMP[cat]) return COMP[cat];
+    var out = { groups: {}, gorder: [], specific: [], generic: [], byNorm: {}, count: 0 };
+    CATALOG[cat].groups.forEach(function (g) {
+      out.groups[g.id] = { id: g.id, ic: g.ic, n: g.n, chip: g.chip || g.n, ci: g.ci || g.ic, items: [] };
+      out.gorder.push(g.id);
+      g.items.forEach(function (sp) {
+        var it = parseItem(sp, g.id);
+        out.groups[g.id].items.push(it);
+        (it.generic ? out.generic : out.specific).push(it);
+        out.byNorm[norm(it.name)] = it;
+        out.count++;
+      });
+    });
+    return (COMP[cat] = out);
+  }
+
+  var CUST = {}, RES = {}, TOP = {};
+  var SIG = null;
+  function bust() { CUST = {}; RES = {}; TOP = {}; }
+  function sigChk() {
+    var s; try { s = host.sig('subCustom'); } catch (e) { s = null; }
+    if (s !== SIG) { SIG = s; CUST = {}; RES = {}; TOP = {}; }
+  }
+  function customRaw() { var o = host.load('subCustom', {}); return (o && typeof o === 'object') ? o : {}; }
+  function getCustom(cat) {
+    sigChk();
+    if (CUST[cat]) return CUST[cat];
+    var arr = customRaw()[cat] || [], out = [];
+    arr.forEach(function (c) {
+      if (!c || !c.n) return;
+      var al = [], seen = {};
+      (c.a || []).concat([c.n]).forEach(function (t) { var n = norm(t); if (n && !seen[n]) { seen[n] = 1; al.push({ t: n, k: 'w' }); } });
+      out.push({ name: c.n, gid: c.g || 'mie', generic: false, al: al, ex: [], custom: true,
+                 hay: ' ' + norm(c.n + ' ' + (c.a || []).join(' ')) });
+    });
+    return (CUST[cat] = out);
+  }
+  function addCustom(cat, o) {
+    var all = customRaw(), arr = all[cat] = all[cat] || [], nn = norm(o.n), found = null;
+    arr.forEach(function (c) { if (norm(c.n) === nn) found = c; });
+    var alias = (o.a || []).map(function (x) { return String(x).trim(); }).filter(Boolean);
+    if (found) {
+      found.g = o.g || found.g || 'mie';
+      found.a = (found.a || []);
+      alias.forEach(function (x) { if (found.a.indexOf(x) < 0) found.a.push(x); });
+    } else arr.push({ n: o.n, g: o.g || 'mie', a: alias });
+    host.save('subCustom', all); bust(); host.changed();
+    return o.n;
+  }
+  function removeCustom(cat, name) {
+    var all = customRaw(), nn = norm(name);
+    all[cat] = (all[cat] || []).filter(function (c) { return norm(c.n) !== nn; });
+    host.save('subCustom', all); bust(); host.changed();
+  }
+  function findByName(cat, name) {
+    var nn = norm(name), cu = getCustom(cat), i;
+    for (i = 0; i < cu.length; i++) if (norm(cu[i].name) === nn) return cu[i];
+    return comp(cat).byNorm[nn] || null;
+  }
+  function groupInfo(cat, gid) {
+    if (gid === 'mie') return CUSTOM_GROUP;
+    return comp(cat).groups[gid] || CUSTOM_GROUP;
+  }
+
+  /* ───────── riconoscimento ───────── */
+  function matchList(list, T, bonus) {
+    var best = null, bl = 0, i, j, it, a, L, skip;
+    for (i = 0; i < list.length; i++) {
+      it = list[i]; skip = false;
+      for (j = 0; j < it.ex.length; j++) if (T.indexOf(' ' + it.ex[j] + ' ') >= 0) { skip = true; break; }
+      if (skip) continue;
+      for (j = 0; j < it.al.length; j++) {
+        a = it.al[j]; L = 0;
+        if (a.k === 'x') { if (T === ' ' + a.t + ' ') L = a.t.length + 50; }
+        else if (a.k === 's') { if (T.indexOf(' ' + a.t + ' ') === 0) L = a.t.length + 20; }
+        else if (a.k === 'p') { if (T.indexOf(' ' + a.t) >= 0) L = a.t.length; }
+        else if (T.indexOf(' ' + a.t + ' ') >= 0) L = a.t.length;
+        if (L && bonus) L += bonus;
+        if (L > bl) { bl = L; best = it; }
+      }
+    }
+    return best;
+  }
+  function has(cat) { return !!CATALOG[cat]; }
+  function guessText(cat, txt) {
+    var T = ' ' + norm(txt) + ' ';
+    if (T.length <= 2) return null;
+    var C = comp(cat);
+    return matchList(getCustom(cat), T, 1000) || matchList(C.specific, T, 0) || matchList(C.generic, T, 0);
+  }
+  function resolve(e) {
+    if (!e || !CATALOG[e.cat]) return null;
+    sigChk();
+    var cat = e.cat, it;
+    if (e.sub) {
+      it = findByName(cat, e.sub);
+      return { n: it ? it.name : e.sub, gid: it ? it.gid : 'mie', generic: !!(it && it.generic), explicit: true };
+    }
+    var txt = (e.desc && e.desc !== '—') ? e.desc : (e.nota || '');
+    var key = cat + '\u0001' + txt;
+    if (Object.prototype.hasOwnProperty.call(RES, key)) return RES[key];
+    it = guessText(cat, txt);
+    return (RES[key] = it ? { n: it.name, gid: it.gid, generic: it.generic, explicit: false } : null);
+  }
+  function get(e) { var r = resolve(e); return r ? r.n : ''; }
+
+  function chip(e, flex) {
+    var r = resolve(e); if (!r) return '';
+    if (!r.explicit) {
+      if (r.generic) return '';
+      if (norm(e.desc || '').indexOf(norm(r.n)) >= 0) return '';
+    }
+    var g = groupInfo(e.cat, r.gid);
+    return (flex === 'ln' ? '<br>' : ' ') + '<span class="sb-chip' + (flex === 'ln' ? ' sb-ln' : (flex ? ' sb-fx' : '')) + '" title="Azienda">' + esc(g.ic) + ' ' + esc(r.n) + '</span>';
+  }
+
+  function topUsed(cat, n) {
+    sigChk();
+    var c = TOP[cat];
+    if (c && Date.now() - c.t < 15000) return c.list.slice(0, n);
+    var cnt = {}, list = [], k;
+    host.expenses(cat).forEach(function (e) {
+      var r = resolve(e); if (r && !r.generic) cnt[r.n] = (cnt[r.n] || 0) + 1;
+    });
+    for (k in cnt) list.push({ n: k, c: cnt[k] });
+    list.sort(function (a, b) { return b.c - a.c; });
+    TOP[cat] = { t: Date.now(), list: list };
+    return list.slice(0, n);
+  }
+
+  function search(cat, q) {
+    var toks = norm(q).split(' ').filter(Boolean), out = [];
+    if (!toks.length) return out;
+    var C = comp(cat), all = getCustom(cat).concat(C.specific, C.generic);
+    all.forEach(function (it) {
+      var ok = true, i, rank = 9;
+      for (i = 0; i < toks.length; i++) if (it.hay.indexOf(' ' + toks[i]) < 0) { ok = false; break; }
+      if (!ok) return;
+      var nn = ' ' + norm(it.name);
+      rank = nn.indexOf(' ' + toks[0]) === 0 ? 0 : (nn.indexOf(' ' + toks[0]) > 0 ? 1 : 2);
+      out.push({ it: it, rank: rank });
+    });
+    out.sort(function (a, b) { return a.rank - b.rank || (a.it.generic - b.it.generic) || a.it.name.length - b.it.name.length; });
+    return out.map(function (x) { return x.it; });
+  }
+
+  /* ───────── CSS ───────── */
+  var CSS = [
+    '.sb-fld{margin:0 0 10px;grid-column:1/-1;min-width:0}',
+    '.sb-fld[hidden]{display:none!important}',
+    '.sb-lab{display:block;font-size:10px;color:var(--text-muted);font-weight:700;margin:0 0 4px;letter-spacing:.2px;text-transform:none}',
+    '.sb-lab i{font-style:normal;font-weight:500;opacity:.8}',
+    '.sb-wrap{display:flex;gap:6px;align-items:stretch}',
+    '.sb-btn{flex:1;min-width:0;display:flex;align-items:center;gap:8px;background:var(--dark3);border:1px solid var(--border);color:var(--text);border-radius:8px;padding:8px 10px;font:inherit;font-size:13px;text-align:left;cursor:pointer;min-height:36px;-webkit-tap-highlight-color:transparent}',
+    '.sb-btn .sb-t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.sb-btn .sb-ch{opacity:.5;font-size:11px}',
+    '.sb-btn.empty .sb-t{color:var(--text-muted)}',
+    '.sb-btn.auto .sb-t{color:var(--text-muted);font-style:italic}',
+    '.sb-btn.set{border-color:var(--gold);background:var(--gold-dim)}',
+    '.sb-clr{width:38px;flex:none;border:1px solid var(--border);background:var(--dark3);color:var(--text-muted);border-radius:8px;cursor:pointer;font-size:14px}',
+    'html body .sb-ov .sb-sheet .sb-field{background:var(--dark3)!important;color:var(--text)!important;border:1.5px solid rgba(201,168,76,.4)!important;border-radius:12px!important;box-shadow:none!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important;font-family:var(--font)!important}',
+    'html body.light .sb-ov .sb-sheet .sb-field{border-color:rgba(138,90,0,.45)!important}',
+    'html body .sb-ov .sb-sheet .sb-field:focus{border-color:var(--gold)!important;box-shadow:0 0 0 3px rgba(232,180,74,.2)!important;outline:none!important}',
+    '.sb-fld.fld:not(.sb-lg) .sb-btn,.sb-fld.fld:not(.sb-lg) .sb-clr{border:2px solid rgba(201,168,76,.35);border-radius:10px;min-height:46px;font-size:14px}',
+    '.sb-fld.fld:not(.sb-lg) .sb-btn{padding:12px 14px}',
+    '.sb-fld.fld:not(.sb-lg) .sb-btn.set{border-color:var(--gold)}',
+    'body.light .sb-fld.fld:not(.sb-lg) .sb-btn,body.light .sb-fld.fld:not(.sb-lg) .sb-clr{background:#fff;border-color:rgba(201,168,76,.45)}',
+    '.sb-lg .sb-btn,.sb-lg .sb-clr{border-radius:12px;border:1.5px solid rgba(201,168,76,.4);min-height:48px;font-size:14px}',
+    '.sb-lg .sb-btn{padding:12px 16px}',
+    '.sb-lg .sb-btn.set{border-color:var(--gold)}',
+    '.sb-chip.sb-fx{margin-left:0;flex:none}',
+    '.sb-chip.sb-ln{margin:3px 0 0 0}',
+    '.sb-chip{display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;line-height:16px;white-space:nowrap;vertical-align:1px;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(232,180,74,.35)}',
+
+    '.sb-ov{position:fixed;left:0;right:0;top:0;bottom:0;box-sizing:border-box;padding:0 env(safe-area-inset-right,0px) 0 env(safe-area-inset-left,0px);z-index:100050;background:rgba(0,0,0,.55);display:flex;align-items:flex-end;justify-content:center;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}',
+    '.sb-sheet{background:var(--surface);color:var(--text);width:100%;max-width:560px;max-height:88%;border-radius:22px 22px 0 0;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -10px 40px rgba(0,0,0,.35);font-family:var(--font);border:1px solid var(--border)}',
+    '@media(min-width:700px){.sb-ov{align-items:center}.sb-sheet{border-radius:20px;max-height:80%}}',
+    '.sb-grab{width:36px;height:4px;border-radius:2px;background:var(--border-strong);margin:8px auto 0;flex:none}',
+    '.sb-head{display:flex;align-items:center;gap:10px;padding:10px 16px 6px;flex:none}',
+    '.sb-title{flex:1;font-size:16px;font-weight:700;color:var(--gold)}',
+    '.sb-close{width:32px;height:32px;border-radius:50%;border:1px solid var(--border);background:var(--dark3);color:var(--text-muted);font-size:16px;cursor:pointer}',
+    '.sb-search{padding:4px 16px 8px;flex:none}',
+    '.sb-search input{width:100%;box-sizing:border-box;background:var(--dark3);border:1.5px solid rgba(201,168,76,.4);border-radius:12px;padding:11px 14px;color:var(--text);font:inherit;font-size:16px;outline:none;-webkit-appearance:none}',
+    '.sb-body{flex:1;min-height:80px;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:0 16px 12px}',
+    '.sb-sec{font-size:11px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;color:var(--text-muted);margin:12px 0 7px}',
+    '.sb-pills{display:flex;flex-wrap:wrap;gap:6px}',
+    '.sb-pw{display:inline-flex;align-items:stretch}',
+    '.sb-pill{border:1px solid var(--border);background:var(--dark3);color:var(--text);border-radius:999px;padding:7px 12px;font:inherit;font-size:13px;cursor:pointer;-webkit-tap-highlight-color:transparent}',
+    '.sb-pill em{font-style:normal;opacity:.8}',
+    '.sb-pill small{opacity:.6;margin-left:5px;font-size:11px}',
+    '.sb-pill.gen{font-style:italic;color:var(--text-muted)}',
+    '.sb-pill.sel{border-color:var(--gold);background:var(--gold-dim);color:var(--gold);font-weight:700}',
+    '.sb-pw .sb-pill:not(:last-child){border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}',
+    '.sb-pdel{border:1px solid var(--border);background:var(--dark3);color:var(--text-muted);border-radius:0 999px 999px 0;padding:0 10px;font-size:12px;cursor:pointer}',
+    '.sb-pdel.arm{background:rgba(255,69,58,.15);border-color:var(--red);color:var(--red);font-weight:700}',
+    '.sb-gh{display:flex;width:100%;align-items:center;gap:8px;padding:11px 12px;margin:0 0 6px;border:1px solid var(--border);background:var(--dark3);border-radius:12px;color:var(--text);font:inherit;font-size:14px;font-weight:600;cursor:pointer;text-align:left}',
+    '.sb-gh .sb-gn{flex:1}',
+    '.sb-gh .sb-gc{font-size:11px;color:var(--text-muted);font-weight:500}',
+    '.sb-gh .sb-gv{opacity:.5;font-size:12px;transition:transform .15s}',
+    '.sb-gh.open .sb-gv{transform:rotate(180deg)}',
+    '.sb-gb{padding:2px 0 10px}',
+    '.sb-add{display:block;width:100%;margin-top:12px;border:1.5px dashed rgba(201,168,76,.55);background:var(--gold-dim);color:var(--gold);border-radius:12px;padding:11px 14px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;text-align:left}',
+    '.sb-empty{padding:18px 4px;color:var(--text-muted);font-size:13px;text-align:center}',
+    '.sb-foot{flex:none;padding:10px 16px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--border);display:flex;gap:8px}',
+    '.sb-ghost{flex:1;border:1px solid var(--border);background:var(--dark3);color:var(--text-muted);border-radius:12px;padding:12px;font:inherit;font-size:14px;cursor:pointer}',
+    '.sb-main{flex:2;border:0;background:linear-gradient(135deg,#c9a84c,#e8c86a);color:#1a1a2e;border-radius:12px;padding:12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer}',
+    '.sb-form{padding-top:6px}',
+    '.sb-fl{display:block;font-size:11px;font-weight:700;color:var(--text-muted);margin:10px 0 0}',
+    '.sb-in{display:block;width:100%;box-sizing:border-box;margin-top:5px;background:var(--dark3);border:1.5px solid rgba(201,168,76,.4);border-radius:12px;padding:11px 14px;color:var(--text);font:inherit;font-size:16px;outline:none}',
+    '.sb-pv{margin-top:12px;padding:10px 12px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);font-size:13px;color:var(--text-muted);line-height:1.45}',
+    '.sb-pv b{color:var(--text)}',
+
+    '.sb-seg{display:flex;gap:4px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:3px;margin:0 0 12px}',
+    '.sb-seg button{flex:1;border:0;background:transparent;color:var(--text-muted);font:inherit;font-size:13px;font-weight:600;padding:8px 6px;border-radius:9px;cursor:pointer}',
+    '.sb-seg button.on{background:var(--gold-dim);color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold)}',
+    '.sb-types{display:flex;gap:6px;overflow-x:auto;padding:0 0 10px;-webkit-overflow-scrolling:touch;scrollbar-width:none}',
+    '.sb-types::-webkit-scrollbar{display:none}',
+    '.sb-tp{flex:none;border:1px solid var(--border);background:var(--surface);border-radius:12px;padding:7px 11px;font:inherit;cursor:pointer;color:var(--text);text-align:left}',
+    '.sb-tp b{display:block;font-size:13px;white-space:nowrap}',
+    '.sb-tp i{display:block;font-style:normal;font-size:11px;color:var(--text-muted);white-space:nowrap}',
+    '.sb-tp.on{border-color:var(--gold);background:var(--gold-dim)}',
+    '.sb-hint{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin:2px 0 10px}',
+    '.sb-row{background:var(--surface);border:1px solid var(--border);border-radius:12px;margin:0 0 8px;overflow:hidden}',
+    '.sb-row.gen{border-style:dashed}',
+    '.sb-rh{display:flex;align-items:center;gap:10px;width:100%;padding:12px 14px 8px;background:transparent;border:0;color:var(--text);font:inherit;cursor:pointer;text-align:left}',
+    '.sb-rk{flex:none;width:22px;height:22px;border-radius:50%;background:var(--gold);color:#1a1a2e;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800}',
+    '.sb-rk.none{background:var(--dark4);color:var(--text-muted)}',
+    '.sb-rn{flex:1;min-width:0}',
+    '.sb-rn b{display:block;font-size:14px;font-weight:600;overflow-wrap:anywhere}',
+    '.sb-rn i{display:block;font-style:normal;font-size:11px;color:var(--text-muted);margin-top:2px}',
+    '.sb-rv{flex:none;text-align:right}',
+    '.sb-rv b{display:block;font-size:15px;font-weight:700;color:var(--red)}',
+    '.sb-rv i{display:block;font-style:normal;font-size:10px;color:var(--text-muted)}',
+    '.sb-bar{margin:0 14px 12px;height:3px;background:var(--dark4);border-radius:2px;overflow:hidden}',
+    '.sb-bar span{display:block;height:100%;background:var(--gold);border-radius:2px}',
+    '.sb-rx{display:none;border-top:1px solid var(--border);padding:6px 14px 10px;background:var(--surface2)}',
+    '.sb-row.open .sb-rx{display:block}',
+    '.sb-x{display:flex;gap:10px;align-items:baseline;padding:5px 0;font-size:12px;border-bottom:1px solid var(--border)}',
+    '.sb-x:last-of-type{border-bottom:0}',
+    '.sb-xd{color:var(--text-muted);flex:none;width:58px}',
+    '.sb-xt{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+    '.sb-xa{flex:none;font-weight:700;color:var(--red)}',
+    '.sb-more{margin-top:6px;border:0;background:transparent;color:var(--gold);font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:4px 0}',
+    '.sb-todo{margin-top:14px;border:1.5px dashed rgba(201,168,76,.5);background:var(--gold-dim);border-radius:14px;padding:12px 14px}',
+    '.sb-todo h4{margin:0 0 3px;font-size:14px;color:var(--gold)}',
+    '.sb-todo p{margin:0 0 8px;font-size:12px;color:var(--text-muted);line-height:1.4}',
+    '.sb-tr{display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)}',
+    '.sb-tn{flex:1;min-width:0}',
+    '.sb-tn b{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+    '.sb-tn i{display:block;font-style:normal;font-size:11px;color:var(--text-muted)}',
+    '.sb-tb{flex:none;border:1px solid var(--gold);background:var(--surface);color:var(--gold);border-radius:999px;padding:7px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}',
+    'body.light .sb-title,body.light .sb-todo h4,body.light .sb-more,body.light .sb-add,body.light .sb-pill.sel,body.light .sb-chip,body.light .sb-seg button.on,body.light .sb-tb{color:#8a5a00}',
+    'body.light .sb-chip,body.light .sb-tb,body.light .sb-btn.set,body.light .sb-pill.sel,body.light .sb-tp.on{border-color:rgba(138,90,0,.55)}',
+    'body.light .sb-search input,body.light .sb-in{border-color:rgba(138,90,0,.45)}',
+    '.sb-fld button:focus-visible,.sb-ov button:focus-visible,.sb-rep button:focus-visible,.sb-seg button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}',
+    '.sb-search input:focus-visible,.sb-in:focus-visible{outline:2px solid var(--gold);outline-offset:1px}',
+    '@media (prefers-reduced-motion:reduce){.sb-gh .sb-gv{transition:none}}'
+  ].join('\n');
+  function injectCss() {
+    if ($('ewsub-css')) return;
+    var st = document.createElement('style'); st.id = 'ewsub-css'; st.textContent = CSS;
+    (document.head || document.documentElement).appendChild(st);
+  }
+
+  /* ───────── fogli (bottom sheet) ───────── */
+  var SH = null;
+  function sheetClose() {
+    if (!SH) return;
+    var s = SH; SH = null;
+    try { document.removeEventListener('keydown', s.key, true); } catch (e) {}
+    try { if (s.vv) { s.vv.removeEventListener('resize', s.fit); s.vv.removeEventListener('scroll', s.fit); } } catch (e) {}
+    if (s.ov.parentNode) s.ov.parentNode.removeChild(s.ov);
+    document.body.style.overflow = s.prev;
+    if (s.onclose) s.onclose();
+  }
+  function sheetOpen(o) {
+    sheetClose();
+    injectCss();
+    var ov = document.createElement('div'); ov.className = 'sb-ov';
+    ov.innerHTML = '<div class="sb-sheet" role="dialog" aria-modal="true">' + o.html + '</div>';
+    document.body.appendChild(ov);
+    var prev = document.body.style.overflow; document.body.style.overflow = 'hidden';
+    var vv = global.visualViewport;
+    var fit = function () { if (!vv) return; ov.style.top = vv.offsetTop + 'px'; ov.style.height = vv.height + 'px'; ov.style.bottom = 'auto'; };
+    if (vv) { vv.addEventListener('resize', fit); vv.addEventListener('scroll', fit); fit(); }
+    var key = function (ev) { if (ev.key === 'Escape') { ev.stopPropagation(); sheetClose(); } };
+    document.addEventListener('keydown', key, true);
+    ov.addEventListener('click', function (ev) {
+      if (ev.target === ov) { sheetClose(); return; }
+      if (o.onclick) o.onclick(ev);
+    });
+    if (o.oninput) ov.addEventListener('input', o.oninput);
+    SH = { ov: ov, prev: prev, vv: vv, fit: fit, key: key, onclose: o.onclose };
+    return ov;
+  }
+
+  /* ───────── campo «Azienda» nei moduli ───────── */
+  var F = {};
+  var FLD_LABEL = { viaggi: 'Azienda di trasporto', supermercato: 'Supermercato / negozio' };
+
+  function attach(o) {
+    var sel = $(o.sel); if (!sel || F[o.sel]) return;
+    var anchor = o.anchor || sel.parentNode; if (!anchor || !anchor.parentNode) return;
+    injectCss();
+    var root = document.createElement('div');
+    root.className = (o.fld ? 'fld ' : '') + 'sb-fld' + (o.lg ? ' sb-lg' : '');
+    root.hidden = true; root.setAttribute('data-sbf', o.sel);
+    root.innerHTML = '<label class="sb-lab"></label><div class="sb-wrap">' +
+      '<button type="button" class="sb-btn" data-sb="pick"><span class="sb-ic"></span><span class="sb-t"></span><span class="sb-ch">▾</span></button>' +
+      '<button type="button" class="sb-clr" data-sb="clr" title="Togli azienda" aria-label="Togli azienda">✕</button></div>';
+    anchor.parentNode.insertBefore(root, anchor.nextSibling);
+    var st = F[o.sel] = { sel: o.sel, desc: o.desc || '', root: root, cat: '', val: '', auto: '' };
+    root.addEventListener('click', function (ev) {
+      var t = ev.target.closest('[data-sb]'); if (!t) return;
+      ev.preventDefault();
+      var a = t.getAttribute('data-sb');
+      if (a === 'pick') openPicker(o.sel);
+      else if (a === 'clr') { st.val = ''; refresh(o.sel); }
+    });
+    sel.addEventListener('change', function () { st.val = ''; refresh(o.sel); });
+    if (st.desc && $(st.desc)) $(st.desc).addEventListener('input', function () { if (!st.val) { autoGuess(st); paint(st); } });
+    refresh(o.sel);
+  }
+  function refresh(id) {
+    var st = F[id], el = $(id); if (!st || !el) return;
+    var cat = el.value;
+    if (!CATALOG[cat]) { st.root.hidden = true; st.cat = ''; st.val = ''; st.auto = ''; return; }
+    if (st.cat !== cat) { st.cat = cat; st.val = ''; }
+    st.root.hidden = false;
+    st.root.querySelector('.sb-lab').innerHTML = '🏢 ' + esc(FLD_LABEL[cat] || 'Azienda') + ' <i>(facoltativa)</i>';
+    autoGuess(st); paint(st);
+  }
+  function autoGuess(st) {
+    st.auto = '';
+    if (st.val || !st.desc || !st.cat) return;
+    var d = $(st.desc); if (!d || !d.value || !d.value.trim()) return;
+    var r = resolve({ cat: st.cat, desc: d.value.trim() });
+    if (r) st.auto = r.n;
+  }
+  function paint(st) {
+    var b = st.root.querySelector('.sb-btn'), ic = b.querySelector('.sb-ic'), t = b.querySelector('.sb-t'),
+        x = st.root.querySelector('.sb-clr'), name = st.val || st.auto;
+    b.className = 'sb-btn ' + (st.val ? 'set' : (st.auto ? 'auto' : 'empty'));
+    if (name) {
+      var it = findByName(st.cat, name), g = groupInfo(st.cat, it ? it.gid : 'mie');
+      ic.textContent = g.ic; t.textContent = name + (st.val ? '' : ' · riconosciuta');
+    } else { ic.textContent = '＋'; t.textContent = 'Scegli azienda…'; }
+    x.style.display = st.val ? '' : 'none';
+  }
+  function value(id) { var st = F[id]; return (st && !st.root.hidden) ? st.val : ''; }
+  function reset(id) { var st = F[id]; if (!st) return; st.val = ''; refresh(id); }
+  function setFor(id, e) {
+    var st = F[id]; if (!st) return;
+    refresh(id); if (st.root.hidden) return;
+    st.val = (e && e.sub) ? e.sub : '';
+    st.auto = '';
+    if (!st.val && e) { var r = resolve(e); st.auto = r ? r.n : ''; }
+    paint(st);
+  }
+
+  /* ───────── selettore ───────── */
+  function openPicker(id) {
+    var st = F[id]; if (!st) return;
+    var cat = st.cat, C = comp(cat), Cfg = CATALOG[cat];
+    var S = { q: '', open: {}, arm: '', cur: st.val || st.auto || '' };
+    if (S.cur) { var cit = findByName(cat, S.cur); if (cit) S.open[cit.gid] = true; }
+
+    function pill(it, cnt, custom, gic) {
+      var sel = (S.cur && norm(S.cur) === norm(it.name)) ? ' sel' : '', arm = custom && S.arm === it.name;
+      return '<span class="sb-pw"><button type="button" class="sb-pill' + sel + (it.generic ? ' gen' : '') + '" data-sb="choose" data-n="' + esc(it.name) + '">' +
+        (gic ? '<em>' + esc(gic) + '</em> ' : '') + esc(it.name) + (cnt ? '<small>' + cnt + '</small>' : '') + '</button>' +
+        (custom ? '<button type="button" class="sb-pdel' + (arm ? ' arm' : '') + '" data-sb="del" data-n="' + esc(it.name) + '" aria-label="Rimuovi">' + (arm ? 'Rimuovi?' : '✕') + '</button>' : '') + '</span>';
+    }
+    function body() {
+      var q = norm(S.q), h = '', cu = getCustom(cat);
+      if (!q) {
+        var top = topUsed(cat, 8);
+        if (top.length) {
+          h += '<div class="sb-sec">I tuoi più usati</div><div class="sb-pills">' +
+            top.map(function (t) { var it = findByName(cat, t.n); return it ? pill(it, t.c, !!it.custom) : ''; }).join('') + '</div>';
+        }
+        if (cu.length) h += '<div class="sb-sec">⭐ Le mie aziende</div><div class="sb-pills">' + cu.map(function (c) { return pill(c, 0, true); }).join('') + '</div>';
+        h += '<div class="sb-sec">Tutte le aziende</div>';
+        C.gorder.forEach(function (gid) {
+          var g = C.groups[gid], open = !!S.open[gid];
+          h += '<button type="button" class="sb-gh' + (open ? ' open' : '') + '" data-sb="grp" data-g="' + gid + '"><span>' + esc(g.ic) + '</span><span class="sb-gn">' + esc(g.n) + '</span><span class="sb-gc">' + g.items.length + '</span><span class="sb-gv">▾</span></button>';
+          if (open) h += '<div class="sb-gb"><div class="sb-pills">' + g.items.map(function (it) { return pill(it, 0, false); }).join('') + '</div></div>';
+        });
+      } else {
+        var res = search(cat, S.q), exact = false;
+        res.forEach(function (it) { if (norm(it.name) === q) exact = true; });
+        if (res.length) {
+          h += '<div class="sb-sec">Risultati</div><div class="sb-pills">' + res.slice(0, 80).map(function (it) {
+            return pill(it, 0, !!it.custom, groupInfo(cat, it.gid).ic);
+          }).join('') + '</div>';
+        } else h += '<div class="sb-empty">Nessuna azienda trovata</div>';
+        if (!exact) {
+          var nm = S.q.trim().replace(/\s+/g, ' ');
+          if (nm === nm.toLowerCase() || nm === nm.toUpperCase()) nm = titleCase(nm);
+          h += '<button type="button" class="sb-add" data-sb="add" data-n="' + esc(nm) + '">➕ Aggiungi «' + esc(nm) + '»</button>';
+        }
+      }
+      return h;
+    }
+    function paintBody() { var b = ov.querySelector('.sb-body'); if (b) b.innerHTML = body(); }
+    function finish(name) { st.val = name || ''; sheetClose(); refresh(id); }
+
+    var ov = sheetOpen({
+      html: '<div class="sb-grab"></div><div class="sb-head"><div class="sb-title">' + esc(Cfg.title) + '</div><button type="button" class="sb-close" data-sb="close" aria-label="Chiudi">✕</button></div>' +
+        '<div class="sb-search"><input class="sb-field" type="search" enterkeyhint="search" placeholder="' + esc(Cfg.ph) + '" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="Cerca"></div>' +
+        '<div class="sb-body"></div><div class="sb-foot"><button type="button" class="sb-ghost" data-sb="none">Nessuna azienda</button></div>',
+      onclick: function (ev) {
+        var t = ev.target.closest('[data-sb]'); if (!t) return;
+        var a = t.getAttribute('data-sb'), n = t.getAttribute('data-n');
+        if (a === 'close') sheetClose();
+        else if (a === 'none') finish('');
+        else if (a === 'choose') finish(n);
+        else if (a === 'add') { addCustom(cat, { n: n, a: [n], g: 'mie' }); finish(n); }
+        else if (a === 'grp') { var g = t.getAttribute('data-g'); S.open[g] = !S.open[g]; paintBody(); }
+        else if (a === 'del') {
+          if (S.arm === n) { removeCustom(cat, n); S.arm = ''; if (st.val && norm(st.val) === norm(n)) st.val = ''; refresh(id); }
+          else S.arm = n;
+          paintBody();
+        }
+      },
+      oninput: function (ev) {
+        if (ev.target && ev.target.type === 'search') { S.q = ev.target.value; S.arm = ''; paintBody(); }
+      }
+    });
+    paintBody();
+    var inp = ov.querySelector('.sb-search input');
+    try { if (inp && global.matchMedia && global.matchMedia('(pointer:fine)').matches) inp.focus(); } catch (e) {}
+  }
+
+  /* ───────── resoconto ───────── */
+  var VIEW = {};                        // cat → 'az' | 'voce'
+  var REP = { cat: '', type: '', open: {}, all: {}, todoAll: false, todo: [] };
+  function view(cat) { return VIEW[cat] || 'az'; }
+  function resetReport(cat) { REP = { cat: cat || '', type: '', open: {}, all: {}, todoAll: false, todo: [] }; }
+
+  function toggleHtml(cat) {
+    var v = view(cat);
+    return '<div class="sb-seg" data-cat="' + esc(cat) + '"><button type="button" data-sb="view" data-v="az" class="' + (v === 'az' ? 'on' : '') + '">🏢 Per azienda</button>' +
+      '<button type="button" data-sb="view" data-v="voce" class="' + (v === 'voce' ? 'on' : '') + '">📍 Per voce</button></div>';
+  }
+
+  var NOISE = toSet('sumup sum www pos pagamento acquisto addebito carta paypal pp srl spa snc sas sagl ltd limited llc gmbh sa');
+  var GENTOK = toSet('market minimarket mini supermercato supermarket spesa taxi bus treno shop store point center centro di da del della dei degli il lo la le gli un una and the a in per con su alimentari gastronomia bar pizzeria ristorante torino milano roma napoli genova san mauro tor to italia it com net ' +
+    'bazar bazaar emporio drogheria macelleria panificio forno pescheria ortofrutta frutteria salumeria latteria negozio negozi bottega discount iper ipermercato mercato ' +
+    'biglietto biglietti abbonamento ticket viaggio viaggi corsa tratta andata ritorno notte stazione aeroporto metro tram linea urbano extraurbano mensile settimanale giornaliero annuale pass tessera ricarica carnet autobus pullman navetta volo voli traghetto nave ' +
+    'frutta verdura pane latte uova acqua carne pesce pasta riso formaggi formaggio biscotti caffe olio surgelati pomodori birra birre vino detersivi detersivo carta igienica igiene pulizia pulizie casa famiglia settimana weekend cena pranzo colazione merenda snack bevande dolci dolce gelato pizza fresco freschi scorte frigo dispensa extra varie vari');
+  function clusterKey(desc) {
+    var toks = norm(desc).split(' ').filter(Boolean), keep = [], i, t;
+    for (i = 0; i < toks.length; i++) {
+      t = toks[i];
+      if (NOISE[t] || GENTOK[t] || /^\d+$/.test(t) || t.length < 2) continue;
+      keep.push(t);
+    }
+    if (!keep.length) return '';
+    return keep[0].length >= 4 ? keep[0] : keep.slice(0, 2).join(' ');
+  }
+  function niceName(raws) {
+    var best = '', bc = 0, k;
+    for (k in raws) if (raws[k] > bc || (raws[k] === bc && k.length < best.length)) { best = k; bc = raws[k]; }
+    best = best.replace(/^\s*(sum\s*up|paypal|pp|sum)\s*\*\s*/i, '').replace(/\s+Data Transazione.*$/i, '').replace(/\+?\d[\d ]{6,}/g, ' ').replace(/\s+/g, ' ').trim();
+    if (best === best.toUpperCase() || best === best.toLowerCase()) best = titleCase(best);
+    return best.length > 30 ? best.slice(0, 30).trim() : best;
+  }
+  function buildTodo(cat, expenses) {
+    var map = {}, list = [];
+    expenses.forEach(function (e) {
+      var r = resolve(e); if (r && (r.generic ? r.explicit : true)) return;
+      var raw = (e.desc && e.desc !== '—') ? String(e.desc).trim() : ''; if (!raw) return;
+      var k = clusterKey(raw); if (!k) return;
+      var c = map[k]; if (!c) { c = map[k] = { key: k, cnt: 0, total: 0, raws: {}, gid: '' }; list.push(c); }
+      c.cnt++; c.total += e.amount || 0; c.raws[raw] = (c.raws[raw] || 0) + 1;
+      if (r && !c.gid) c.gid = r.gid;
+    });
+    list = list.filter(function (c) { return c.cnt >= 3; });
+    list.sort(function (a, b) { return b.total - a.total; });
+    list.forEach(function (c) { c.name = niceName(c.raws); });
+    return list;
+  }
+
+  function report(cat, expenses) {
+    if (REP.cat !== cat) resetReport(cat);
+    var agg = {}, order = [], none = { items: [], total: 0 }, total = 0;
+    expenses.forEach(function (e) {
+      var amt = Number(e.amount) || 0; total += amt;
+      var r = resolve(e);
+      if (!r) { none.items.push(e); none.total += amt; return; }
+      var a = agg[r.n];
+      if (!a) { a = agg[r.n] = { n: r.n, gid: r.gid, generic: r.generic, total: 0, items: [], last: '' }; order.push(r.n); }
+      a.total += amt; a.items.push(e);
+      var dk = dkey(e.date); if (dk > a.last) a.last = dk;
+    });
+    var rows = order.map(function (n) { return agg[n]; }).sort(function (a, b) { return b.total - a.total; });
+
+    // totali per tipo
+    var tmap = {}, tlist = [];
+    rows.forEach(function (a) {
+      var g = groupInfo(cat, a.gid), t = tmap[g.chip];
+      if (!t) { t = tmap[g.chip] = { label: g.chip, ic: g.ci || g.ic, total: 0, cnt: 0 }; tlist.push(t); }
+      t.total += a.total; t.cnt += a.items.length;
+    });
+    tlist.sort(function (a, b) { return b.total - a.total; });
+    if (none.items.length) tlist.push({ label: '__none', ic: '❔', total: none.total, cnt: none.items.length, name: 'Senza azienda' });
+
+    var h = '<div class="sb-rep" data-cat="' + esc(cat) + '">';
+    if (tlist.length > 1) {
+      h += '<div class="sb-types"><button type="button" class="sb-tp' + (REP.type ? '' : ' on') + '" data-sb="type" data-t=""><b>Tutte</b><i>' + money(total) + '</i></button>' +
+        tlist.map(function (t) {
+          return '<button type="button" class="sb-tp' + (REP.type === t.label ? ' on' : '') + '" data-sb="type" data-t="' + esc(t.label) + '"><b>' + esc(t.ic) + ' ' + esc(t.name || t.label) + '</b><i>' + money(t.total) + ' · ' + t.cnt + '</i></button>';
+        }).join('') + '</div>';
+    }
+    var shown = rows.filter(function (a) { return !REP.type || (REP.type !== '__none' && groupInfo(cat, a.gid).chip === REP.type); });
+    var showNone = none.items.length && (!REP.type || REP.type === '__none');
+    h += '<div class="sb-hint">🏢 ' + (shown.length + (showNone ? 1 : 0)) + ' aziende — ordinate per importo</div>';
+
+    function itemsHtml(key, items) {
+      var sorted = items.slice().sort(function (a, b) { return dkey(b.date) < dkey(a.date) ? -1 : (dkey(b.date) > dkey(a.date) ? 1 : 0); });
+      var lim = REP.all[key] ? sorted.length : 10;
+      var out = '<div class="sb-rx">' + sorted.slice(0, lim).map(function (e) {
+        return '<div class="sb-x"><span class="sb-xd">' + esc(dmy(e.date)) + '</span><span class="sb-xt">' + esc(e.desc === '—' ? e.cat : e.desc) + '</span><span class="sb-xa">' + money(e.amount) + '</span></div>';
+      }).join('');
+      if (sorted.length > lim) out += '<button type="button" class="sb-more" data-sb="all" data-n="' + esc(key) + '">Mostra tutte (' + sorted.length + ')</button>';
+      return out + '</div>';
+    }
+    shown.forEach(function (a, i) {
+      var g = groupInfo(cat, a.gid), pct = total > 0 ? Math.round(a.total / total * 100) : 0, cnt = a.items.length;
+      h += '<div class="sb-row' + (a.generic ? ' gen' : '') + (REP.open[a.n] ? ' open' : '') + '" data-n="' + esc(a.n) + '">' +
+        '<button type="button" class="sb-rh" data-sb="row" data-n="' + esc(a.n) + '"><span class="sb-rk">' + (i + 1) + '</span>' +
+        '<span class="sb-rn"><b>' + esc(g.ic) + ' ' + esc(a.n) + '</b><i>' + esc(g.chip) + ' · ' + cnt + ' volt' + (cnt === 1 ? 'a' : 'e') + ' · ⌀ ' + money(a.total / cnt) + (a.last ? ' · ult. ' + esc(dmy(a.last)) : '') + '</i></span>' +
+        '<span class="sb-rv"><b>' + money(a.total) + '</b><i>' + pct + '% del totale</i></span></button>' +
+        '<div class="sb-bar"><span style="width:' + Math.max(pct, 1) + '%"></span></div>' + itemsHtml(a.n, a.items) + '</div>';
+    });
+    if (showNone) {
+      var pn = total > 0 ? Math.round(none.total / total * 100) : 0, cn = none.items.length;
+      h += '<div class="sb-row gen' + (REP.open.__none ? ' open' : '') + '" data-n="__none"><button type="button" class="sb-rh" data-sb="row" data-n="__none"><span class="sb-rk none">?</span>' +
+        '<span class="sb-rn"><b>❔ Senza azienda</b><i>' + cn + ' spese non riconosciute</i></span>' +
+        '<span class="sb-rv"><b>' + money(none.total) + '</b><i>' + pn + '% del totale</i></span></button>' +
+        '<div class="sb-bar"><span style="width:' + Math.max(pn, 1) + '%"></span></div>' + itemsHtml('__none', none.items) + '</div>';
+    }
+    if (!shown.length && !showNone) h += '<div class="sb-empty">Nessuna spesa in questo tipo.</div>';
+
+    // da riconoscere
+    REP.todo = buildTodo(cat, expenses);
+    if (REP.todo.length && !REP.type) {
+      var lim = REP.todoAll ? REP.todo.length : 4;
+      h += '<div class="sb-todo"><h4>💡 Da riconoscere</h4><p>Nomi che si ripetono ma non hanno ancora un’azienda. Crea l’azienda una volta: le spese (anche quelle future) vengono riconosciute da sole.</p>' +
+        REP.todo.slice(0, lim).map(function (c, i) {
+          return '<div class="sb-tr"><span class="sb-tn"><b>' + esc(c.name) + '</b><i>' + c.cnt + ' spese · ' + money(c.total) + '</i></span><button type="button" class="sb-tb" data-sb="mk" data-i="' + i + '">＋ Crea azienda</button></div>';
+        }).join('') +
+        (REP.todo.length > lim ? '<button type="button" class="sb-more" data-sb="todoall">Mostra altri ' + (REP.todo.length - lim) + '…</button>' : '') + '</div>';
+    }
+    return h + '</div>';
+  }
+
+  function countMatches(cat, aliasNorm) {
+    var n = 0, tot = 0;
+    if (!aliasNorm) return { n: 0, tot: 0 };
+    host.expenses(cat).forEach(function (e) {
+      var txt = (e.desc && e.desc !== '—') ? e.desc : '';
+      if (e.sub || !txt) return;
+      if ((' ' + norm(txt) + ' ').indexOf(' ' + aliasNorm + ' ') >= 0) { n++; tot += Number(e.amount) || 0; }
+    });
+    return { n: n, tot: tot };
+  }
+  function openCreate(cat, seed) {
+    var C = comp(cat), opts = '<option value="mie">⭐ Le mie aziende</option>' + C.gorder.map(function (gid) {
+      var g = C.groups[gid]; return '<option value="' + gid + '"' + (seed.gid === gid ? ' selected' : '') + '>' + esc(g.ic + ' ' + g.n) + '</option>';
+    }).join('');
+    var ov = sheetOpen({
+      html: '<div class="sb-grab"></div><div class="sb-head"><div class="sb-title">Nuova azienda</div><button type="button" class="sb-close" data-sb="close" aria-label="Chiudi">✕</button></div>' +
+        '<div class="sb-body sb-form">' +
+        '<label class="sb-fl">Nome<input class="sb-in sb-field" data-f="name" type="text" autocomplete="off" value="' + esc(seed.name) + '"></label>' +
+        '<label class="sb-fl">Tipo<select class="sb-in sb-field" data-f="gid">' + opts + '</select></label>' +
+        '<label class="sb-fl">Riconosci le spese che contengono<input class="sb-in sb-field" data-f="alias" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" value="' + esc(seed.alias) + '"></label>' +
+        '<div class="sb-pv" data-f="pv"></div></div>' +
+        '<div class="sb-foot"><button type="button" class="sb-ghost" data-sb="close">Annulla</button><button type="button" class="sb-main" data-sb="save">Salva azienda</button></div>',
+      onclick: function (ev) {
+        var t = ev.target.closest('[data-sb]'); if (!t) return;
+        var a = t.getAttribute('data-sb');
+        if (a === 'close') sheetClose();
+        else if (a === 'save') {
+          var name = ov.querySelector('[data-f=name]').value.trim().replace(/\s+/g, ' '),
+              alias = ov.querySelector('[data-f=alias]').value.trim() || name,
+              gid = ov.querySelector('[data-f=gid]').value;
+          if (!name) { ov.querySelector('[data-f=name]').focus(); return; }
+          addCustom(cat, { n: name, a: [alias], g: gid });
+          sheetClose(); host.toast('✅ Azienda «' + name + '» creata'); host.rerender();
+        }
+      },
+      oninput: function () {
+        var al = norm(ov.querySelector('[data-f=alias]').value), pv = ov.querySelector('[data-f=pv]');
+        if (!al) { pv.innerHTML = 'Scrivi una parola che compare nelle spese di questa azienda.'; return; }
+        var c = countMatches(cat, al);
+        pv.innerHTML = c.n ? '✓ <b>' + c.n + ' spese</b> riconosciute · <b>' + money(c.tot) + '</b> (in tutto lo storico)' : 'Nessuna spesa trovata con questa parola — valeva comunque per quelle future.';
+      }
+    });
+    ov.querySelector('[data-f=alias]').dispatchEvent(new Event('input', { bubbles: true }));
+  }
+
+  function bind(box) {
+    if (box.__sbBound) return; box.__sbBound = true;
+    box.addEventListener('click', function (ev) {
+      var t = ev.target.closest('[data-sb]'); if (!t || !box.contains(t)) return;
+      var a = t.getAttribute('data-sb'), host_ = t.closest('[data-cat]'), cat = host_ ? host_.getAttribute('data-cat') : '';
+      if (!cat) return;
+      if (a === 'view') { VIEW[cat] = t.getAttribute('data-v'); resetReport(cat); host.rerender(); }
+      else if (a === 'type') { REP.type = t.getAttribute('data-t'); host.rerender(); }
+      else if (a === 'row') {
+        var n = t.getAttribute('data-n'), row = t.closest('.sb-row');
+        REP.open[n] = !REP.open[n]; if (row) row.classList.toggle('open', !!REP.open[n]);
+      }
+      else if (a === 'all') { REP.all[t.getAttribute('data-n')] = true; REP.open[t.getAttribute('data-n')] = true; host.rerender(); }
+      else if (a === 'todoall') { REP.todoAll = true; host.rerender(); }
+      else if (a === 'mk') {
+        var c = REP.todo[Number(t.getAttribute('data-i'))]; if (!c) return;
+        openCreate(cat, { name: c.name, alias: c.key, gid: c.gid || 'mie' });
+      }
+    });
+  }
+
+  /* ───────── inizializzazione nei moduli di GoBank ───────── */
+  function closestFld(id) { var el = $(id); return el ? (el.closest('.fld') || el.parentNode) : null; }
+  function gridRow(id) { var el = $(id); return el && el.parentNode ? el.parentNode.parentNode : null; }
+  var inited = false;
+  function init() {
+    if (inited) return; inited = true;
+    attach({ sel: 'expCat', desc: 'expDesc', anchor: closestFld('expCat'), fld: true });
+    attach({ sel: 'wdCat', desc: 'wdDesc', anchor: gridRow('wdCat') });
+    attach({ sel: 'vs-exp-cat', desc: 'vs-exp-desc', anchor: gridRow('vs-exp-cat') });
+    attach({ sel: 'editExpCat', desc: 'editExpDesc', anchor: closestFld('editExpCat'), fld: true, lg: true });
+  }
+
+  global.EWSUB = {
+    host: host,
+    has: has, get: get, resolve: resolve, chip: chip,
+    attach: attach, init: init, value: value, reset: reset, setFor: setFor, refresh: refresh,
+    view: view, toggleHtml: toggleHtml, report: report, bind: bind, resetReport: resetReport,
+    openPicker: openPicker, openCreate: openCreate, closeSheet: sheetClose,
+    addCustom: addCustom, removeCustom: removeCustom, bust: bust, css: CSS, injectCss: injectCss,
+    _: { norm: norm, clusterKey: clusterKey, buildTodo: buildTodo, guessText: guessText, comp: comp, search: search, niceName: niceName, countMatches: countMatches }
+  };
+})(typeof window !== 'undefined' ? window : this);
+/* ── Collegamento di «Azienda» (EWSUB) all'app GoBank ── */
+(function () {
+  'use strict';
+  var E = window.EWSUB;
+  if (!E) return;
+  var memo = null, memoAt = 0;
+  function all() {
+    var now = Date.now();
+    if (memo && now - memoAt < 3000) return memo;
+    try { memo = getAllExpensesAllTime(); } catch (e) { memo = []; }
+    memoAt = now;
+    return memo;
+  }
+  E.host.load = function (k, d) { try { return load(k, d); } catch (e) { return d; } };
+  E.host.save = function (k, v) { try { save(k, v); } catch (e) { console.warn('EWSUB save', e); } };
+  E.host.sig = function (k) { try { return localStorage.getItem(getKey(k)); } catch (e) { return null; } };
+  E.host.expenses = function (cat) { return all().filter(function (e) { return e && e.cat === cat; }); };
+  E.host.changed = function () {
+    memo = null;
+    try { bumpVersion(); fbPushToCloud(); } catch (e) { console.warn('EWSUB sync', e); }
+  };
+  E.host.rerender = function () {
+    try {
+      var m = document.getElementById('catDetailModal');
+      if (m && m.style.display !== 'none' && typeof renderCatDetail === 'function') renderCatDetail();
+    } catch (e) { console.error('EWSUB rerender', e); }
+  };
+  E.host.toast = function (m) { try { showToast(m); } catch (e) {} };
+  try { E.init(); } catch (e) { console.error('EWSUB init', e); }
+})();
 </script>
 </body>
 </html>
