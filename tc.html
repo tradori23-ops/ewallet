@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261025-v310-aziende';
+  var BUILD = '20261025-v311-aziende';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -13529,7 +13529,7 @@ function renderCatDetail() {
   </div>`).join('');
 
   if(!expenses.length) {
-    document.getElementById('catDetailList').innerHTML='<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Nessuna spesa trovata per questo periodo.</div>';
+    document.getElementById('catDetailList').innerHTML=_sbEmpty(cat) + '<div style="text-align:center;padding:40px;color:var(--text-muted);font-size:14px;">Nessuna spesa trovata per questo periodo.</div>';
     return;
   }
 
@@ -26232,6 +26232,7 @@ if(document.readyState!=='loading')updateNavTodayLabel();else document.addEventL
 try{setInterval(updateNavTodayLabel,30000);}catch(e){}
 
 function _sbChip(e, flex) { try { return (window.EWSUB && EWSUB.chip) ? EWSUB.chip(e, flex) : ''; } catch(_) { return ''; } }
+function _sbEmpty(cat) { try { if(window.EWSUB && EWSUB.has(cat)) { EWSUB.bind(document.getElementById('catDetailList')); return EWSUB.moveHtml(cat); } } catch(_) {} return ''; }
 function _expTimeBadge(e) {
   if(!e || !e.createdAt) return '';
   var t = new Date(e.createdAt);
@@ -30827,7 +30828,10 @@ supermercato: {
     expenses: function (cat) { return []; },
     changed: function () {},
     rerender: function () {},
-    toast: function (m) {}
+    toast: function (m) {},
+    scan: null,      // elenco di tutte le spese mensili: [{ k, i, e }]  (serve a «Sposta»)
+    apply: null,     // applica i cambi [{ k, i, fp, set }] → { ok, done: [indici] }
+    period: null     // periodo aperto nel dettaglio: 'month' | 'year' | 'all'
   };
 
   var CUSTOM_GROUP = { id: 'mie', ic: '⭐', n: 'Le mie aziende', chip: 'Le mie', ci: '⭐' };
@@ -30871,12 +30875,12 @@ supermercato: {
     return (COMP[cat] = out);
   }
 
-  var CUST = {}, RES = {}, TOP = {};
+  var CUST = {}, RES = {}, TOP = {}, GS = {};
   var SIG = null;
-  function bust() { CUST = {}; RES = {}; TOP = {}; }
+  function bust() { CUST = {}; RES = {}; TOP = {}; GS = {}; }
   function sigChk() {
     var s; try { s = host.sig('subCustom'); } catch (e) { s = null; }
-    if (s !== SIG) { SIG = s; CUST = {}; RES = {}; TOP = {}; }
+    if (s !== SIG) { SIG = s; CUST = {}; RES = {}; TOP = {}; GS = {}; }
   }
   function customRaw() { var o = host.load('subCustom', {}); return (o && typeof o === 'object') ? o : {}; }
   function getCustom(cat) {
@@ -31113,6 +31117,26 @@ supermercato: {
     'body.light .sb-search input,body.light .sb-in{border-color:rgba(138,90,0,.45)}',
     '.sb-fld button:focus-visible,.sb-ov button:focus-visible,.sb-rep button:focus-visible,.sb-seg button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}',
     '.sb-search input:focus-visible,.sb-in:focus-visible{outline:2px solid var(--gold);outline-offset:1px}',
+    '.sb-mv{display:flex;align-items:center;gap:10px;margin:0 0 12px;padding:10px 12px;border:1.5px dashed rgba(201,168,76,.5);background:var(--gold-dim);border-radius:14px}',
+    '.sb-mv.done{border-style:solid;border-color:rgba(50,215,75,.45);background:rgba(50,215,75,.10)}',
+    '.sb-mv .sb-mt{flex:1;min-width:0}',
+    '.sb-mv .sb-mt b{display:block;font-size:13px;line-height:1.3;color:var(--text);overflow-wrap:anywhere}',
+    '.sb-mv .sb-mt i{display:block;font-style:normal;font-size:11px;line-height:1.35;color:var(--text-muted);margin-top:2px}',
+    '.sb-mi{margin:4px 0 0;font-size:12px;line-height:1.45;color:var(--text-muted)}',
+    '.sb-mall{display:flex;gap:16px;margin:2px 0 0}',
+    '.sb-mr{background:var(--dark3)}',
+    '.sb-mr .sb-rv b{color:var(--text)}',
+    '.sb-tag{display:inline-block;margin-left:6px;padding:0 6px;border-radius:999px;font-size:10px;font-weight:700;line-height:16px;vertical-align:1px;color:var(--text-muted);border:1px solid var(--border-strong)}',
+    '.sb-mr .sb-rx{background:var(--surface2)}',
+    '.sb-mh{display:flex;align-items:center;gap:10px;padding:10px 12px}',
+    '.sb-ck{flex:none;width:30px;height:30px;border-radius:9px;border:1.5px solid rgba(201,168,76,.6);background:var(--surface);color:#1a1a2e;font:inherit;font-size:16px;font-weight:800;line-height:1;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;-webkit-tap-highlight-color:transparent}',
+    '.sb-ck.on{background:var(--gold);border-color:var(--gold)}',
+    '.sb-mb{flex:1;min-width:0;display:flex;align-items:center;gap:10px;background:transparent;border:0;color:var(--text);font:inherit;text-align:left;cursor:pointer;padding:0;-webkit-tap-highlight-color:transparent}',
+    '.sb-main[disabled]{opacity:.45;cursor:default}',
+    '.sb-xt em{font-style:normal;color:var(--text-muted)}',
+    '.sb-xm{padding:6px 0 0;font-size:11px;color:var(--text-muted)}',
+    'body.light .sb-mv.done{border-color:rgba(30,150,60,.5)}',
+    '.sb-ck:focus-visible,.sb-mb:focus-visible{outline:2px solid var(--gold);outline-offset:2px}',
     '@media (prefers-reduced-motion:reduce){.sb-gh .sb-gv{transition:none}}'
   ].join('\n');
   function injectCss() {
@@ -31375,7 +31399,7 @@ supermercato: {
     tlist.sort(function (a, b) { return b.total - a.total; });
     if (none.items.length) tlist.push({ label: '__none', ic: '❔', total: none.total, cnt: none.items.length, name: 'Senza azienda' });
 
-    var h = '<div class="sb-rep" data-cat="' + esc(cat) + '">';
+    var h = '<div class="sb-rep" data-cat="' + esc(cat) + '">' + moveRowHtml(cat);
     if (tlist.length > 1) {
       h += '<div class="sb-types"><button type="button" class="sb-tp' + (REP.type ? '' : ' on') + '" data-sb="type" data-t=""><b>Tutte</b><i>' + money(total) + '</i></button>' +
         tlist.map(function (t) {
@@ -31471,6 +31495,174 @@ supermercato: {
     ov.querySelector('[data-f=alias]').dispatchEvent(new Event('input', { bubbles: true }));
   }
 
+  /* ───────── spese di Viaggi finite in altre categorie → «Sposta in Viaggi» ─────────
+     Solo Viaggi. «strong»: gruppi senza ambiguità (crociere e voli): le aziende precise sono già spuntate;
+     la voce generica (solo la parola «crociera» / «volo») compare ma resta da spuntare a mano (potrebbe essere un giro fra i tuoi conti).
+     «skip»: categorie che non si toccano mai (le rate hanno regole proprie nell'app).
+     Cambia solo il campo «cat» (come «Modifica spesa») e segna «updatedAt»; l'azienda si riconosce dal testo, come prima. */
+  var MOVE = { viaggi: { title: 'Sposta in Viaggi', name: 'Viaggi', strong: { cro: 1, aereo: 1 }, skip: { rata: 1 } } };
+  function fp(e) { return [e.id, e.cat, e.amount, e.date, e.desc, e.nota || '', e.updatedAt || ''].join('\u0001'); }
+  function catWord(c) { c = String(c || ''); return c ? c.charAt(0).toUpperCase() + c.slice(1) : '—'; }
+  var MV = { cat: '', key: '', list: null }, LAST = null;
+
+  function moveScan(cat, fresh) {
+    var cfg = MOVE[cat];
+    if (!cfg || typeof host.scan !== 'function') return null;
+    sigChk();
+    var key = ''; try { key = host.sig('version') || ''; } catch (e) { key = ''; }
+    if (key) key += '|' + SIG;
+    if (!fresh && key && MV.list && MV.cat === cat && MV.key === key) return MV.list;
+    var rows; try { rows = host.scan() || []; } catch (e) { rows = []; }
+    var byName = {}, cos = [], i, r, e, c, txt, it, cl, amt, dk, key2;
+    for (i = 0; i < rows.length; i++) {
+      r = rows[i]; e = r && r.e;
+      if (!e || typeof e !== 'object' || e.sub || e.fromFixed) continue;
+      c = String(e.cat || '').toLowerCase();
+      if (!c || c === cat || cfg.skip[c]) continue;
+      txt = (e.desc && e.desc !== '—') ? String(e.desc) : (e.nota ? String(e.nota) : '');
+      if (!txt) continue;
+      key2 = cat + '\u0001' + txt;
+      if (Object.prototype.hasOwnProperty.call(GS, key2)) it = GS[key2]; else it = GS[key2] = guessText(cat, txt);
+      if (!it || (it.generic && !cfg.strong[it.gid])) continue;
+      cl = byName[it.name];
+      if (!cl) { cl = byName[it.name] = { name: it.name, gid: it.gid, generic: !!it.generic, pre: !!(cfg.strong[it.gid] && !it.generic), items: [], total: 0, from: {}, last: '', idx: cos.length }; cos.push(cl); }
+      amt = Number(e.amount) || 0;
+      cl.items.push({ k: r.k, i: r.i, e0: { id: e.id, cat: e.cat, amount: e.amount, date: e.date, desc: e.desc, nota: e.nota, updatedAt: e.updatedAt },
+                      fp: fp(e), cat: c, date: e.date, desc: txt, amount: amt });
+      cl.total += amt; cl.from[c] = (cl.from[c] || 0) + 1;
+      dk = dkey(e.date); if (dk > cl.last) cl.last = dk;
+    }
+    var groups = {}, gorder = [], n = 0, total = 0, byGid = {}, pre = { n: 0, total: 0, byGid: {} };
+    cos.forEach(function (c2) {
+      c2.items.sort(function (a, b) { var x = dkey(a.date), y = dkey(b.date); return x < y ? 1 : (x > y ? -1 : 0); });
+      var g = groups[c2.gid];
+      if (!g) { g = groups[c2.gid] = { gid: c2.gid, cos: [], total: 0, cnt: 0, strong: cfg.strong[c2.gid] ? 1 : 0 }; gorder.push(g); }
+      g.cos.push(c2); g.total += c2.total; g.cnt += c2.items.length;
+      n += c2.items.length; total += c2.total; byGid[c2.gid] = (byGid[c2.gid] || 0) + c2.items.length;
+      if (c2.pre) { pre.n += c2.items.length; pre.total += c2.total; pre.byGid[c2.gid] = (pre.byGid[c2.gid] || 0) + c2.items.length; }
+    });
+    gorder.forEach(function (g) { g.cos.sort(function (a, b) { return b.total - a.total; }); });
+    gorder.sort(function (a, b) { return (b.strong - a.strong) || (b.total - a.total); });
+    var L = { n: n, total: total, cos: cos, groups: gorder, byGid: byGid, pre: pre };
+    MV = { cat: cat, key: key, list: L };
+    return L;
+  }
+
+  function moveRowHtml(cat) {
+    var h = '', L = MOVE[cat] ? moveScan(cat) : null;
+    if (!MOVE[cat]) return '';
+    if (LAST && LAST.cat === cat && Date.now() - LAST.t < 600000) {
+      var per = ''; try { per = host.period ? host.period() : ''; } catch (e) { per = ''; }
+      h += '<div class="sb-mv done"><span class="sb-mt"><b>✅ ' + (LAST.n === 1 ? 'Spostata 1 spesa' : 'Spostate ' + LAST.n + ' spese') + ' in ' + esc(MOVE[cat].name) + '</b>' +
+        '<i>' + money(LAST.total) + (per && per !== 'all' ? ' · le trovi scegliendo «Sempre» in alto' : '') + '</i></span>' +
+        '<button type="button" class="sb-tb" data-sb="mvundo">Annulla</button></div>';
+    }
+    if (L && L.n) {
+      var cro = L.pre.byGid.cro || 0, air = L.pre.byGid.aereo || 0, extra = '';
+      if (cro || air) extra = ' · di cui ' + (cro ? cro + ' di crociera' : '') + (cro && air ? ' e ' : '') + (air ? air + (air === 1 ? ' di volo' : ' di voli') : '');
+      h += '<div class="sb-mv"><span class="sb-mt"><b>🔀 ' + (L.n === 1 ? '1 spesa di viaggio è in un’altra categoria' : L.n + ' spese di viaggio sono in altre categorie') + '</b>' +
+        '<i>' + money(L.total) + ' · in tutto lo storico' + extra + '</i></span>' +
+        '<button type="button" class="sb-tb" data-sb="mvopen">Controlla</button></div>';
+    }
+    return h;
+  }
+
+  function openMove(cat) {
+    var cfg = MOVE[cat]; if (!cfg) return;
+    var L = moveScan(cat, true);
+    if (!L || !L.n) { host.toast('Nessuna spesa da spostare'); host.rerender(); return; }
+    var on = {}, open = {}, busy = false, ov;
+    L.cos.forEach(function (c) { on[c.name] = c.pre; });
+    function sel() { var n = 0, t = 0; L.cos.forEach(function (c) { if (on[c.name]) { n += c.items.length; t += c.total; } }); return { n: n, t: t }; }
+    function from(c) {
+      var ks = Object.keys(c.from).sort(function (a, b) { return c.from[b] - c.from[a]; });
+      return 'da ' + ks.slice(0, 2).map(catWord).join(', ') + (ks.length > 2 ? ' +' + (ks.length - 2) : '');
+    }
+    function coHtml(c) {
+      var o = !!open[c.name], multi = Object.keys(c.from).length > 1, lim = 15, k = c.items.length;
+      return '<div class="sb-row sb-mr' + (o ? ' open' : '') + '"><div class="sb-mh">' +
+        '<button type="button" class="sb-ck' + (on[c.name] ? ' on' : '') + '" data-sb="mvt" data-i="' + c.idx + '" role="checkbox" aria-checked="' + (on[c.name] ? 'true' : 'false') + '" aria-label="Sposta ' + esc(c.name) + '">' + (on[c.name] ? '✓' : '') + '</button>' +
+        '<button type="button" class="sb-mb" data-sb="mvx" data-i="' + c.idx + '" aria-expanded="' + (o ? 'true' : 'false') + '"><span class="sb-rn"><b>' + esc(c.name) + (c.generic ? ' <span class="sb-tag">generico</span>' : '') + '</b><i>' + k + (k === 1 ? ' spesa' : ' spese') + ' · ' + esc(from(c)) + (c.last ? ' · ult. ' + esc(dmy(c.last)) : '') + '</i></span>' +
+        '<span class="sb-rv"><b>' + money(c.total) + '</b><i>' + (o ? '▴' : '▾') + '</i></span></button></div>' +
+        '<div class="sb-rx">' + c.items.slice(0, lim).map(function (x) {
+          return '<div class="sb-x"><span class="sb-xd">' + esc(dmy(x.date)) + '</span><span class="sb-xt">' + esc(x.desc) + (multi ? ' <em>· ' + esc(catWord(x.cat)) + '</em>' : '') + '</span><span class="sb-xa">' + money(x.amount) + '</span></div>';
+        }).join('') + (k > lim ? '<div class="sb-xm">e altre ' + (k - lim) + '…</div>' : '') + '</div></div>';
+    }
+    function bodyHtml() {
+      var pc = L.pre.byGid.cro || 0, pa = L.pre.byGid.aereo || 0, gen = false;
+      L.cos.forEach(function (c) { if (c.generic) gen = true; });
+      var note = (pc || pa ? ' ' + (pc && pa ? 'Crociere e voli con il nome della compagnia sono già spuntati.' : (pc ? 'Le crociere con il nome della compagnia sono già spuntate.' : 'I voli con il nome della compagnia sono già spuntati.')) : '') +
+                 (gen ? ' Se vedi «generico» manca la compagnia: decidi tu.' : '');
+      var h = '<p class="sb-mi">Queste spese portano il nome di una compagnia di viaggio ma sono in un’altra categoria. Spunta quelle da spostare in ' + esc(cfg.name) + '.' + note + '</p>' +
+        '<div class="sb-mall"><button type="button" class="sb-more" data-sb="mvall">Seleziona tutto</button><button type="button" class="sb-more" data-sb="mvnone">Nessuna</button></div>';
+      L.groups.forEach(function (g) {
+        var gi = groupInfo(cat, g.gid);
+        h += '<div class="sb-sec">' + esc(gi.ic) + ' ' + esc(gi.n) + ' · ' + g.cnt + ' · ' + money(g.total) + '</div>';
+        g.cos.forEach(function (c) { h += coHtml(c); });
+      });
+      return h;
+    }
+    function footHtml() {
+      var s = sel();
+      return '<button type="button" class="sb-ghost" data-sb="close">Annulla</button>' +
+        '<button type="button" class="sb-main" data-sb="mvgo"' + (s.n ? '' : ' disabled') + '>' + (s.n ? 'Sposta ' + s.n + (s.n === 1 ? ' spesa' : ' spese') + ' · ' + money(s.t) : 'Scegli almeno una') + '</button>';
+    }
+    function paint() {
+      var b = ov.querySelector('.sb-body'), f = ov.querySelector('.sb-foot'), top = b ? b.scrollTop : 0;
+      if (b) { b.innerHTML = bodyHtml(); b.scrollTop = top; }
+      if (f) f.innerHTML = footHtml();
+    }
+    ov = sheetOpen({
+      html: '<div class="sb-grab"></div><div class="sb-head"><div class="sb-title">' + esc(cfg.title) + '</div><button type="button" class="sb-close" data-sb="close" aria-label="Chiudi">✕</button></div>' +
+        '<div class="sb-body"></div><div class="sb-foot"></div>',
+      onclick: function (ev) {
+        var t = ev.target.closest('[data-sb]'); if (!t) return;
+        var a = t.getAttribute('data-sb'), c = L.cos[Number(t.getAttribute('data-i'))];
+        if (a === 'close') sheetClose();
+        else if (a === 'mvt' && c) { on[c.name] = !on[c.name]; paint(); }
+        else if (a === 'mvx' && c) { open[c.name] = !open[c.name]; paint(); }
+        else if (a === 'mvall') { L.cos.forEach(function (x) { on[x.name] = true; }); paint(); }
+        else if (a === 'mvnone') { L.cos.forEach(function (x) { on[x.name] = false; }); paint(); }
+        else if (a === 'mvgo') { if (busy) return; busy = true; runMove(cat, L, on); }
+      }
+    });
+    paint();
+  }
+
+  function runMove(cat, L, on) {
+    var cfg = MOVE[cat], stamp = new Date().toISOString(), ch = [], meta = [];
+    L.cos.forEach(function (c) {
+      if (!on[c.name]) return;
+      c.items.forEach(function (x) { ch.push({ k: x.k, i: x.i, fp: x.fp, set: { cat: cat, updatedAt: stamp } }); meta.push(x); });
+    });
+    if (!ch.length) return;
+    var res; try { res = host.apply(ch); } catch (err) { console.warn('EWSUB sposta', err); res = { ok: false }; }
+    sheetClose();
+    if (!res || !res.ok) { host.toast('⚠️ Non sono riuscito a spostare le spese: non è cambiato nulla'); host.rerender(); return; }
+    var done = res.done || [], total = 0, items = [];
+    done.forEach(function (ix) {
+      var x = meta[ix]; if (!x) return;
+      total += x.amount;
+      items.push({ k: x.k, i: x.i, fp: fp(Object.assign({}, x.e0, { cat: cat, updatedAt: stamp })), prev: { cat: x.e0.cat, updatedAt: x.e0.updatedAt } });
+    });
+    var n = items.length, miss = ch.length - n;
+    LAST = n ? { cat: cat, t: Date.now(), n: n, total: total, items: items } : null;
+    MV = { cat: '', key: '', list: null }; bust();
+    host.toast((n ? '✅ ' + (n === 1 ? 'Spostata 1 spesa' : 'Spostate ' + n + ' spese') + ' in ' + cfg.name : '⚠️ Nessuna spesa spostata') + (miss ? ' · ' + miss + (miss === 1 ? ' non trovata (già cambiata)' : ' non trovate (già cambiate)') : ''));
+    host.rerender();
+  }
+
+  function undoMove(cat) {
+    if (!LAST || LAST.cat !== cat) return;
+    var ch = LAST.items.map(function (x) { return { k: x.k, i: x.i, fp: x.fp, set: { cat: x.prev.cat, updatedAt: x.prev.updatedAt } }; });
+    var res; try { res = host.apply(ch); } catch (err) { console.warn('EWSUB annulla', err); res = { ok: false }; }
+    if (!res || !res.ok) { host.toast('⚠️ Non sono riuscito ad annullare: non è cambiato nulla'); host.rerender(); return; }
+    var n = (res.done || []).length, miss = ch.length - n;
+    LAST = null; MV = { cat: '', key: '', list: null }; bust();
+    host.toast('↩️ ' + (n === 1 ? '1 spesa rimessa' : n + ' spese rimesse') + ' dove erano' + (miss ? ' · ' + miss + (miss === 1 ? ' modificata nel frattempo, non toccata' : ' modificate nel frattempo, non toccate') : ''));
+    host.rerender();
+  }
+
   function bind(box) {
     if (box.__sbBound) return; box.__sbBound = true;
     box.addEventListener('click', function (ev) {
@@ -31485,6 +31677,8 @@ supermercato: {
       }
       else if (a === 'all') { REP.all[t.getAttribute('data-n')] = true; REP.open[t.getAttribute('data-n')] = true; host.rerender(); }
       else if (a === 'todoall') { REP.todoAll = true; host.rerender(); }
+      else if (a === 'mvopen') openMove(cat);
+      else if (a === 'mvundo') undoMove(cat);
       else if (a === 'mk') {
         var c = REP.todo[Number(t.getAttribute('data-i'))]; if (!c) return;
         openCreate(cat, { name: c.name, alias: c.key, gid: c.gid || 'mie' });
@@ -31510,8 +31704,10 @@ supermercato: {
     attach: attach, init: init, value: value, reset: reset, setFor: setFor, refresh: refresh,
     view: view, toggleHtml: toggleHtml, report: report, bind: bind, resetReport: resetReport,
     openPicker: openPicker, openCreate: openCreate, closeSheet: sheetClose,
+    fp: fp, openMove: openMove, undoMove: undoMove,
+    moveHtml: function (cat) { var r = moveRowHtml(cat); return r ? '<div class="sb-rep" data-cat="' + esc(cat) + '">' + r + '</div>' : ''; },
     addCustom: addCustom, removeCustom: removeCustom, bust: bust, css: CSS, injectCss: injectCss,
-    _: { norm: norm, clusterKey: clusterKey, buildTodo: buildTodo, guessText: guessText, comp: comp, search: search, niceName: niceName, countMatches: countMatches }
+    _: { norm: norm, clusterKey: clusterKey, buildTodo: buildTodo, guessText: guessText, comp: comp, search: search, niceName: niceName, countMatches: countMatches, moveScan: moveScan }
   };
 })(typeof window !== 'undefined' ? window : this);
 /* ── Collegamento di «Azienda» (EWSUB) all'app GoBank ── */
@@ -31526,6 +31722,9 @@ supermercato: {
     try { memo = getAllExpensesAllTime(); } catch (e) { memo = []; }
     memoAt = now;
     return memo;
+  }
+  function who() {
+    try { return (typeof currentUser !== 'undefined' && currentUser && currentUser.email) ? String(currentUser.email) : ''; } catch (e) { return ''; }
   }
   E.host.load = function (k, d) { try { return load(k, d); } catch (e) { return d; } };
   E.host.save = function (k, v) { try { save(k, v); } catch (e) { console.warn('EWSUB save', e); } };
@@ -31542,6 +31741,80 @@ supermercato: {
     } catch (e) { console.error('EWSUB rerender', e); }
   };
   E.host.toast = function (m) { try { showToast(m); } catch (e) {} };
+  E.host.period = function () { try { return _catDetailPeriod; } catch (e) { return ''; } };
+
+  /* Tutte le spese MENSILI dell'utente (le stesse liste che usa «Modifica spesa»): [{ k, i, e }].
+     k = chiave senza prefisso utente (es. expenses_2024_2), i = posizione nella lista, e = copia letta ora. */
+  E.host.scan = function () {
+    var out = [];
+    if (!who()) return out;
+    var pfx = getKey('expenses_'), n, key, rest, arr, i;
+    for (n = 0; n < localStorage.length; n++) {
+      key = localStorage.key(n);
+      if (!key || key.indexOf(pfx) !== 0) continue;
+      rest = key.slice(pfx.length);
+      if (!/^\d{4}_\d{1,2}$/.test(rest)) continue;          // solo expenses_AAAA_M (niente «fixed», niente vs_)
+      try { arr = JSON.parse(localStorage.getItem(key) || '[]'); } catch (e) { continue; }
+      if (!Array.isArray(arr)) continue;
+      for (i = 0; i < arr.length; i++) if (arr[i] && typeof arr[i] === 'object') out.push({ k: 'expenses_' + rest, i: i, e: arr[i] });
+    }
+    return out;
+  };
+
+  /* Applica i cambi [{ k, i, fp, set: { campo: valore | undefined } }].
+     · ogni spesa viene ritrovata per posizione + impronta (id, categoria, importo, data, descrizione, nota, updatedAt);
+       se nel frattempo è cambiata non si tocca;
+     · si cambia solo ciò che sta in «set» (undefined = toglie il campo);
+     · se un salvataggio fallisce, quello già scritto viene rimesso com'era e non cambia nulla. */
+  E.host.apply = function (changes) {
+    var res = { ok: true, done: [], miss: 0 };
+    if (!who() || !changes || !changes.length) return { ok: !!who(), done: [], miss: changes ? changes.length : 0 };
+    var byKey = {}, order = [], orig = {}, wrote = [];
+    changes.forEach(function (c, n) {
+      if (!byKey[c.k]) { byKey[c.k] = []; order.push(c.k); }
+      byKey[c.k].push({ c: c, n: n });
+    });
+    try {
+      order.forEach(function (k) {
+        var raw = localStorage.getItem(getKey(k)), arr = null, used = {}, touched = false;
+        try { arr = JSON.parse(raw || '[]'); } catch (e) { arr = null; }
+        if (!Array.isArray(arr)) { res.miss += byKey[k].length; return; }
+        byKey[k].forEach(function (x) {
+          var c = x.c, j = -1, t;
+          if (!used[c.i] && arr[c.i] && E.fp(arr[c.i]) === c.fp) j = c.i;
+          else for (t = 0; t < arr.length; t++) { if (!used[t] && arr[t] && E.fp(arr[t]) === c.fp) { j = t; break; } }
+          if (j < 0) { res.miss++; return; }
+          used[j] = 1;
+          var ne = Object.assign({}, arr[j]);
+          Object.keys(c.set).forEach(function (f) {
+            if (c.set[f] === undefined || c.set[f] === null) delete ne[f]; else ne[f] = c.set[f];
+          });
+          arr[j] = ne; touched = true; res.done.push(x.n);
+        });
+        if (touched) {
+          orig[k] = raw;
+          if (save(k, arr) === false) throw new Error('salvataggio non riuscito: ' + k);
+          wrote.push(k);
+        }
+      });
+    } catch (err) {
+      console.warn('EWSUB apply', err);
+      wrote.forEach(function (k) { try { localStorage.setItem(getKey(k), orig[k]); } catch (e) { console.error('EWSUB rollback', k, e); } });
+      memo = null;
+      return { ok: false, done: [], miss: changes.length, err: String(err && err.message || err) };
+    }
+    memo = null;
+    if (res.done.length) {
+      // come «Modifica spesa»: doppio bump (sicuramente più recente del cloud) e invio subito
+      try { bumpVersion(); bumpVersion(); fbPushToCloud(true); } catch (e) { console.warn('EWSUB sync', e); }
+      try { if (typeof renderExpenses === 'function') renderExpenses(); } catch (e) { console.warn('EWSUB refresh', e); }
+      try { if (typeof renderDashboard === 'function') renderDashboard(); } catch (e) { console.warn('EWSUB refresh', e); }
+      try { if (typeof renderWeek === 'function') renderWeek(); } catch (e) { console.warn('EWSUB refresh', e); }
+      try { if (typeof refreshBudgetPlannerIfVisible === 'function') refreshBudgetPlannerIfVisible(); } catch (e) { console.warn('EWSUB refresh', e); }
+    }
+    return res;
+  };
+
   try { E.init(); } catch (e) { console.error('EWSUB init', e); }
 })();
 </script>
