@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20261025-ew-v127';
+  var BUILD='20261025-ew-v128-apple';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -35,554 +35,409 @@ if('serviceWorker' in navigator){window.addEventListener('load',function(){navig
 <link rel="icon" type="image/png" href="favicon.png?v=65">
 <link rel="apple-touch-icon" href="apple-touch-icon.png?v=65">
 <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700;12..96,800&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
-<style>
+<style id="aw-hub">
+/* ═══════════════════════════════════════════════════════════════
+   E-Wallet · Hub e launcher · stile Apple A+B (vetro 55%, accento oro)
+   Sostituisce per intero i due vecchi blocchi <style> di index.html.
+   Tutti gli id / classi usati dal JavaScript restano invariati.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ───────── token ───────── */
 :root{
-  --bg:#080c0a; --bg2:#0a1410;
-  --gold:#c9a84c; --gold-bright:#e8c874;
-  --green:#34d27a; --green-deep:#1f6b46;
-  --text:#f3efe6; --muted:rgba(243,239,230,0.55);
-  --wallet-teal:#0AA88F; --wallet-teal-deep:#0B7D73; --wallet-mint:#6EE7B7; --wallet-navy:#0F172A;
+  color-scheme:dark;
+  --gl:max(16px,env(safe-area-inset-left,0px)); --gr:max(16px,env(safe-area-inset-right,0px));
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display",system-ui,"Inter","Helvetica Neue",Arial,sans-serif;
+  --font-disp:-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,"Inter Display","Inter","Helvetica Neue",Arial,sans-serif;
+  --font-num:ui-rounded,"SF Pro Rounded",-apple-system,BlinkMacSystemFont,system-ui,"Inter","Helvetica Neue",Arial,sans-serif;
+  --font-serif:ui-serif,"New York",Georgia,"Times New Roman",serif;
+  --font-brand:"Bricolage Grotesque","Bricolage",-apple-system,system-ui,sans-serif;
+
+  /* scuro (predefinito) */
+  --bg:#000000; --card:#1c1c1e; --card2:#2c2c2e; --card3:#3a3a3c;
+  --label:#ffffff; --label2:rgba(235,235,245,.62); --label3:rgba(235,235,245,.30);
+  --sep:rgba(84,84,88,.62); --fill:rgba(120,120,128,.30); --fill2:rgba(120,120,128,.42);
+  --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a; --purple:#bf5af2; --indigo:#5e5ce6; --teal:#40c8e0; --pink:#ff375f; --yellow:#ffd60a; --gray:#8e8e93;
+  --good:#30d158; --warn:#ffb340; --bad:#ff6961;
+  --bar:rgba(24,24,26,.78); --sheet:#1c1c1e; --sheet-card:#2c2c2e; --seg-on:#636366; --menu-bg:rgba(44,44,48,.86);
+  --au-a:rgba(70,32,110,.44); --au-b:rgba(16,64,90,.44); --au-c:rgba(106,33,69,.44);
+  --scrim:rgba(0,0,0,.58);
+  --brand-t:#ff7f2a; --brand-c:#4ade80;
+
+  /* accento oro */
+  --ac:#d6b04c; --ac2:#f2d780; --on-ac:#1d1503; --act:#f2d780; --ac-soft:rgba(214,176,76,.20); --ac-ring:rgba(214,176,76,.5);
+
+  /* vetro A+B · 55% */
+  --sf:rgba(255,255,255,.088); --sf2:rgba(255,255,255,.06); --sf-bd:rgba(255,255,255,.0935);
+  --sf-bf:blur(17.2px) saturate(1.44);
+  --sf-sh:0 5.5px 18.7px rgba(0,0,0,.275); --sf-hl:inset 0 1px 0 rgba(255,255,255,.143);
+  --r:24.4px; --r2:17.3px; --r3:12px; --rbtn:16px;
+
+  --green-deep:#15803c;
 }
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{margin:0;height:100%;}
-body{
-  font-family:'DM Sans',system-ui,sans-serif;
-  background:var(--bg); color:var(--text);
-  overflow:hidden; position:fixed; inset:0;
+body.ew-day{
+  color-scheme:light;
+  --bg:#f2f2f7; --card:#ffffff; --card2:#f2f2f7; --card3:#e5e5ea;
+  --label:#000000; --label2:rgba(60,60,67,.64); --label3:rgba(60,60,67,.34);
+  --sep:rgba(60,60,67,.16); --fill:rgba(120,120,128,.12); --fill2:rgba(120,120,128,.20);
+  --blue:#007aff; --green:#34c759; --orange:#ff9500; --red:#ff3b30; --purple:#af52de; --indigo:#5856d6; --teal:#00a5b8; --pink:#ff2d55; --yellow:#ffcc00; --gray:#8e8e93;
+  --good:#168a3c; --warn:#c77700; --bad:#d92d20;
+  --bar:rgba(247,247,250,.82); --sheet:#f2f2f7; --sheet-card:#ffffff; --seg-on:#ffffff; --menu-bg:rgba(250,250,252,.88);
+  --au-a:rgba(255,210,184,.52); --au-b:rgba(212,200,251,.52); --au-c:rgba(185,230,241,.52);
+  --scrim:rgba(0,0,0,.34);
+  --brand-t:#e8650c; --brand-c:#16a34a;
+  --act:#85620a;
+  --sf:rgba(255,255,255,.7115); --sf2:rgba(120,120,128,.08); --sf-bd:rgba(255,255,255,.429);
+  --sf-sh:0 5.5px 18.7px rgba(48,48,110,.0715); --sf-hl:inset 0 1px 0 rgba(255,255,255,.5225);
 }
-.bg-glow{
-  position:fixed; inset:0; z-index:0; pointer-events:none;
-  background:
-    radial-gradient(circle at 18% 8%, rgba(201,168,76,0.16) 0%, transparent 46%),
-    radial-gradient(circle at 84% 92%, rgba(52,210,122,0.16) 0%, transparent 44%),
-    linear-gradient(160deg,#0a1410 0%,#080c0a 60%,#0a0e0c 100%);
+/* valori derivati: vanno ricalcolati dove cambiano i token (altrimenti restano quelli dello scuro) */
+:root,body.ew-day{
+  --bg2:var(--card); --text:var(--label); --muted:var(--label2);
+  --gold:var(--act); --gold-bright:var(--ac2);
+  --aura-bg:radial-gradient(58% 40% at 10% 4%,var(--au-a),transparent 70%),radial-gradient(52% 38% at 98% 30%,var(--au-b),transparent 72%),radial-gradient(70% 44% at 8% 96%,var(--au-c),transparent 72%),var(--bg);
 }
 
-/* ════════ BRAND LOGO (hub + gate) ════════ */
-.brand-logo{ width:158px; height:auto; display:block; margin:0 auto 12px;
-  filter:drop-shadow(0 12px 30px rgba(0,0,0,.55)); }
-.brand-text{ display:none; }                 /* mobile (iPhone): solo logo */
-@media (min-width:768px){
-  .brand-logo{ width:132px; margin-bottom:14px; } /* desktop: logo ben visibile */
-  .brand-text{ display:block; }                    /* + testo sotto */
-}
+/* ───────── base ───────── */
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%}
+body{font:400 17px/1.3 var(--font);background:var(--bg);color:var(--label);overflow:hidden;position:fixed;inset:0;-webkit-font-smoothing:antialiased;-webkit-text-size-adjust:100%}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+.ic{width:1.15em;height:1.15em;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round;vertical-align:-.2em}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.4px}
+.bg-glow{position:fixed;inset:0;z-index:0;pointer-events:none;background:var(--aura-bg)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+@media (prefers-reduced-motion:reduce){*{transition-duration:.01ms!important;animation-duration:.01ms!important}}
 
-/* ════════ LOGIN GATE ════════ */
-#ewLogin{
-  position:fixed; inset:0; z-index:20;
-  display:flex; flex-direction:column; align-items:center;
-  padding:calc(env(safe-area-inset-top) + 36px) 22px calc(env(safe-area-inset-bottom) + 28px);
-  overflow-y:auto; -webkit-overflow-scrolling:touch;
-  transition:opacity .4s ease;
-}
-.lg-head{ text-align:center; margin-bottom:26px; }
-.lg-eyebrow{ font-size:11px; letter-spacing:5px; text-transform:uppercase; color:var(--gold); opacity:.85; margin-bottom:10px; }
-.lg-title{
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:800;
-  font-size:clamp(38px,10vw,58px); line-height:.92; letter-spacing:-.02em; margin:0;
-  text-shadow:0 8px 40px rgba(0,0,0,.5);
-}
-.lg-title .e{ color:var(--gold-bright); } .lg-title .w{ color:var(--green); }
-.lg-tag{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:300; font-size:16px; color:var(--muted); margin-top:12px; }
+/* superficie «vetro» condivisa */
+.glass,.sb-card,.lg-card,.pass,.ew-tile,.ew-mapsection,.ew-syncpanel-card,.ew-health,.ew-poi-confirm,.ew-poi-confirm-card{
+  background:var(--sf);border:1px solid var(--sf-bd);border-radius:var(--r);
+  box-shadow:var(--sf-sh),var(--sf-hl);-webkit-backdrop-filter:var(--sf-bf);backdrop-filter:var(--sf-bf)}
 
-.lg-card{
-  width:min(380px,92vw);
-  background:rgba(20,28,23,0.66);
-  border:1px solid rgba(201,168,76,0.18);
-  border-radius:22px; padding:22px 20px;
-  backdrop-filter:blur(16px) saturate(1.2); -webkit-backdrop-filter:blur(16px) saturate(1.2);
-  box-shadow:0 26px 70px -24px rgba(0,0,0,.7);
-}
-.lg-sub{ font-size:13px; font-weight:600; color:var(--muted); text-align:center; margin-bottom:16px; letter-spacing:.3px; }
+/* squircle con icona */
+.sq{width:34px;height:34px;border-radius:22.4%;display:inline-flex;align-items:center;justify-content:center;flex:none;color:#fff;font-size:19px;background:linear-gradient(180deg,var(--c1,#a5a5ab),var(--c2,#78787f));box-shadow:inset 0 .5px 0 rgba(255,255,255,.35)}
+.sq .ic{font-size:inherit;stroke-width:2}
+.sq.s30{width:30px;height:30px;font-size:17px}.sq.s40{width:40px;height:40px;font-size:22px}.sq.s56{width:56px;height:56px;font-size:28px}
+.c-orange{--c1:#ffb040;--c2:#ff8c00}.c-blue{--c1:#43a0ff;--c2:#0a7cf5}.c-green{--c1:#55dc6c;--c2:#25b84d}.c-red{--c1:#ff6f64;--c2:#ff3b30}
+.c-purple{--c1:#c97dee;--c2:#9a45d2}.c-indigo{--c1:#7f7eee;--c2:#4b4acb}.c-teal{--c1:#43cdd9;--c2:#17a2b5}.c-gray{--c1:#aaaab0;--c2:#7b7b82}
+.c-gold{--c1:#f3d77f;--c2:#c9a84c;color:#2a1f03}.c-pink{--c1:#ff6483;--c2:#ff2d55}.c-brown{--c1:#b99468;--c2:#8c6a43}
 
-/* profili */
-.prof-list{ display:flex; flex-direction:column; gap:10px; }
-.prof{
-  display:flex; align-items:center; gap:13px; cursor:pointer;
-  padding:11px 13px; border-radius:14px;
-  background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08);
-  transition:all .18s ease;
-}
-.prof:hover,.prof.sel{ border-color:rgba(201,168,76,0.55); background:rgba(201,168,76,0.08); }
-.prof-av{
-  width:44px; height:44px; border-radius:50%; flex:0 0 44px;
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:700; font-size:19px; color:#10140f;
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold));
-  overflow:hidden;
-}
-.prof-av img{ width:100%; height:100%; object-fit:cover; }
-.prof-info{ flex:1; min-width:0; }
-.prof-name{ font-size:15px; font-weight:600; color:var(--text); }
-.prof-email{ font-size:11.5px; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.prof-chips{ display:flex; gap:5px; margin-top:4px; }
-.chip-app{ font-size:9px; letter-spacing:.5px; padding:2px 7px; border-radius:20px; font-weight:700; }
-.chip-tc{ background:rgba(201,168,76,0.18); color:var(--gold-bright); border:1px solid rgba(201,168,76,0.3); }
-.chip-gw{ background:rgba(52,210,122,0.16); color:var(--green); border:1px solid rgba(52,210,122,0.3); }
+/* emblema + scritta «Sigillo» */
+.emblem{width:30px;height:30px;border-radius:9px;background:linear-gradient(145deg,#37e3b0,#0e9c78 60%,#0a6e5a);display:grid;place-items:center;flex:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 2px 8px rgba(10,110,90,.35)}
+.emblem svg{width:20px;height:20px}
+.wm{display:inline-flex;align-items:center;white-space:nowrap;line-height:1;color:var(--label)}
+.wm.m2{gap:8px}
+.wm.m2 .seal{width:28px;height:28px;border-radius:9px;background:linear-gradient(145deg,#f6dc88,#c9a84c 60%,#9c7a22);color:#2a1f03;display:grid;place-items:center;font:800 12px var(--font-brand);letter-spacing:-.2px;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 2px 8px rgba(0,0,0,.18)}
+.wm.m2 .tx{font:700 11px var(--font);letter-spacing:.18em;color:var(--label2)}
 
-/* password */
-.lg-pass{ margin-top:14px; }
-.lg-pass.hidden{ display:none; }
-.lg-selname{ text-align:center; font-size:14px; font-weight:600; margin-bottom:12px; }
-.lg-input{
-  width:100%; padding:13px 15px; border-radius:12px;
-  background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.12);
-  color:var(--text); font-size:15px; font-family:'DM Sans',sans-serif; outline:none;
-  transition:border-color .2s ease;
-}
-.lg-input:focus{ border-color:var(--gold); }
-.lg-btn{
-  width:100%; margin-top:12px; padding:14px; border:0; border-radius:12px; cursor:pointer;
-  font-family:'DM Sans',sans-serif; font-size:14px; font-weight:700; letter-spacing:.5px; color:#10140f;
-  background:linear-gradient(135deg,var(--gold-bright),var(--gold));
-  transition:transform .12s ease, filter .2s ease;
-}
-.lg-btn:active{ transform:scale(.985); }
-.lg-btn.ghost{ background:transparent; color:var(--muted); font-weight:600; font-size:12.5px; margin-top:14px; }
-.lg-err{ color:#ff8a7a; font-size:12.5px; text-align:center; min-height:16px; margin-top:10px; }
-.lg-back{ display:block; margin:10px auto 0; background:none; border:0; color:var(--muted); font-size:12px; cursor:pointer; }
-.lg-empty{ text-align:center; color:var(--muted); font-size:13px; line-height:1.6; padding:10px 4px; }
-.lg-foot{ margin-top:22px; font-size:11px; letter-spacing:1.5px; color:rgba(201,168,76,.5); text-align:center; }
+/* pulsanti */
+.btn,.lg-btn,#sbLoginBtn,#sbRecoverBtn,#sbSkip,#sbForgotBtn,.ew-syncpanel-syncbtn,.ew-health-btn,.btn-gold-ew,.ew-conflict-btn{
+  display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:0 20px;border:0;border-radius:var(--rbtn);
+  font:600 17px var(--font);letter-spacing:-.1px;width:100%;transition:transform .15s,opacity .15s,filter .15s;background:var(--fill);color:var(--label)}
+.btn:active,.lg-btn:active,#sbLoginBtn:active,#sbRecoverBtn:active,#sbSkip:active,.ew-syncpanel-syncbtn:active,.ew-health-btn:active{transform:scale(.975);filter:brightness(.95)}
+.btn.fill,.lg-btn:not(.ghost),#sbLoginBtn,#sbRecoverBtn,.ew-health-btn.primary,.btn-gold-ew,.ew-conflict-btn.primary{
+  background:linear-gradient(180deg,var(--ac2),var(--ac));color:var(--on-ac);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 8px 22px -6px var(--ac-ring)}
+.btn.gray,.lg-btn.ghost,#sbSkip{background:var(--fill);color:var(--label);box-shadow:none}
+.lg-btn.ghost{font-size:15px;font-weight:500;color:var(--label2)}
+.ew-syncpanel-syncbtn{background:var(--ac-soft);color:var(--act);margin-top:10px}
+.ew-syncpanel-syncbtn.alt{background:var(--fill);color:var(--label)}
+.ew-syncpanel-syncbtn:disabled,#sbLoginBtn:disabled,#sbRecoverBtn:disabled{opacity:.5;cursor:default}
+.btn-gold-ew{width:auto;min-height:44px;padding:0 18px;font-size:15px}
+.ew-health-btn,.ew-conflict-btn{width:auto;min-height:38px;padding:0 15px;font-size:15px;flex:none}
 
-/* ════════ HUB ════════ */
-#hub{
-  position:fixed; inset:0; z-index:10;
-  display:flex; flex-direction:column; align-items:center;
-  padding:calc(env(safe-area-inset-top) + 28px) 22px calc(env(safe-area-inset-bottom) + 24px);
-  overflow-y:auto; -webkit-overflow-scrolling:touch;
-  opacity:0; visibility:hidden; transition:opacity .4s ease, visibility .4s;
-}
-#hub.show{ opacity:1; visibility:visible; }
-#hub::before{
-  content:''; position:absolute; inset:0; z-index:-1; pointer-events:none; opacity:.65;
-  background-image:
-    radial-gradient(circle, rgba(232,180,74,.55) 1px, transparent 1.6px),
-    radial-gradient(circle, rgba(232,180,74,.38) 1px, transparent 1.6px),
-    radial-gradient(circle, rgba(232,180,74,.24) 1px, transparent 1.6px);
-  background-size: 170px 170px, 230px 230px, 300px 300px;
-  background-position: 0 0, 55px 95px, 130px 30px;
-  animation: hubDust 70s linear infinite;
-}
-@keyframes hubDust{
-  from{ background-position: 0 0, 55px 95px, 130px 30px; }
-  to  { background-position: -170px 170px, 175px -135px, -170px 330px; }
-}
-.hub-head{ text-align:center; margin:auto 0 2px; }
-.hub-eyebrow{ font-size:11px; letter-spacing:5px; text-transform:uppercase; color:var(--gold); opacity:.8; margin-bottom:10px; }
-.ew-star{ position:absolute; fill:#e8b44a; pointer-events:none; opacity:.75; z-index:0;
-  animation: ewTwinkle 3.2s ease-in-out infinite; filter:drop-shadow(0 0 4px rgba(232,180,74,.5)); }
-@keyframes ewTwinkle{ 0%,100%{ opacity:.3; transform:scale(.7) rotate(0deg);} 50%{ opacity:1; transform:scale(1.15) rotate(14deg);} }
-.ew-star-1{ top:4%;  left:4%;   width:16px; height:16px; animation-delay:.1s; }
-.ew-star-2{ top:48%; left:1%;   width:27px; height:27px; animation-delay:1.1s; }
-.ew-star-3{ top:82%; left:12%;  width:13px; height:13px; animation-delay:2s; }
-.ew-star-4{ top:8%;  right:4%;  width:20px; height:20px; animation-delay:.6s; }
-.ew-star-5{ top:46%; right:1%;  width:31px; height:31px; animation-delay:1.6s; }
-.ew-star-6{ top:80%; right:13%; width:14px; height:14px; animation-delay:2.4s; }
-@media (max-width:600px){ .ew-star{ display:none; } }
-.hub-title{
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:800;
-  font-size:clamp(40px,11vw,64px); line-height:.92; letter-spacing:-.02em; margin:0;
-  text-shadow:0 8px 40px rgba(0,0,0,.5);
-}
-.hub-title .e{ color:var(--wallet-teal); }
-.hub-tag{ font-family:'Cormorant Garamond',serif; font-style:italic; font-weight:300; font-size:16px; color:var(--muted); margin-top:12px; }
-.hub-user{ font-size:14px; color:rgba(243,239,230,.88); margin-top:8px; }
-.hub-user b{ color:var(--gold-bright); font-weight:700; }
+/* campi */
+.lg-input,.sb-card input,.ew-mapkey-row input,.ew-qa-field input,.ew-qa-field select,#ewQaValuta{
+  width:100%;min-height:48px;padding:10px 14px;border:0;border-radius:14px;background:var(--fill);color:var(--label);font:400 17px var(--font);outline:none;-webkit-appearance:none;appearance:none}
+.lg-input::placeholder,.sb-card input::placeholder,.ew-mapkey-row input::placeholder,.ew-qa-field input::placeholder{color:var(--label3)}
+.lg-input:focus,.sb-card input:focus,.ew-mapkey-row input:focus,.ew-qa-field input:focus{box-shadow:0 0 0 2px var(--ac)}
 
-.wallet{ position:relative; width:min(340px,86vw); height:430px; flex-shrink:0; margin:26px auto; perspective:1400px; }
-.wallet::before{
-  content:''; position:absolute; left:-14px; right:-14px; bottom:-18px; top:-6px; z-index:0;
-  border-radius:26px;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    radial-gradient(circle at 12% 90%, rgba(0,0,0,.4), transparent 32%),
-    radial-gradient(circle at 85% 78%, rgba(0,0,0,.3), transparent 28%),
-    radial-gradient(circle at 90% 15%, rgba(255,255,255,.14), transparent 26%),
-    radial-gradient(circle at 25% 30%, rgba(255,255,255,.08), transparent 34%),
-    radial-gradient(ellipse at 30% 0%, rgba(255,255,255,.10), transparent 55%),
-    linear-gradient(160deg, #6b4327 0%, #4a2d18 45%, #3a2210 100%);
-  background-blend-mode: overlay, multiply, multiply, screen, screen, normal, normal;
-  background-size: 130px 130px, cover, cover, cover, cover, cover, cover;
-  box-shadow:
-    inset 0 2px 3px rgba(255,255,255,.14),
-    inset 0 -30px 40px -20px rgba(0,0,0,.55),
-    0 24px 40px -16px rgba(0,0,0,.6);
-  border:1px solid rgba(0,0,0,.35);
-}
-.wallet-pocket{
-  content:''; position:absolute; left:-14px; right:-14px; bottom:-18px; height:130px; z-index:4;
-  border-radius:0 0 26px 26px;
-  background-image:
-    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n2'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n2)'/%3E%3C/svg%3E"),
-    radial-gradient(circle at 20% 85%, rgba(0,0,0,.35), transparent 30%),
-    radial-gradient(circle at 78% 30%, rgba(255,255,255,.12), transparent 28%),
-    linear-gradient(180deg, rgba(0,0,0,.30) 0%, transparent 14%),
-    linear-gradient(160deg, #6b4327 0%, #4a2d18 45%, #3a2210 100%);
-  background-blend-mode: overlay, multiply, screen, normal, normal;
-  background-size: 130px 130px, cover, cover, cover, cover;
-  box-shadow:
-    inset 0 6px 10px -4px rgba(0,0,0,.65),
-    inset 0 2px 2px rgba(255,255,255,.10),
-    0 -6px 14px -8px rgba(0,0,0,.5);
-  border:1px solid rgba(0,0,0,.35); border-bottom:none;
-  pointer-events:none;
-}
-.wallet-stitch-1{
-  position:absolute; left:0px; right:0px; top:6px; bottom:202px; z-index:1;
-  border-radius:19px 19px 8px 8px;
-  border:2px dashed rgba(235,208,160,.6);
-  pointer-events:none;
-}
-.wallet-stitch-2{
-  position:absolute; left:0px; right:0px; top:232px; bottom:-10px; z-index:1;
-  border-radius:8px 8px 19px 19px;
-  border:2px dashed rgba(235,208,160,.6);
-  pointer-events:none;
-}
-.wallet::after{
-  content:'LUX.COMICS'; position:absolute; left:0; right:0; bottom:14px; z-index:5; text-align:center;
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:13px; letter-spacing:3.5px;
-  color:#e8c874; text-shadow:0 1px 0 rgba(255,255,255,.35), 0 -1px 1px rgba(0,0,0,.5);
-}
-.card{
-  position:absolute; left:0; right:0; height:212px; border-radius:22px; padding:22px 24px;
-  cursor:pointer; color:#fff; display:flex; flex-direction:column; justify-content:space-between;
-  box-shadow:0 26px 60px -18px rgba(0,0,0,.7), inset 0 1px 0 rgba(255,255,255,.18);
-  transition:transform .55s cubic-bezier(.2,.8,.2,1), box-shadow .4s ease, opacity .4s ease;
-  overflow:hidden; border:1px solid rgba(255,255,255,.14); will-change:transform;
-}
-.card::before{
-  content:''; position:absolute; inset:0; pointer-events:none; z-index:1;
-  background:linear-gradient(160deg, rgba(255,255,255,.40) 0%, rgba(255,255,255,.08) 20%, transparent 44%, rgba(0,0,0,.16) 100%);
-}
-.card::after{
-  content:''; position:absolute; top:-20%; bottom:-20%; left:0; width:55%; z-index:2;
-  background:linear-gradient(105deg, transparent 0%, rgba(255,255,255,.0) 32%, rgba(255,255,255,.65) 50%, rgba(255,255,255,.0) 68%, transparent 100%);
-  transform:translateX(-180%) skewX(-14deg);
-  mix-blend-mode:screen; pointer-events:none;
-  animation:cardShine 6.5s ease-in-out infinite;
-}
-#card-gw::after{ animation-delay:3.2s; }
-@keyframes cardShine{
-  0%{ transform:translateX(-180%) skewX(-14deg); }
-  16%,100%{ transform:translateX(330%) skewX(-14deg); }
-}
-/* il contenuto della carta resta sopra i riflessi */
-.card-row{ position:relative; z-index:3; }
-.card .chip{ width:42px; height:30px; border-radius:6px; position:relative;
-  background:linear-gradient(135deg,#f6e6b0,#caa84f 60%,#8c6f2c); box-shadow:inset 0 0 0 1px rgba(0,0,0,.15); }
-.card .chip::before{ content:''; position:absolute; inset:7px 9px; border:1px solid rgba(0,0,0,.25); border-radius:3px; }
-.card-row{ display:flex; align-items:flex-end; justify-content:space-between; }
-.card-mono{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:34px; letter-spacing:1px; line-height:1; }
-.card-name{ font-size:15px; font-weight:600; letter-spacing:.5px; }
-.card-sub{ font-size:11px; letter-spacing:2px; text-transform:uppercase; opacity:.8; margin-top:3px; }
-.card-open{ font-size:11px; letter-spacing:1.5px; text-transform:uppercase; opacity:.85; }
-#card-tc{ background:linear-gradient(135deg,#4a3a14 0%,#8a6e26 15%,#e8c874 29%,#f7e8ad 37%,#c9a84c 47%,#7a611f 63%,#e2c168 82%,#574215 100%); }
-#card-tc .card-mono{ color:#fff7e0; text-shadow:0 2px 10px rgba(0,0,0,.35); }
-#card-gw{ background:linear-gradient(135deg,#082619 0%,#1f6b46 15%,#3fd488 29%,#9bf0c4 37%,#2aa564 47%,#0f4a30 63%,#52df97 82%,#08301f 100%); }
-#card-gw .card-mono{ color:#eafff3; text-shadow:0 2px 10px rgba(0,0,0,.35); }
-.card.front{ transform:translateY(150px) scale(1) rotate(0deg) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); z-index:3; }
-.card.back { transform:translateY(20px) scale(.9) rotate(-4deg) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); z-index:2; opacity:.92; }
-.card.front:hover{ transform:translateY(144px) scale(1.015) rotate(0deg) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); }
-.wallet:hover .card.back{ transform:translateX(120%) translateY(20px) scale(.9) rotate(2deg) rotateX(var(--tx,0deg)) rotateY(var(--ty,0deg)); }
-/* ventaglio d'ingresso: le carte partono impilate e piatte, poi si aprono nella posizione normale */
-#hub:not(.show) .card{ transform:translateY(210px) scale(.82) rotate(0deg) !important; opacity:0 !important; }
-.card.back{ transition-delay:.09s; justify-content:flex-start; }
-.card.back .card-row:first-child{ margin-bottom:16px; }
+/* ═══════════ ACCESSO (Supabase + profili) ═══════════ */
+#sbGate{position:fixed;inset:0;z-index:2147483647;background:var(--aura-bg);display:flex;align-items:center;justify-content:center;
+  padding:calc(env(safe-area-inset-top) + 20px) var(--gr) calc(env(safe-area-inset-bottom) + 20px) var(--gl);overflow-y:auto;color:var(--label);font-family:var(--font)}
+#sbGate.sb-hidden{display:none}
+#sbGate .sb-card input{display:block!important;visibility:visible!important;opacity:1!important}
+#sbGate #sbLoginBtn,#sbGate #sbSkip,#sbGate #sbForgotBtn,#sbGate #sbRecoverBtn{display:flex!important;visibility:visible!important;opacity:1!important}
+.sb-card{width:min(390px,100%);padding:26px 22px 22px;border-radius:28px}
+.sb-card .sb-brand,.lg-head .lg-brand{display:flex;flex-direction:column;align-items:center;gap:12px;margin:0 0 18px;text-align:center}
+.sb-card .sb-brand .emblem,.lg-head .lg-brand .emblem{width:64px;height:64px;border-radius:20px}
+.sb-card .sb-brand .emblem svg,.lg-head .lg-brand .emblem svg{width:42px;height:42px}
+.sb-card h1{margin:0;font:800 28px/1 var(--font-brand);letter-spacing:-.4px}
+.sb-card h1 span,.lg-title span{color:var(--brand-c)}
+.sb-card p{margin:0 0 16px;line-height:1.4;color:var(--label2);font-size:15px;text-align:center}
+.sb-card input{display:block;margin:10px 0}
+#sbLoginBtn,#sbSkip,#sbRecoverBtn{margin-top:10px}
+#sbForgotBtn{background:transparent!important;box-shadow:none!important;color:var(--act);min-height:36px;width:auto;margin:2px 0 0;padding:0 2px;font-size:15px;font-weight:500;text-decoration:none;justify-content:flex-start}
+#sbMsg{min-height:18px;margin-top:10px;text-align:center;font-size:14px;color:var(--bad)}
+#sbRecoverBox{margin-top:14px;padding-top:14px;border-top:.5px solid var(--sep)}
+#sbRecoverBox p{margin:0 0 10px;font-size:14px;color:var(--label2)}
+/* vecchi controlli Gist: restano nascosti */
+#gistTokenLoginArea,#gist-token-input,#gist-id-input,#loginGistToken,#loginGistId,#gistTokenLoginErr,#syncModal{display:none!important}
 
-.switcher{ display:inline-flex; gap:4px; margin:8px auto 0;
-  background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.1); border-radius:40px; padding:4px; backdrop-filter:blur(8px); }
-.switcher button{ border:0; cursor:pointer; font-family:'DM Sans',sans-serif; font-size:12px; font-weight:600; letter-spacing:.5px;
-  padding:8px 18px; border-radius:30px; color:var(--muted); background:transparent; transition:all .25s ease; }
-.switcher button.active.tc{ background:linear-gradient(135deg,var(--gold-bright),var(--gold)); color:#10140f; }
-.switcher button.active.gw{ background:linear-gradient(135deg,#5ee29a,var(--green)); color:#06140c; }
+#ewLogin{position:fixed;inset:0;z-index:20;display:flex;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top) + 34px) var(--gr) calc(env(safe-area-inset-bottom) + 24px) var(--gl);overflow-y:auto;-webkit-overflow-scrolling:touch;transition:opacity .4s ease}
+.lg-head{text-align:center;margin:auto 0 22px;width:min(380px,100%)}
+.lg-head .lg-brand{margin-bottom:10px}
+.lg-title{margin:0;font:800 30px/1 var(--font-brand);letter-spacing:-.5px}
+.lg-eyebrow{font:700 11px var(--font);letter-spacing:.2em;text-transform:uppercase;color:var(--act);margin:2px 0 0}
+.lg-tag{font:400 15px var(--font);color:var(--label2);margin-top:6px}
+.lg-card{width:min(380px,100%);padding:16px;border-radius:28px}
+.lg-sub{font:600 13px var(--font);letter-spacing:.02em;text-transform:uppercase;color:var(--label2);text-align:center;margin:2px 0 12px}
+.prof-list{display:flex;flex-direction:column;gap:8px}
+.prof{display:flex;align-items:center;gap:13px;cursor:pointer;padding:10px 12px;border-radius:var(--r2);background:var(--sf2);border:0;transition:background .18s}
+.prof:active,.prof.sel{background:var(--fill)}
+.prof-av{width:44px;height:44px;border-radius:50%;flex:0 0 44px;display:flex;align-items:center;justify-content:center;font:800 19px var(--font-brand);color:#2a1f03;background:linear-gradient(145deg,#f6dc88,#c9a84c 60%,#9c7a22);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.5)}
+.prof-av img{width:100%;height:100%;object-fit:cover}
+.prof-info{flex:1;min-width:0}
+.prof-name{font:600 17px var(--font);color:var(--label)}
+.prof-email{font-size:13px;color:var(--label2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prof-chips{display:flex;gap:5px;margin-top:4px}
+.chip-app{font:700 10px/1 var(--font);letter-spacing:.04em;padding:3px 7px;border-radius:99px}
+.chip-tc{background:var(--ac-soft);color:var(--act)}
+.chip-gw{background:rgba(52,199,89,.16);color:var(--good)}
+.lg-pass{margin-top:6px}.lg-pass.hidden{display:none}
+.lg-selname{text-align:center;font:600 19px var(--font-disp);margin:4px 0 12px}
+.lg-btn{margin-top:12px}
+.lg-err{color:var(--bad);font-size:14px;text-align:center;min-height:16px;margin-top:10px}
+.lg-back{display:block;margin:10px auto 0;background:none;border:0;color:var(--act);font:500 15px var(--font);cursor:pointer;padding:6px}
+.lg-empty{text-align:center;color:var(--label2);font-size:15px;line-height:1.5;padding:10px 4px}
+.lg-foot{margin:22px 0 auto;font:500 12px var(--font);letter-spacing:.08em;color:var(--label3);text-align:center}
 
-.hub-foot{ margin-top:auto; padding-top:18px; display:flex; flex-direction:column; align-items:center; gap:10px; }
-.hub-lock{ background:none; border:1px solid rgba(255,255,255,0.12); color:var(--muted); font-size:12px; font-weight:600;
-  padding:8px 18px; border-radius:30px; cursor:pointer; transition:all .2s ease; }
-.hub-lock:hover{ border-color:rgba(201,168,76,0.5); color:var(--gold-bright); }
-.hub-copy{ font-size:11px; letter-spacing:1.5px; color:rgba(201,168,76,.5); }
+/* ═══════════ HUB ═══════════ */
+#hub{position:fixed;inset:0;z-index:10;display:flex;flex-direction:column;align-items:center;
+  padding:calc(env(safe-area-inset-top) + 18px) var(--gr) calc(env(safe-area-inset-bottom) + 20px) var(--gl);
+  overflow-y:auto;-webkit-overflow-scrolling:touch;opacity:0;visibility:hidden;transition:opacity .4s ease,visibility .4s}
+#hub.show{opacity:1;visibility:visible}
+.hub-in{width:min(100%,470px);display:flex;flex-direction:column;min-height:100%}
+.hub-head{display:flex;align-items:center;gap:14px;padding:14px 2px 4px}
+.hub-head .emblem{width:54px;height:54px;border-radius:17px}.hub-head .emblem svg{width:36px;height:36px}
+.hh-t{min-width:0}
+.hh-wm{margin-bottom:7px}
+.hub-title{margin:0;font:800 26px/1 var(--font-brand);letter-spacing:-.4px}
+.hub-title span{color:var(--brand-c)}
+.hub-tag{display:block;margin-top:5px;font:400 13px var(--font);color:var(--label2);letter-spacing:.01em}
+.hub-user{margin:18px 2px 14px;font:400 28px/1.15 var(--font-disp);letter-spacing:-.5px;color:var(--label2);min-height:32px}
+.hub-user b{color:var(--label);font-weight:700}
+.passes{display:flex;flex-direction:column;gap:12px}
+.pass{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px;padding:16px;text-align:left;width:100%;overflow:hidden;transition:transform .25s;color:var(--label)}
+.pass:active{transform:scale(.985)}
+.pass::before{content:"";position:absolute;right:-30px;top:-40px;width:150px;height:150px;border-radius:50%;filter:blur(8px);opacity:.35;pointer-events:none}
+.pass.gb::before{background:radial-gradient(circle,#ffd36b,transparent 68%)}
+.pass.gw::before{background:radial-gradient(circle,#4fe3aa,transparent 68%)}
+.pass.front{order:0}.pass.back{order:1}
+.p-mono{width:56px;height:56px;border-radius:22.4%;display:grid;place-items:center;font:800 19px var(--font-brand);color:#fff;letter-spacing:-.3px;box-shadow:inset 0 1px 0 rgba(255,255,255,.4);position:relative}
+.pass.gb .p-mono{background:linear-gradient(145deg,#f4da86,#c9a84c 62%,#9a781f);color:#2a1f03}
+.pass.gw .p-mono{background:linear-gradient(145deg,#5fe0a5,#1a9b73 60%,#0b6a55)}
+.p-txt{min-width:0;position:relative}
+.p-txt>span{display:block}
+.p-name{font:700 20px var(--font-disp);letter-spacing:-.3px}
+.p-sub{font-size:14px;color:var(--label2);margin-top:2px}
+.p-val{margin-top:7px;font:600 15px var(--font-num);color:var(--good)}
+.p-val:empty{display:none}
+.p-open{color:var(--label3);position:relative}
+.p-open .ic{font-size:22px;stroke-width:2.4}
+.hub-actions{margin-top:18px;display:flex;flex-direction:column;gap:14px;align-items:stretch}
+.switcher{display:flex;background:var(--fill);border-radius:12px;padding:2px;width:100%}
+.switcher button{flex:1;min-width:0;border:0;background:transparent;padding:7px 4px;border-radius:10px;font:500 14px/1.2 var(--font);color:var(--label);white-space:nowrap;transition:background .2s,box-shadow .2s}
+.switcher button.active{background:var(--seg-on);font-weight:600;box-shadow:0 3px 8px rgba(0,0,0,.12),0 0 0 .5px rgba(0,0,0,.04)}
+.hub-lock{display:flex;align-items:center;justify-content:center;gap:8px;min-height:50px;border:0;border-radius:var(--rbtn);background:var(--fill);color:var(--label);font:600 17px var(--font);width:100%}
+.hub-lock:active{transform:scale(.975)}
+.hub-foot{margin:auto 0 0;padding-top:26px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;color:var(--label3);font:500 12px var(--font);letter-spacing:.08em}
+.lux{font:800 11px var(--font-brand);letter-spacing:.34em;color:var(--act);opacity:.9}
 
-/* ════════ PANEL APP (iframe) ════════ */
-.app-panel{ position:fixed; inset:0; z-index:40; background:var(--bg2);
-  opacity:0; visibility:hidden; transform:translateY(100%);
-  transition:transform .42s cubic-bezier(.3,.85,.25,1), opacity .3s ease, visibility .42s; }
-.app-panel.open{ opacity:1; visibility:visible; transform:translateY(0); }
-#panel-tc .app-stage, #panel-tc .app-frame{ background:#0a0a12; }   /* TradoCroods: scuro */
-#panel-gw .app-stage, #panel-gw .app-frame{ background:#f4f2ec; }   /* GoWork: chiaro */
-.app-stage{ position:absolute; left:0; right:0; bottom:0; top:0;
-  z-index:1; overflow:hidden; background:var(--bg2); }
-.app-frame{ position:absolute; inset:0; width:100%; height:100%; border:0; background:var(--bg2); }
-/* ══ Effetto lucido "platino" sui loghi ══ */
-.logo-pulse {
-  animation: logoPulseGlow 3.6s ease-in-out infinite;
-}
-@keyframes logoPulseGlow {
-  0%, 100% { filter: brightness(1) drop-shadow(0 0 0px rgba(255,255,255,0)); }
-  50%      { filter: brightness(1.4) drop-shadow(0 0 14px rgba(255,255,255,0.55)); }
-}
+/* ═══════════ PANNELLI APP (iframe) ═══════════ */
+.app-panel{position:fixed;inset:0;z-index:40;background:var(--bg);opacity:0;visibility:hidden;transform:translateY(100%);
+  transition:transform .42s cubic-bezier(.3,.85,.25,1),opacity .3s ease,visibility .42s}
+.app-panel.open{opacity:1;visibility:visible;transform:translateY(0)}
+#panel-tc .app-stage,#panel-tc .app-frame{background:#000}
+#panel-gw .app-stage,#panel-gw .app-frame{background:#f2f2f7}
+.app-stage{position:absolute;left:0;right:0;bottom:0;top:0;z-index:1;overflow:hidden;background:var(--bg)}
+.app-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--bg)}
+.app-topbar{position:fixed;top:calc(env(safe-area-inset-top) + 8px);left:10px;right:auto;z-index:8;height:auto;padding:0;background:transparent!important;border-bottom:none!important;display:flex;align-items:center;gap:8px;pointer-events:none}
+.app-topbar .tb-back{pointer-events:auto}
+.tb-back{border:0;cursor:pointer;font:600 15px var(--font);padding:7px 14px 7px 11px;border-radius:999px;display:inline-flex;align-items:center;gap:3px;transition:transform .12s ease;
+  -webkit-backdrop-filter:blur(22px) saturate(1.8);backdrop-filter:blur(22px) saturate(1.8);box-shadow:0 4px 18px rgba(0,0,0,.22),inset 0 0 0 .5px rgba(255,255,255,.22)}
+.tb-back:active{transform:scale(.94)}
+.tb-title{display:none}
+.app-topbar.tc .tb-back{background:rgba(255,255,255,.18);color:#fff}
+.app-topbar.gw .tb-back{background:rgba(0,0,0,.55);color:#fff}
+#statusScrim{position:fixed;top:0;left:0;right:0;height:calc(env(safe-area-inset-top) + 14px);z-index:7;pointer-events:none;opacity:0;transition:opacity .3s ease;background:linear-gradient(to bottom,rgba(0,0,0,.55) 0%,rgba(0,0,0,.45) 55%,rgba(0,0,0,0) 100%)}
+.app-loader{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:var(--aura-bg);transition:opacity .4s ease}
+.app-loader.hide{opacity:0;pointer-events:none}
+.loader-mono{width:72px;height:72px;border-radius:22.4%;display:grid;place-items:center;font:800 26px var(--font-brand);letter-spacing:-.4px;color:#fff;box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 10px 30px -8px rgba(0,0,0,.4)}
+#loader-tc .loader-mono{background:linear-gradient(145deg,#f4da86,#c9a84c 62%,#9a781f);color:#2a1f03!important}
+#loader-gw .loader-mono{background:linear-gradient(145deg,#5fe0a5,#1a9b73 60%,#0b6a55);color:#fff!important}
+.loader-ring{width:30px;height:30px;border-radius:50%;border:2.5px solid var(--fill2);border-top-color:var(--ac);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loader-label{font:500 15px var(--font);color:var(--label2)}
 
-/* barra superiore dell'E-Wallet, a tema con ciascuna app */
-.app-topbar{ position:fixed; top:calc(env(safe-area-inset-top) + 8px); left:10px; right:auto; z-index:8;
-  height:auto; padding:0; background:transparent!important; border-bottom:none!important; -webkit-backdrop-filter:none; backdrop-filter:none;
-  display:flex; align-items:center; gap:8px; pointer-events:none; }
-.app-topbar .tb-back{ pointer-events:auto; }
-.tb-back{ border:none; cursor:pointer; font-family:'DM Sans',sans-serif; font-weight:600; font-size:14px;
-  padding:8px 15px; border-radius:30px; display:inline-flex; align-items:center; gap:3px; transition:transform .12s ease; -webkit-backdrop-filter:blur(16px) saturate(1.4); backdrop-filter:blur(16px) saturate(1.4); box-shadow:0 4px 18px rgba(0,0,0,0.30); }
-.tb-back:active{ transform:scale(.94); }
-.tb-title{ display:none; }
-.app-topbar.tc{ background:#0e1413; border-bottom:1px solid rgba(201,168,76,0.22); }
-.app-topbar.tc .tb-back{ background:rgba(201,168,76,0.16); color:var(--gold-bright); }
-.app-topbar.tc .tb-title{ color:var(--gold-bright); }
-.app-topbar.gw{ background:#f3efe6; border-bottom:1px solid rgba(0,0,0,0.08); }
-.app-topbar.gw .tb-back{ background:rgba(31,107,70,0.14); color:var(--green-deep); }
-.app-topbar.gw .tb-title{ color:var(--green-deep); }
-#statusScrim{ position:fixed; top:0; left:0; right:0; height:calc(env(safe-area-inset-top) + 14px); z-index:7; pointer-events:none; opacity:0; transition:opacity .3s ease; background:linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0) 100%); }
-.app-loader{ position:absolute; inset:0; z-index:2; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:18px;
-  background:radial-gradient(circle at 50% 40%, #102018 0%, #0a1410 70%); transition:opacity .4s ease; }
-.app-loader.hide{ opacity:0; pointer-events:none; }
-.loader-mono{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:44px; letter-spacing:1px; }
-.loader-ring{ width:34px; height:34px; border-radius:50%; border:2px solid rgba(255,255,255,.12); border-top-color:var(--gold); animation:spin .8s linear infinite; }
-@keyframes spin{ to{ transform:rotate(360deg); } }
-.loader-label{ font-size:12px; letter-spacing:3px; text-transform:uppercase; color:var(--muted); }
+/* ═══════════ LAUNCHER GOBANK ═══════════ */
+.ew-launcher,.ew-sublauncher{position:fixed;inset:0;z-index:60;background:var(--aura-bg);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .25s ease,visibility .25s;
+  overflow-y:auto;-webkit-overflow-scrolling:touch;padding-bottom:calc(28px + env(safe-area-inset-bottom))}
+.ew-launcher.open,.ew-sublauncher.open{opacity:1;visibility:visible;pointer-events:auto}
+.ew-wrap{width:min(100%,1100px);margin:0 auto;padding:0 var(--gr) 0 var(--gl)}
 
-/* ════════ DESKTOP/PC/Mac: iframe a tutta larghezza → l'app attiva il SUO layout desktop ════════ */
-/* (TradoCroods: sidebar + contenuto largo; GoWork: griglia 2 colonne 1000px) */
+/* barra di navigazione */
+.ew-topbar{position:sticky;top:0;z-index:30;display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:calc(env(safe-area-inset-top) + 6px) var(--gr) 6px var(--gl);min-height:calc(env(safe-area-inset-top) + 52px);
+  transition:background .2s,box-shadow .2s}
+.ew-launcher.scrolled .ew-topbar,.ew-sublauncher.scrolled .ew-topbar{background:var(--bar);-webkit-backdrop-filter:blur(22px) saturate(1.8);backdrop-filter:blur(22px) saturate(1.8);box-shadow:0 .5px 0 var(--sep)}
+.ew-topbar .l,.ew-topbar .r{display:flex;align-items:center;gap:8px;flex:none;min-width:0}
+.ew-topbar .c{flex:1;display:flex;justify-content:center;align-items:center;min-width:0;overflow:hidden}
+.ew-navtitle{font:600 17px var(--font);opacity:0;transition:opacity .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.ew-launcher.scrolled .ew-navtitle,.ew-sublauncher.scrolled .ew-navtitle{opacity:1}
+.ew-back,.ew-sub-back{display:inline-flex;align-items:center;gap:1px;border:0;background:transparent;color:var(--act);font:400 17px var(--font);padding:8px 8px 8px 0;white-space:nowrap}
+.ew-back .ic,.ew-sub-back .ic{font-size:22px;stroke-width:2.2}
+.ew-back:active,.ew-sub-back:active{opacity:.55}
+.ew-actions{display:flex;align-items:center;gap:8px;min-width:0}
+.ew-abtn,.ew-more{display:inline-flex;align-items:center;gap:6px;border:0;background:transparent;color:var(--act);font:400 17px var(--font);white-space:nowrap}
+.ew-more{width:44px;height:44px;border-radius:50%;justify-content:center;position:relative}
+.ew-more .ic{font-size:22px}
+.ew-more:active{opacity:.55}
+#ewSyncBtn{display:inline-flex;align-items:center;gap:5px;border:0;border-radius:999px;padding:6px 11px 6px 9px;font:600 13px var(--font);color:var(--label2);background:var(--fill);white-space:nowrap;min-height:30px}
+#ewSyncBtn .ic{font-size:16px}
+#ewSyncBtn.ok{color:var(--good);background:rgba(52,199,89,.14)}
+#ewSyncBtn.warn,#ewSyncBtn.conflict{color:var(--warn);background:rgba(255,159,10,.16)}
+#ewSyncBtn.bad,#ewSyncBtn.offline{color:var(--bad);background:rgba(255,69,58,.15)}
+@media (max-width:350px){#ewSyncBtn span{display:none}#ewSyncBtn{padding:7px}}
 
-/* ════════ LIQUID GLASS (iOS 26 / macOS 26) ════════ */
-.lg-card, .prof, .switcher, .hub-lock, .lg-input, .lg-btn.ghost{
-  -webkit-backdrop-filter:blur(24px) saturate(1.8) !important;
-  backdrop-filter:blur(24px) saturate(1.8) !important;
-}
-.lg-card{ box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 28px 72px -24px rgba(0,0,0,.72) !important; }
-.prof{ box-shadow:inset 0 1px 0 rgba(255,255,255,.10) !important; }
-.switcher{ box-shadow:inset 0 1px 0 rgba(255,255,255,.16) !important; }
-.hub-lock{ box-shadow:inset 0 1px 0 rgba(255,255,255,.12) !important; }
-.wallet .card{ box-shadow:inset 0 1px 0 rgba(255,255,255,.32), 0 26px 60px -18px rgba(0,0,0,.7) !important; }
-.app-topbar{ -webkit-backdrop-filter:blur(24px) saturate(1.7); backdrop-filter:blur(24px) saturate(1.7); }
+/* menu «⋯» */
+.ew-menuscrim{position:fixed;inset:0;z-index:70;display:none;background:transparent}
+.ew-menuscrim.on{display:block}
+.ew-menu{position:fixed;z-index:75;top:calc(env(safe-area-inset-top) + 52px);right:max(12px,env(safe-area-inset-right,0px));min-width:250px;max-width:calc(100vw - 24px);border-radius:16px;
+  background:var(--menu-bg);-webkit-backdrop-filter:blur(34px) saturate(1.9);backdrop-filter:blur(34px) saturate(1.9);box-shadow:0 14px 50px rgba(0,0,0,.28),0 0 0 .5px var(--sep);padding:6px;
+  transform-origin:top right;display:none}
+.ew-menu.on{display:block;animation:pop .22s cubic-bezier(.2,.9,.25,1.1) both}
+@keyframes pop{from{opacity:0;transform:scale(.88)}to{opacity:1;transform:none}}
+.ew-menu button{display:flex;align-items:center;justify-content:space-between;gap:16px;width:100%;border:0;background:transparent;padding:11px 12px;border-radius:10px;font:400 17px var(--font);text-align:left;color:var(--label);min-height:44px}
+.ew-menu button:active{background:var(--fill)}
+.ew-menu button.danger{color:var(--red)}
+.ew-menu .ic{font-size:20px;color:var(--label2)}
+.ew-menu button.danger .ic{color:var(--red)}
+.ew-menu hr{border:0;height:7px;margin:3px -6px;background:var(--fill)}
 
-/* ════════ EW LAUNCHER (home a icone, aperta dalla carta GoBank) ════════ */
-.ew-launcher,.ew-sublauncher{
-  position:fixed; inset:0; z-index:60;
-  background:
-    radial-gradient(circle at 12% 10%, rgba(201,168,76,0.30) 0%, transparent 42%),
-    radial-gradient(circle at 88% 6%, rgba(10,168,143,0.32) 0%, transparent 46%),
-    radial-gradient(circle at 90% 90%, rgba(139,107,214,0.28) 0%, transparent 46%),
-    radial-gradient(circle at 8% 92%, rgba(52,210,122,0.24) 0%, transparent 44%),
-    linear-gradient(160deg,#0f1c17 0%,#0a1410 55%,#0d1220 100%);
-  opacity:0; visibility:hidden; pointer-events:none;
-  transition:opacity .25s ease;
-  overflow-y:auto;
-  padding-bottom:env(safe-area-inset-bottom);
-}
-.ew-launcher.open,.ew-sublauncher.open{ opacity:1; visibility:visible; pointer-events:auto; }
-.ew-topbar{
-  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-  padding:calc(env(safe-area-inset-top) + 14px) 20px 14px;
-  border-bottom:1px solid rgba(255,255,255,0.12);
-  position:sticky; top:0; z-index:2;
-  background:rgba(10,20,16,0.55);
-  -webkit-backdrop-filter:blur(18px) saturate(1.6);
-  backdrop-filter:blur(18px) saturate(1.6);
-}
-.ew-brand{ display:flex; align-items:center; gap:10px; }
-.ew-brand-mark{
-  width:34px; height:34px; border-radius:10px;
-  background:linear-gradient(135deg,var(--wallet-teal),var(--wallet-teal-deep));
-  display:flex; align-items:center; justify-content:center;
-  font-family:'Bricolage Grotesque',sans-serif; font-weight:800; color:#fff; font-size:16px;
-}
-.ew-brand-name{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:15px; }
-.ew-actions{ display:flex; gap:6px; flex-wrap:wrap; }
-/* ── Tema chiaro launcher (toggle Giorno/Notte) ── */
-body.ew-day{ --text:#20281f; --muted:rgba(32,40,31,0.6); }
-body.ew-day .ew-launcher,body.ew-day .ew-sublauncher{
-  background:
-    radial-gradient(circle at 12% 10%, rgba(201,168,76,0.22) 0%, transparent 42%),
-    radial-gradient(circle at 88% 6%, rgba(10,168,143,0.20) 0%, transparent 46%),
-    radial-gradient(circle at 20% 92%, rgba(139,92,246,0.14) 0%, transparent 50%),
-    radial-gradient(circle at 90% 88%, rgba(52,210,122,0.16) 0%, transparent 48%),
-    linear-gradient(160deg,#f6f3ea 0%,#eef2ec 55%,#e9edf5 100%);
-}
-body.ew-day .ew-topbar{ border-bottom:1px solid rgba(0,0,0,0.08); }
-body.ew-day .ew-tile{ background:rgba(255,255,255,0.62); border:1px solid rgba(0,0,0,0.08); box-shadow:0 8px 24px rgba(60,50,20,0.08); }
-body.ew-day .ew-abtn{ background:rgba(255,255,255,0.55); border:1px solid rgba(0,0,0,0.1); }
-body.ew-day .ew-abtn.danger{ color:#c0392b; }
-body.ew-day .ew-greeting{ background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.07); }
-body.ew-day .ew-quote{ color:rgba(32,40,31,0.72); }
-body.ew-day .ew-quote cite{ color:var(--gold); }
-/* ── Saluto + orario + frase sul denaro (riempie lo spazio nel tile grande) ── */
-.ew-greeting{
-  margin-top:14px; padding:16px 18px; border-radius:14px;
-  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-}
-.ew-greeting-top{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap; }
-.ew-greeting-hello{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:19px; }
-.ew-greeting-clock{ font-size:15px; font-weight:700; color:var(--gold-bright); font-variant-numeric:tabular-nums; }
-.ew-quote{ margin-top:12px; font-family:'Cormorant Garamond',serif; font-style:italic; font-size:16px; line-height:1.5; color:var(--muted); }
-.ew-quote cite{ display:block; font-style:normal; font-size:12px; font-weight:700; margin-top:6px; color:var(--gold-bright); }
-.ew-diary{ margin-top:14px; padding:14px 16px; border-radius:14px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.09); flex:1; display:flex; flex-direction:column; min-height:0; }
-.ew-diary-top{ font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:0.6px; color:var(--gold-bright); display:flex; align-items:center; gap:6px; flex-shrink:0; }
-.ew-diary-top span#ewDiaryTime{ margin-left:auto; font-weight:600; text-transform:none; letter-spacing:0; color:var(--muted); }
-.ew-diary-text{ margin-top:8px; font-size:15px; line-height:1.65; color:var(--text); white-space:pre-wrap; overflow-y:auto; }
-body.ew-day .ew-diary{ background:rgba(255,255,255,0.5); border:1px solid rgba(0,0,0,0.07); }
-.ew-vacspese{ margin-top:14px; padding:14px 16px; border-radius:14px; background:rgba(167,139,250,0.07); border:1px solid rgba(167,139,250,0.22); }
-.ew-vacspese .ew-diary-top{ color:#a78bfa; position:relative; }
-.ew-card-close{ position:absolute; right:0; top:-2px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.16); color:var(--muted); width:22px; height:22px; border-radius:7px; font-size:11px; cursor:pointer; line-height:1; }
-body.ew-day .ew-card-close{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.12); }
-.ew-vacspese-item{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; padding:7px 0; border-top:1px solid rgba(255,255,255,0.07); font-size:13.5px; }
-.ew-vacspese-item:first-of-type{ border-top:none; margin-top:8px; }
-.ew-vacspese-item .vs-what{ color:var(--text); }
-.ew-vacspese-item .vs-where{ color:var(--muted); font-size:11.5px; }
-.ew-vacspese-item .vs-amt{ color:#a78bfa; font-weight:700; white-space:nowrap; }
-body.ew-day .ew-vacspese{ background:rgba(167,139,250,0.08); border-color:rgba(167,139,250,0.25); }
-body.ew-day .ew-vacspese-item{ border-top-color:rgba(0,0,0,0.07); }
-/* ── Sezione mappa spese ── */
-.ew-mapsection{ grid-column:1/-1; margin-top:16px; padding:18px 20px; border-radius:16px; background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1); }
-.ew-mapsection-head{ display:flex; align-items:center; justify-content:space-between; font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:16px; margin-bottom:12px; }
-.ew-map-refresh{ background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.14); color:var(--text); border-radius:9px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; }
-#ewMapKeyForm p{ font-size:13px; color:var(--muted); line-height:1.5; margin:0 0 8px; }
-#ewMapKeyForm ol{ font-size:13px; color:var(--muted); line-height:1.7; margin:0 0 12px; padding-left:20px; }
-#ewMapKeyForm a{ color:var(--gold-bright); }
-.ew-mapkey-row{ display:flex; gap:8px; }
-.ew-mapkey-row input{ flex:1; padding:11px 13px; border-radius:10px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); color:var(--text); font-size:13px; font-family:inherit; }
-.btn-gold-ew{ padding:11px 18px; border-radius:10px; background:var(--gold); border:none; color:#1a1400; font-weight:700; font-size:13px; cursor:pointer; white-space:nowrap; }
-#ewMapKeyMsg{ font-size:12px; margin-top:8px; }
-#ewMapContainer{ width:100%; height:340px; border-radius:12px; overflow:hidden; }
-body.ew-day .ew-mapsection{ background:rgba(255,255,255,0.5); border-color:rgba(0,0,0,0.08); }
-body.ew-day .ew-mapkey-row input{ background:rgba(255,255,255,0.7); border-color:rgba(0,0,0,0.12); color:#20281f; }
-body.ew-day .ew-map-refresh{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.12); color:#20281f; }
-.ew-qa-field{ flex:1; margin-top:10px; position:relative; }
-.ew-qa-field label{ display:block; font-size:11px; color:var(--muted); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
-.ew-poi-confirm-back{ position:fixed; inset:0; background:rgba(0,0,0,.55); z-index:9998; }
-.ew-poi-confirm{ position:fixed; left:50%; top:50%; transform:translate(-50%,-50%); z-index:9999;
-  background:#1c1c2e; border:1px solid rgba(255,255,255,.12); border-radius:16px; padding:20px;
-  width:min(340px,88vw); box-shadow:0 20px 50px rgba(0,0,0,.5); color:#eee; font-family:'DM Sans',sans-serif; }
-.ew-poi-photo{ width:calc(100% + 40px); margin:-20px -20px 12px -20px; height:150px; background-size:cover; background-position:center; border-radius:16px 16px 0 0; }
-.ew-poi-confirm-title{ font-size:16px; font-weight:700; margin-bottom:6px; line-height:1.4; }
-.ew-poi-rating{ font-size:13px; margin-bottom:4px; }
-.ew-poi-meta{ font-size:12px; color:#999; margin-bottom:4px; }
-.ew-poi-address{ font-size:12px; color:#999; margin-bottom:10px; }
-.ew-poi-confirm-hours{ font-size:12.5px; color:#aaa; background:rgba(255,255,255,.05); border-radius:10px; padding:10px 12px; margin-bottom:14px; line-height:1.6; }
-.ew-poi-confirm-actions{ display:flex; gap:10px; justify-content:flex-end; }
-.ew-poi-confirm-actions button{ border:none; border-radius:20px; padding:9px 18px; font-size:13px; font-weight:600; cursor:pointer; }
-.ew-poi-no{ background:rgba(255,255,255,.08); color:#ccc; }
-.ew-poi-yes{ background:var(--gold,#c9a84c); color:#1a1a1a; }
-.ew-qa-quickchips{ display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
-.ew-qa-quickchips button{ background:rgba(201,168,76,0.12); border:1px solid rgba(201,168,76,0.35); color:var(--gold,#c9a84c); border-radius:20px; padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer; transition:.15s; white-space:nowrap; }
-.ew-qa-quickchips button:hover{ background:rgba(201,168,76,0.22); }
-.ew-qa-quickchips button:active{ transform:scale(.96); }
-.ew-qa-field input{ width:100%; padding:10px 12px; border-radius:9px; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); color:var(--text); font-size:13px; font-family:inherit; box-sizing:border-box; }
-.ew-qa-row{ display:flex; gap:12px; }
-#ewQaPlaceResults{ position:absolute; top:100%; left:0; right:0; z-index:20; background:var(--bg2); border:1px solid rgba(255,255,255,0.16); border-radius:9px; margin-top:3px; max-height:180px; overflow-y:auto; display:none; }
-.ew-qa-result{ padding:9px 12px; font-size:12.5px; cursor:pointer; border-bottom:1px solid rgba(255,255,255,0.06); display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.ew-qa-result:last-child{ border-bottom:none; }
-.ew-qa-result:hover{ background:rgba(255,255,255,0.06); }
-.ew-qa-result>span:first-child{ overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.ew-qa-openbadge{ flex-shrink:0; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:10px; }
-.ew-qa-openbadge.open{ background:rgba(76,175,130,0.18); color:#4caf82; }
-.ew-qa-openbadge.closed{ background:rgba(224,92,92,0.18); color:#e05c5c; }
-#ewQaMsg{ font-size:12px; margin-top:8px; text-align:center; }
-body.ew-day .ew-qa-field input{ background:rgba(255,255,255,0.7); border-color:rgba(0,0,0,0.12); color:#20281f; }
-body.ew-day #ewQaPlaceResults{ background:#fdfbf5; border-color:rgba(0,0,0,0.12); }
-body.ew-day .ew-qa-result{ border-bottom-color:rgba(0,0,0,0.06); }
-body.ew-day .ew-qa-result:hover{ background:rgba(0,0,0,0.05); }
-.ew-abtn{
-  display:flex; align-items:center; gap:5px;
-  padding:7px 11px; border-radius:9px; font-size:11.5px; font-weight:600;
-  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-  color:var(--text); cursor:pointer; white-space:nowrap; font-family:inherit;
-}
-.ew-abtn.danger{ background:rgba(224,92,92,0.14); border-color:rgba(224,92,92,0.35); color:#f0a; }
-#ewSyncBtn.offline{ background:rgba(224,92,92,0.14); border-color:rgba(224,92,92,0.35); color:#f28b8b; }
-/* ── Pannello stato sincronizzazione ── */
-.ew-syncpanel{ display:none; position:fixed; inset:0; z-index:9800; background:rgba(0,0,0,0.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px; }
-.ew-syncpanel.open{ display:flex; }
-.ew-syncpanel-card{ position:relative; width:100%; max-width:340px; background:var(--bg2); border:1px solid rgba(255,255,255,0.12); border-radius:20px; padding:28px 22px 22px; text-align:center; box-shadow:0 20px 60px rgba(0,0,0,0.5); }
-.ew-syncpanel-close{ position:absolute; top:12px; right:12px; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.14); color:var(--text); width:28px; height:28px; border-radius:8px; cursor:pointer; }
-.ew-syncpanel-icon{ font-size:34px; margin-bottom:6px; }
-.ew-syncpanel-status{ font-family:'Bricolage Grotesque',sans-serif; font-weight:800; font-size:19px; margin-bottom:18px; }
-.ew-syncpanel-status.offline{ color:#f28b8b; }
-.ew-syncpanel-status.online{ color:var(--green); }
-.ew-syncpanel-row{ display:flex; justify-content:space-between; gap:10px; font-size:13px; padding:10px 2px; border-top:1px solid rgba(255,255,255,0.08); text-align:left; }
-.ew-syncpanel-row span:first-child{ color:var(--muted); }
-.ew-syncpanel-row span:last-child{ font-weight:600; text-align:right; }
-body.ew-day .ew-syncpanel-card{ background:#fdfbf5; border-color:rgba(0,0,0,0.08); }
-body.ew-day .ew-syncpanel-row{ border-top-color:rgba(0,0,0,0.08); }
-body.ew-day .ew-syncpanel-close{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.1); }
-.ew-syncpanel-syncbtn{ margin-top:16px; width:100%; padding:11px; border-radius:11px; background:rgba(74,144,232,0.14); border:1.5px solid rgba(74,144,232,0.4); color:#6fa8f0; font-weight:700; font-size:13px; cursor:pointer; font-family:inherit; }
-.ew-syncpanel-syncbtn:disabled{ opacity:0.55; cursor:default; }
-#ewConflictBox{ margin-top:14px; padding:12px 14px; border-radius:12px; background:rgba(224,164,92,0.12); border:1px solid rgba(224,164,92,0.35); text-align:left; }
-.ew-conflict-msg{ font-size:12.5px; line-height:1.5; color:#e0b25c; }
-.ew-conflict-actions{ display:flex; gap:8px; margin-top:10px; }
-.ew-conflict-btn{ flex:1; padding:9px 6px; border-radius:9px; font-size:11.5px; font-weight:700; cursor:pointer; font-family:inherit; background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.16); color:var(--text); }
-.ew-conflict-btn.primary{ background:rgba(52,210,122,0.16); border-color:rgba(52,210,122,0.4); color:var(--green); }
-#ewSyncBtn.conflict{ background:rgba(224,164,92,0.16); border-color:rgba(224,164,92,0.4); color:#e0b25c; }
-body.ew-day .ew-conflict-btn{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.12); color:#20281f; }
-.ew-grid{
-  padding:20px; display:grid; grid-template-columns:1.3fr 1fr; gap:14px; max-width:1600px; margin:0 auto;
-}
-@media(max-width:680px){ .ew-grid{ grid-template-columns:1fr; } }
-.ew-tile{
-  background:rgba(255,255,255,0.06);
-  border:1px solid rgba(255,255,255,0.14); border-radius:16px;
-  -webkit-backdrop-filter:blur(14px) saturate(1.4);
-  backdrop-filter:blur(14px) saturate(1.4);
-  box-shadow:0 8px 30px rgba(0,0,0,0.25);
-  padding:18px; min-height:96px; cursor:pointer;
-  display:flex; flex-direction:column; justify-content:space-between;
-  transition:transform .15s ease, border-color .15s ease, background .15s ease;
-}
-.ew-tile:active{ transform:scale(0.98); }
-.ew-tile:hover{ border-color:rgba(201,168,76,0.5); background:rgba(255,255,255,0.09); }
-.ew-tile .ic{ width:38px; height:38px; border-radius:11px; display:flex; align-items:center; justify-content:center; font-size:18px; margin-bottom:10px; }
-.ew-tile .lb{ font-size:14px; font-weight:700; }
-.ew-tile .sb{ font-size:10.5px; color:var(--muted); margin-top:2px; }
-.ew-tile.big{ grid-row:span 2; }
-.ew-tile.big .ic{ background:linear-gradient(135deg,var(--gold-bright),#c9862e); }
-.ew-tile.wide{ grid-column:1 / -1; }
-.ew-preview{
-  margin-top:14px; padding:14px 16px; border-radius:14px;
-  background:rgba(255,255,255,0.05); border:1px solid rgba(255,255,255,0.1);
-  flex:1; display:flex; flex-direction:column;
-}
-.ew-preview .ew-date{ font-size:22px; font-weight:800; color:var(--gold-bright); text-transform:capitalize; }
-.ew-preview .ew-stats{ display:flex; gap:18px; margin-top:10px; flex-wrap:wrap; }
-.ew-preview .ew-stat-label{ font-size:10.5px; color:var(--muted); text-transform:uppercase; letter-spacing:.4px; }
-.ew-preview .ew-stat-val{ font-size:17px; font-weight:700; margin-top:2px; }
-.ew-right{ display:grid; grid-template-columns:1fr 1fr; gap:14px; grid-auto-rows:min-content; }
-.ic-impostazioni{ background:linear-gradient(135deg,#7b8794,#4a5560); }
-.ic-gestione{ background:linear-gradient(135deg,#ff7f2a,#c95e14); }
-.ic-banca{ background:linear-gradient(135deg,var(--wallet-teal),var(--wallet-teal-deep)); }
-.ic-altro{ background:linear-gradient(135deg,#8b6bd6,#5b3fa0); }
-.ew-sub-head{ padding:16px 20px 4px; max-width:1600px; margin:0 auto; display:flex; align-items:center; gap:12px; }
-.ew-sub-back{
-  background:rgba(255,255,255,0.06); border:1px solid rgba(255,255,255,0.1); color:var(--text);
-  border-radius:9px; padding:7px 12px; font-size:12.5px; cursor:pointer; font-family:inherit;
-}
-.ew-sub-title{ font-size:16px; font-weight:700; }
-.ew-sub-grid{ padding:14px 20px 30px; max-width:1600px; margin:0 auto; display:grid; grid-template-columns:1fr 1fr; gap:14px; }
-@media(max-width:520px){ .ew-sub-grid{ grid-template-columns:1fr; } }
-/* ── Stato del cloud: pillola, banner, pannello ── */
-#ewSyncBtn.ok{ background:rgba(52,210,122,0.12); border-color:rgba(52,210,122,0.38); color:#34d27a; }
-#ewSyncBtn.warn{ background:rgba(255,179,64,0.14); border-color:rgba(255,179,64,0.45); color:#ffb340; }
-#ewSyncBtn.bad{ background:rgba(255,95,86,0.15); border-color:rgba(255,95,86,0.5); color:#ff7a70; }
-body.ew-day #ewSyncBtn.ok{ color:#1f8a4c; }
-body.ew-day #ewSyncBtn.warn{ color:#b86e00; }
-body.ew-day #ewSyncBtn.bad{ color:#c9342a; }
-.ew-health{ display:flex; align-items:center; justify-content:space-between; gap:10px 14px; flex-wrap:wrap; margin:12px 20px 0; padding:12px 14px; border-radius:14px; border:1px solid rgba(255,179,64,0.45); background:rgba(255,179,64,0.13); }
-.ew-health[hidden]{ display:none; }
-.ew-health.bad{ border-color:rgba(255,95,86,0.5); background:rgba(255,95,86,0.14); }
-.ew-health.ok{ border-color:rgba(52,210,122,0.4); background:rgba(52,210,122,0.12); }
-.ew-health-text{ flex:1 1 220px; font-size:13px; line-height:1.45; color:var(--text); }
-.ew-health-btns{ display:flex; gap:8px; }
-.ew-health-btn{ border:1px solid rgba(255,255,255,0.18); background:rgba(255,255,255,0.08); color:var(--text); border-radius:10px; padding:8px 13px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; min-height:36px; }
-.ew-health-btn.primary{ background:linear-gradient(135deg,#f5cb72,#e8b44a); border-color:transparent; color:#1c1406; }
-body.ew-day .ew-health-btn{ background:rgba(0,0,0,0.05); border-color:rgba(0,0,0,0.14); }
-body.ew-day .ew-health-btn.primary{ background:linear-gradient(135deg,#f5cb72,#e8b44a); border-color:transparent; color:#1c1406; }
-.ew-syncpanel-hint{ font-size:12.5px; line-height:1.5; color:var(--muted); margin:-6px 0 14px; text-align:left; }
-.ew-syncpanel-syncbtn.alt{ background:rgba(232,180,74,0.14); border-color:rgba(232,180,74,0.45); color:#e8b44a; }
-body.ew-day .ew-syncpanel-syncbtn.alt{ color:#9a6a00; }
+/* titolo grande */
+.ew-head{padding:0 2px 0}
+.brandrow{display:flex;align-items:center;min-height:34px;margin:2px 0 8px}
+.lt{margin:4px 0 0;font:700 34px/1.08 var(--font-disp);letter-spacing:-.7px;text-wrap:balance}
+.lt-sub{margin:4px 0 16px;color:var(--label2);font-size:15px}
+
+/* avviso salute cloud */
+.ew-health{display:flex;align-items:center;justify-content:space-between;gap:10px 14px;flex-wrap:wrap;margin:0 0 14px;padding:14px;border-radius:var(--r);
+  background:rgba(255,159,10,.15);border:1px solid rgba(255,159,10,.30)}
+.ew-health[hidden]{display:none}
+.ew-health.bad{background:rgba(255,69,58,.14);border-color:rgba(255,69,58,.34)}
+.ew-health.ok{background:rgba(52,199,89,.14);border-color:rgba(52,199,89,.34)}
+.ew-health-text{flex:1 1 220px;font-size:15px;line-height:1.35;color:var(--label)}
+.ew-health-btns{display:flex;gap:8px}
+.ew-health-btn{background:var(--fill)}
+
+/* griglia */
+.ew-grid{display:grid;grid-template-columns:minmax(0,1fr);gap:12px;padding-bottom:6px}
+@media (min-width:681px){.ew-grid{grid-template-columns:minmax(0,1.3fr) minmax(0,1fr)}}
+.ew-tile{display:flex;flex-direction:column;justify-content:space-between;gap:16px;min-height:112px;padding:14px;cursor:pointer;position:relative;transition:transform .2s;color:var(--label)}
+.ew-tile:active{transform:scale(.97)}
+.ew-tile .lb{font:600 16px/1.2 var(--font);letter-spacing:-.2px}
+.ew-tile .sb{font-size:13px;color:var(--label2);margin-top:2px;font-weight:400}
+.ew-tile .badge{position:absolute;top:12px;right:12px}
+.badge{display:inline-block;font:700 10px/1 var(--font);letter-spacing:.04em;padding:3px 7px;border-radius:99px;background:var(--green);color:#04210c}
+.ew-tile.wide{grid-column:1/-1;flex-direction:row;align-items:center;min-height:0;gap:14px}
+.ew-tile.wide .tt{flex:1;min-width:0}
+.ew-tile .chev{margin-left:auto;font-size:20px;color:var(--label3);stroke-width:2.4}
+.ew-tile.big{grid-row:span 2;gap:0;padding:18px}
+@media (max-width:680px){.ew-tile.big{grid-row:auto}}
+.hero-h{display:flex;align-items:center;gap:12px}
+.hero-h .lb{flex:1;font:700 19px var(--font-disp);letter-spacing:-.3px}
+.hero-h .cv{font-size:20px;color:var(--label3);stroke-width:2.4}
+.ew-right{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;grid-auto-rows:min-content;align-content:start}
+.ew-preview{margin-top:0;padding:0;flex:1;display:flex;flex-direction:column;background:transparent;border:0}
+.ew-date{margin:16px 0 4px;font:700 22px var(--font-disp);letter-spacing:-.4px;color:var(--act);text-transform:capitalize}
+.ew-greeting{margin:0;padding:0;background:transparent;border:0}
+.ew-greeting-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.ew-greeting-hello{font:600 17px var(--font)}
+.ew-greeting-clock{font:600 17px var(--font-num);color:var(--label2);font-variant-numeric:tabular-nums}
+.ew-quote{margin:8px 0 0;font:italic 400 16px/1.45 var(--font-serif);color:var(--label2)}
+.ew-quote cite{display:block;margin-top:6px;font:600 13px var(--font);font-style:normal;color:var(--act)}
+.ew-diary,.ew-vacspese{margin-top:14px;padding:14px 16px;border-radius:var(--r2);background:var(--sf2);border:0;flex:none;display:flex;flex-direction:column;min-height:0}
+.ew-vacspese{background:rgba(175,82,222,.10)}
+.ew-diary-top{display:flex;align-items:center;gap:6px;flex-shrink:0;font:600 12px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--label2);position:relative}
+.ew-vacspese .ew-diary-top{color:var(--purple)}
+.ew-diary-top span#ewDiaryTime{margin-left:auto;font-weight:500;text-transform:none;letter-spacing:0;color:var(--label3)}
+.ew-diary-text{margin-top:8px;font-size:16px;line-height:1.5;color:var(--label);white-space:pre-wrap;overflow-y:auto;max-height:200px}
+.ew-card-close{position:absolute;right:0;top:-3px;width:26px;height:26px;border-radius:50%;border:0;background:var(--fill2);color:var(--label2);font-size:11px;line-height:1;display:inline-flex;align-items:center;justify-content:center}
+.ew-vacspese-item{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:8px 0;border-top:.5px solid var(--sep);font-size:15px}
+.ew-vacspese-item:first-of-type{border-top:0;margin-top:8px}
+.ew-vacspese-item .vs-what{color:var(--label)}
+.ew-vacspese-item .vs-where{color:var(--label2);font-size:13px}
+.ew-vacspese-item .vs-amt{color:var(--purple);font-weight:700;white-space:nowrap;font-family:var(--font-num)}
+.ew-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px 12px;margin-top:18px;padding-top:16px;border-top:.5px solid var(--sep)}
+.ew-stat-label{display:block;margin-bottom:3px;font:600 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--label2)}
+.ew-stat-val{display:block;font:700 clamp(20px,6.2vw,24px) var(--font-num);letter-spacing:-.4px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* sotto-launcher */
+.ew-sub-head{display:block;padding:0}
+.ew-sub-title{font:700 34px/1.08 var(--font-disp);letter-spacing:-.7px;margin:4px 2px 14px}
+.ew-sub-grid{padding:0 0 6px;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px}
+
+/* mappa delle spese */
+.ew-mapsection{grid-column:1/-1;margin-top:4px;padding:16px;border-radius:var(--r)}
+.ew-mapsection-head{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;font:700 19px var(--font-disp);letter-spacing:-.3px;margin-bottom:12px}
+.ew-map-refresh{border:0;border-radius:999px;padding:8px 14px;background:var(--fill);color:var(--label);font:600 15px var(--font)}
+#ewMapKeyForm p,#ewMapKeyForm ol{font-size:15px;color:var(--label2);line-height:1.45;margin:0 0 10px}
+#ewMapKeyForm ol{padding-left:22px}
+#ewMapKeyForm a{color:var(--act)}
+.ew-mapkey-row{display:flex;gap:8px}
+.ew-mapkey-row input{flex:1;min-width:0}
+#ewMapKeyMsg,#ewQaMsg{font-size:14px;margin-top:8px}
+#ewQaMsg{text-align:center}
+#ewMapContainer{width:100%;height:340px;border-radius:var(--r2);overflow:hidden}
+.ew-qa-field{flex:1;margin-top:10px;position:relative;min-width:0}
+.ew-qa-field label{display:block;font:600 12px var(--font);color:var(--label2);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.ew-qa-row{display:flex;gap:10px}
+.ew-qa-quickchips{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+.ew-qa-quickchips button{background:var(--fill);border:0;color:var(--label);border-radius:999px;padding:8px 13px;font:500 15px var(--font);white-space:nowrap}
+.ew-qa-quickchips button:active{transform:scale(.96)}
+#ewQaPlaceResults{position:absolute;top:100%;left:0;right:0;z-index:20;background:var(--sheet);border-radius:14px;margin-top:4px;max-height:200px;overflow-y:auto;display:none;box-shadow:0 14px 40px rgba(0,0,0,.28),0 0 0 .5px var(--sep)}
+.ew-qa-result{padding:11px 14px;font-size:15px;cursor:pointer;border-bottom:.5px solid var(--sep);display:flex;align-items:center;justify-content:space-between;gap:10px}
+.ew-qa-result:last-child{border-bottom:0}
+.ew-qa-result:active{background:var(--fill)}
+.ew-qa-result>span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ew-qa-openbadge{flex-shrink:0;font:700 11px var(--font);padding:3px 8px;border-radius:99px}
+.ew-qa-openbadge.open{background:rgba(52,199,89,.16);color:var(--good)}
+.ew-qa-openbadge.closed{background:rgba(255,69,58,.14);color:var(--bad)}
+
+/* conferma luogo (POI) */
+.ew-poi-confirm-back{position:fixed;inset:0;background:var(--scrim);z-index:9998;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.ew-poi-confirm{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:9999;padding:20px;width:min(340px,88vw);color:var(--label);font-family:var(--font);background:var(--sheet);-webkit-backdrop-filter:blur(34px) saturate(1.9);backdrop-filter:blur(34px) saturate(1.9)}
+.ew-poi-photo{width:calc(100% + 40px);margin:-20px -20px 12px -20px;height:150px;background-size:cover;background-position:center;border-radius:var(--r) var(--r) 0 0}
+.ew-poi-confirm-title{font:700 19px/1.25 var(--font-disp);margin-bottom:6px}
+.ew-poi-rating{font-size:15px;margin-bottom:4px}
+.ew-poi-meta,.ew-poi-address{font-size:14px;color:var(--label2);margin-bottom:4px}
+.ew-poi-address{margin-bottom:10px}
+.ew-poi-confirm-hours{font-size:14px;color:var(--label2);background:var(--fill);border-radius:var(--r3);padding:10px 12px;margin-bottom:14px;line-height:1.55}
+.ew-poi-confirm-actions{display:flex;gap:10px;justify-content:flex-end}
+.ew-poi-confirm-actions button{border:0;border-radius:999px;padding:10px 18px;font:600 16px var(--font);cursor:pointer}
+.ew-poi-no{background:var(--fill);color:var(--label)}
+.ew-poi-yes{background:linear-gradient(180deg,var(--ac2),var(--ac));color:var(--on-ac)}
+
+/* pannello stato sincronizzazione */
+.ew-syncpanel{display:none;position:fixed;inset:0;z-index:9800;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:20px}
+.ew-syncpanel.open{display:flex}
+.ew-syncpanel-card{position:relative;width:100%;max-width:360px;max-height:calc(100dvh - 40px);overflow-y:auto;padding:26px 18px 18px;text-align:center;border-radius:28px;background:var(--sheet);-webkit-backdrop-filter:blur(40px) saturate(1.8);backdrop-filter:blur(40px) saturate(1.8)}
+.ew-syncpanel-close{position:absolute;top:12px;right:12px;width:30px;height:30px;border-radius:50%;border:0;background:var(--fill2);color:var(--label2);font-size:13px;display:inline-flex;align-items:center;justify-content:center}
+.ew-syncpanel-icon{font-size:38px;margin-bottom:6px;line-height:1}
+.ew-syncpanel-icon .ic{font-size:40px;stroke-width:1.7}
+.ew-syncpanel-status{font:700 24px var(--font-disp);letter-spacing:-.4px;margin-bottom:14px}
+.ew-syncpanel-status.offline{color:var(--bad)}
+.ew-syncpanel-status.online{color:var(--good)}
+.ew-syncpanel-hint{font-size:15px;line-height:1.4;color:var(--label2);margin:-4px 0 14px;text-align:left}
+.ew-syncpanel-row{display:flex;justify-content:space-between;gap:10px;font-size:16px;padding:12px 4px;border-top:.5px solid var(--sep);text-align:left}
+.ew-syncpanel-row span:first-child{color:var(--label2)}
+.ew-syncpanel-row span:last-child{font-weight:600;text-align:right;min-width:0;overflow-wrap:anywhere}
+@media (max-width:360px){.ew-syncpanel-row{flex-direction:column;gap:2px}.ew-syncpanel-row span:last-child{text-align:left}}
+#ewConflictBox{margin-top:14px;padding:14px;border-radius:var(--r2);background:rgba(255,159,10,.15);border:1px solid rgba(255,159,10,.30);text-align:left}
+.ew-conflict-msg{font-size:14px;line-height:1.4;color:var(--label)}
+.ew-conflict-actions{display:flex;gap:8px;margin-top:10px}
+
 </style>
 <link rel="manifest" href="manifest.json"></head>
 <body>
@@ -600,7 +455,7 @@ try{new MutationObserver(sched).observe(document.documentElement,{childList:true
 function fixBadge(){try{var b=document.getElementById('cloudBadge');if(!b)return;var on=navigator.onLine;var col=on?'#2e8b57':'#e05c5c';var want='wf-'+(on?'1':'0');if(b.getAttribute('data-wf')===want&&b.querySelector&&b.querySelector('svg'))return;b.setAttribute('data-wf',want);b.innerHTML='<svg width="20" height="20" viewBox="0 0 24 24" fill='+col+' style="display:block"><path d="M12 20l2.5-2.5a3.5 3.5 0 00-5 0L12 20zM7 15a7 7 0 0110 0l-1.5 1.5a5 5 0 00-7 0L7 15zM4 12a11 11 0 0116 0l-1.5 1.5a9 9 0 00-13 0L4 12z"/></svg>';b.style.cssText='display:inline-flex;align-items:center;justify-content:center;width:auto;min-width:0;padding:8px 11px;border-radius:12px;background:'+(on?'rgba(46,139,87,0.12)':'rgba(224,92,92,0.12)')+';border:1.5px solid '+col+';cursor:default;box-shadow:0 0 12px '+(on?'rgba(46,139,87,0.4)':'rgba(224,92,92,0.4)')+'';b.title=on?'Cloud Supabase \u00b7 online e sincronizzato':'Offline';b.onclick=null;try{if(b.parentNode)b.parentNode.style.padding='6px 16px 10px';}catch(e){}}catch(e){}}
 if(document.readyState!=='loading'){fixBadge();try{window.updateCloudBadge=fixBadge;}catch(e){}}else document.addEventListener('DOMContentLoaded',function(){fixBadge();try{window.updateCloudBadge=fixBadge;}catch(e){}});
 try{setInterval(fixBadge,1500);}catch(e){}
-function addPwEyes(){try{var ins=document.querySelectorAll('input[type=password]');for(var i=0;i<ins.length;i++){var inp=ins[i];if(inp.getAttribute('data-eye'))continue;inp.setAttribute('data-eye','1');var b=document.createElement('button');b.type='button';b.textContent='Mostra password';b.style.cssText='display:block;margin:6px 2px 0 auto;padding:2px 4px;background:none;border:0;color:inherit;opacity:.6;cursor:pointer;font-size:12px;font-family:inherit;letter-spacing:.02em';(function(inp,b){b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(inp.type==='password'){inp.type='text';b.textContent='Nascondi password';b.style.opacity='.9';}else{inp.type='password';b.textContent='Mostra password';b.style.opacity='.6';}});})(inp,b);if(inp.nextSibling)inp.parentNode.insertBefore(b,inp.nextSibling);else inp.parentNode.appendChild(b);}}catch(e){}}
+function addPwEyes(){try{var ins=document.querySelectorAll('input[type=password]');for(var i=0;i<ins.length;i++){var inp=ins[i];if(inp.getAttribute('data-eye'))continue;if(inp.parentNode&&inp.parentNode.querySelector('.pwd-eye-btn,.lock-eye-btn,.pweye'))continue;inp.setAttribute('data-eye','1');var b=document.createElement('button');b.type='button';b.textContent='Mostra password';b.style.cssText='display:block;margin:6px 2px 0 auto;padding:2px 4px;background:none;border:0;color:inherit;opacity:.6;cursor:pointer;font-size:12px;font-family:inherit;letter-spacing:.02em';(function(inp,b){b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(inp.type==='password'){inp.type='text';b.textContent='Nascondi password';b.style.opacity='.9';}else{inp.type='password';b.textContent='Mostra password';b.style.opacity='.6';}});})(inp,b);if(inp.nextSibling)inp.parentNode.insertBefore(b,inp.nextSibling);else inp.parentNode.appendChild(b);}}catch(e){}}
 if(document.readyState!=='loading')addPwEyes();else document.addEventListener('DOMContentLoaded',addPwEyes);
 try{setInterval(addPwEyes,1500);}catch(e){}
 function enhanceOggiTime(){try{var dl=document.getElementById('oggi-data-label');if(!dl)return;var t=document.getElementById('oggi-ora');if(!t){t=document.createElement('div');t.id='oggi-ora';t.style.cssText='font-size:14px;font-weight:600;color:var(--gold,#c9a84c);margin-top:2px';if(dl.parentNode)dl.parentNode.insertBefore(t,dl.nextSibling);}var n=new Date();t.textContent='\ud83d\udd52 ore '+n.getHours()+':'+String(n.getMinutes()).padStart(2,'0');}catch(e){}}
@@ -612,86 +467,99 @@ if(document.readyState!=='loading')moveOggiTop();else document.addEventListener(
 try{setInterval(moveOggiTop,1500);}catch(e){}
 try{window.addEventListener('online',fixBadge);window.addEventListener('offline',fixBadge);}catch(e){}
 }catch(e){}})();<\/script>`;</script>
-<script>(function(){function addPwEyes(){try{var ins=document.querySelectorAll('input[type=password]');for(var i=0;i<ins.length;i++){var inp=ins[i];if(inp.getAttribute('data-eye'))continue;inp.setAttribute('data-eye','1');var b=document.createElement('button');b.type='button';b.textContent='Mostra password';b.style.cssText='display:block;margin:6px 2px 0 auto;padding:2px 4px;background:none;border:0;color:inherit;opacity:.6;cursor:pointer;font-size:12px;font-family:inherit;letter-spacing:.02em';(function(inp,b){b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(inp.type==='password'){inp.type='text';b.textContent='Nascondi password';b.style.opacity='.9';}else{inp.type='password';b.textContent='Mostra password';b.style.opacity='.6';}});})(inp,b);if(inp.nextSibling)inp.parentNode.insertBefore(b,inp.nextSibling);else inp.parentNode.appendChild(b);}}catch(e){}}if(document.readyState!=='loading')addPwEyes();else document.addEventListener('DOMContentLoaded',addPwEyes);try{new MutationObserver(function(){addPwEyes();}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}try{setInterval(addPwEyes,1500);}catch(e){}})();</script>
+<script>(function(){function addPwEyes(){try{var ins=document.querySelectorAll('input[type=password]');for(var i=0;i<ins.length;i++){var inp=ins[i];if(inp.getAttribute('data-eye'))continue;if(inp.parentNode&&inp.parentNode.querySelector('.pwd-eye-btn,.lock-eye-btn,.pweye'))continue;inp.setAttribute('data-eye','1');var b=document.createElement('button');b.type='button';b.textContent='Mostra password';b.style.cssText='display:block;margin:6px 2px 0 auto;padding:2px 4px;background:none;border:0;color:inherit;opacity:.6;cursor:pointer;font-size:12px;font-family:inherit;letter-spacing:.02em';(function(inp,b){b.addEventListener('click',function(e){e.preventDefault();e.stopPropagation();if(inp.type==='password'){inp.type='text';b.textContent='Nascondi password';b.style.opacity='.9';}else{inp.type='password';b.textContent='Mostra password';b.style.opacity='.6';}});})(inp,b);if(inp.nextSibling)inp.parentNode.insertBefore(b,inp.nextSibling);else inp.parentNode.appendChild(b);}}catch(e){}}if(document.readyState!=='loading')addPwEyes();else document.addEventListener('DOMContentLoaded',addPwEyes);try{new MutationObserver(function(){addPwEyes();}).observe(document.documentElement,{childList:true,subtree:true});}catch(e){}try{setInterval(addPwEyes,1500);}catch(e){}})();</script>
 <div id="sbGate" aria-live="polite">
   <div class="sb-card">
-    <svg class="logo-pulse" style="display:block;width:190px;height:auto;margin:0 auto 14px;" role="img" aria-label="E-Wallet" viewBox="0 0 326 268" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="walletGrad_1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d5c4f"/>
-      <stop offset="50%" stop-color="#1a9b73"/>
-      <stop offset="100%" stop-color="#4ce0a8"/>
-    </linearGradient>
-    <linearGradient id="flapGrad_1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a4a40"/>
-      <stop offset="100%" stop-color="#136b56"/>
-    </linearGradient>
-  </defs>
-  <rect x="82" y="4" width="120" height="52" rx="9" fill="url(#flapGrad_1)" transform="rotate(-14 142 30)"/>
-  <rect x="38" y="48" width="162" height="108" rx="22" fill="url(#walletGrad_1)"/>
-  <rect x="72" y="83" width="58" height="13" rx="6.5" fill="#fff"/>
-  <rect x="72" y="108" width="58" height="13" rx="6.5" fill="#fff"/>
-  <circle cx="183" cy="102" r="13" fill="#fff"/>
-  <circle cx="183" cy="102" r="6.5" fill="#1a9b73"/>
-  <text x="8" y="210" font-family="'Bricolage Grotesque',Arial,sans-serif" font-weight="800" font-size="50"><tspan fill="#1a9b73">E-</tspan><tspan fill="#ffffff">Wallet</tspan></text>
-  <text x="10" y="240" font-family="'Bricolage Grotesque',Arial,sans-serif" font-size="16" fill="#d8d8d8" letter-spacing="0.5">Finance &amp; Work Management</text>
-</svg>
+    <div class="sb-brand"><span class="emblem"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M10.5 13.5 27 8l2 5.2" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/><rect x="6" y="13" width="28" height="20" rx="6" fill="#fff"/><circle cx="27.5" cy="23" r="3" fill="#0c8f6c"/></svg></span><h1><span>E-</span>Wallet</h1></div>
     <p>Accedi con il tuo account Supabase. I dati restano sincronizzati tra Mac, telefono e tablet.</p>
     <input id="sbEmail" type="email" placeholder="Email" autocomplete="username">
     <input id="sbPassword" type="password" placeholder="Password" autocomplete="current-password">
-    <button type="button" id="sbForgotBtn" style="background:transparent;border:none;color:rgba(244,239,228,.7);font-size:13px;text-decoration:underline;cursor:pointer;padding:6px 0 2px;text-align:left">Password dimenticata?</button>
+    <button type="button" id="sbForgotBtn">Password dimenticata?</button>
     <button id="sbLoginBtn" type="button">Accedi e sincronizza</button>
     <div id="sbMsg"></div>
-    <div id="sbRecoverBox" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.12)">
-      <p style="margin:0 0 10px;font-size:13px;color:rgba(244,239,228,.85)">Imposta una nuova password per il tuo account.</p>
+    <div id="sbRecoverBox" style="display:none">
+      <p>Imposta una nuova password per il tuo account.</p>
       <input id="sbNewPass1" type="password" placeholder="Nuova password" autocomplete="new-password">
       <input id="sbNewPass2" type="password" placeholder="Ripeti nuova password" autocomplete="new-password" style="margin-top:8px">
-      <button id="sbRecoverBtn" type="button" style="margin-top:10px">Salva nuova password</button>
+      <button id="sbRecoverBtn" type="button">Salva nuova password</button>
     </div>
-    <button id="sbSkip" type="button" style="margin-top:12px;width:100%;padding:12px;border:1px solid rgba(255,255,255,.22);border-radius:11px;background:transparent;color:rgba(244,239,228,.82);font-weight:600;cursor:pointer">Continua offline (usa i dati su questo dispositivo)</button>
+    <button id="sbSkip" type="button">Continua offline (usa i dati su questo dispositivo)</button>
   </div>
 </div>
 <div id="sbStatus" hidden>Cloud</div>
-<style>
-#sbGate{position:fixed;inset:0;z-index:2147483647;background:radial-gradient(circle at 20% 10%,#273c32 0,#09100d 48%,#050806 100%);display:flex;align-items:center;justify-content:center;padding:24px;font-family:system-ui,-apple-system,sans-serif;color:#f4efe4}
-#sbGate.sb-hidden{display:none}
-#sbGate .sb-card input{display:block!important;visibility:visible!important;opacity:1!important}
-#sbGate .sb-card button{display:block!important;visibility:visible!important;opacity:1!important}.sb-card{width:min(390px,94vw);padding:28px 24px;border-radius:24px;background:rgba(16,25,20,.94);border:1px solid rgba(221,188,96,.35);box-shadow:0 30px 90px rgba(0,0,0,.6)}
-.sb-card h1{margin:0 0 8px;font-size:24px}.sb-card p{margin:0 0 18px;line-height:1.45;color:rgba(244,239,228,.72);font-size:13px}.sb-card input{display:block;width:100%;box-sizing:border-box;margin:10px 0;padding:13px 14px;border-radius:11px;border:1px solid rgba(255,255,255,.2);background:#0c1511;color:#fff;font-size:15px}.sb-card button{width:100%;margin-top:6px;padding:14px;border:0;border-radius:11px;background:linear-gradient(135deg,#f4db74,#d9b84f);color:#15130b;font-weight:800;cursor:pointer}.sb-card button:disabled{opacity:.6;cursor:wait}#sbMsg{min-height:18px;margin-top:10px;text-align:center;font-size:12px;color:#ff9b8f}
-/* Nasconde i controlli del vecchio GitHub/Gist senza cancellare i dati locali */
-#gistTokenLoginArea,#gist-token-input,#gist-id-input,#loginGistToken,#loginGistId,#gistTokenLoginErr,#syncModal{display:none!important}
-</style>
+
+<svg id="sprite" width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+<defs>
+<symbol id="i-chev-l" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+<symbol id="i-chev-r" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+<symbol id="i-chev-d" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+<symbol id="i-chev-ud" viewBox="0 0 24 24"><path d="m7 15 5 5 5-5M7 9l5-5 5 5"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M20 6 9 17l-5-5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></symbol>
+<symbol id="i-more" viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-wallet" viewBox="0 0 24 24"><path d="M3.5 8.5V7a2.5 2.5 0 0 1 2.5-2.5h11A1.5 1.5 0 0 1 18.5 6v2.5"/><rect x="3" y="8" width="18" height="12" rx="3"/><path d="M16.5 14h2"/></symbol>
+<symbol id="i-house" viewBox="0 0 24 24"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"/><path d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></symbol>
+<symbol id="i-gear" viewBox="0 0 24 24"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="3"/><path d="M3 10h18"/></symbol>
+<symbol id="i-bars" viewBox="0 0 24 24"><path d="M3 3v16a2 2 0 0 0 2 2h16"/><path d="M18 17V9M13 17V5M8 17v-3"/></symbol>
+<symbol id="i-bank" viewBox="0 0 24 24"><path d="M10 18v-7M14 18v-7M18 18v-7M6 18v-7"/><path d="M11.12 2.198a2 2 0 0 1 1.76.006l7.866 3.847c.476.233.31.949-.22.949H3.474c-.53 0-.695-.716-.22-.949z"/><path d="M3 22h18"/></symbol>
+<symbol id="i-case" viewBox="0 0 24 24"><path d="M16 20V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/><rect width="20" height="14" x="2" y="6" rx="3"/></symbol>
+<symbol id="i-plane" viewBox="0 0 24 24"><path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/></symbol>
+<symbol id="i-cart" viewBox="0 0 24 24"><circle cx="8" cy="21" r="1"/><circle cx="19" cy="21" r="1"/><path d="M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></symbol>
+<symbol id="i-moon" viewBox="0 0 24 24"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></symbol>
+<symbol id="i-cloud" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></symbol>
+<symbol id="i-cloud-ok" viewBox="0 0 24 24"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/><path d="m9.5 13.5 2 2 3.5-3.5"/></symbol>
+<symbol id="i-lock" viewBox="0 0 24 24"><rect width="18" height="11" x="3" y="11" rx="3"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></symbol>
+<symbol id="i-user" viewBox="0 0 24 24"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></symbol>
+<symbol id="i-trash" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2M10 11v6M14 11v6"/></symbol>
+<symbol id="i-refresh" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5"/></symbol>
+<symbol id="i-download" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H19a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H6.5a1 1 0 0 1 0-5H20"/></symbol>
+<symbol id="i-tasks" viewBox="0 0 24 24"><path d="m3 17 2 2 4-4M3 7l2 2 4-4M13 6h8M13 12h8M13 18h8"/></symbol>
+<symbol id="i-eye" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></symbol>
+<symbol id="i-card" viewBox="0 0 24 24"><rect width="20" height="14" x="2" y="5" rx="3"/><path d="M2 10h20"/></symbol>
+<symbol id="i-timer" viewBox="0 0 24 24"><path d="M10 2h4M12 14l3-3"/><circle cx="12" cy="14" r="8"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect width="7" height="7" x="3" y="3" rx="2"/><rect width="7" height="7" x="14" y="3" rx="2"/><rect width="7" height="7" x="3" y="14" rx="2"/><rect width="7" height="7" x="14" y="14" rx="2"/></symbol>
+<symbol id="i-umbrella" viewBox="0 0 24 24"><path d="M22 12a10.06 10.06 0 0 0-20 0Z"/><path d="M12 12v8a2 2 0 0 0 4 0M12 2v1"/></symbol>
+<symbol id="i-case2" viewBox="0 0 24 24"><rect x="4" y="7" width="16" height="14" rx="3"/><path d="M9 7V5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2v2M9 11v6M15 11v6"/></symbol>
+<symbol id="i-doc" viewBox="0 0 24 24"><path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7Z"/><path d="M14 2v4a2 2 0 0 0 2 2h4M10 9H8M16 13H8M16 17H8"/></symbol>
+<symbol id="i-euro" viewBox="0 0 24 24"><path d="M4 10h12M4 14h9M19 6a7.7 7.7 0 0 0-5.2-2A7.9 7.9 0 0 0 6 12c0 4.4 3.5 8 7.8 8 2 0 3.8-.8 5.2-2"/></symbol>
+<symbol id="i-sliders" viewBox="0 0 24 24"><path d="M21 4h-7M10 4H3M21 12h-9M8 12H3M21 20h-5M12 20H3M14 2v4M8 10v4M16 18v4"/></symbol>
+<symbol id="i-building" viewBox="0 0 24 24"><path d="M6 22V4a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v18Z"/><path d="M6 12H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h2M18 9h2a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2h-2M10 6h4M10 10h4M10 14h4M10 18h4"/></symbol>
+<symbol id="i-list" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+<symbol id="i-shuffle" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></symbol>
+<symbol id="i-undo" viewBox="0 0 24 24"><path d="M3 7v6h6"/><path d="M21 17a9 9 0 0 0-9-9 9 9 0 0 0-6 2.3L3 13"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5v15a1 1 0 0 0 1.5.86l12.5-7.5a1 1 0 0 0 0-1.72L8.5 3.64A1 1 0 0 0 7 4.5Z" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-stop" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2.5" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-palette" viewBox="0 0 24 24"><circle cx="13.5" cy="6.5" r=".6" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".6" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".6" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".6" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></symbol>
+<symbol id="i-arrow-r" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></symbol>
+<symbol id="i-shield" viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"/><path d="M12 9v4"/><path d="M12 17h.01"/></symbol>
+<symbol id="i-wifi" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M2 8.82a15 15 0 0 1 20 0"/><path d="M5 12.859a10 10 0 0 1 14 0"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/></symbol>
+<symbol id="i-wifi-off" viewBox="0 0 24 24"><path d="M12 20h.01"/><path d="M8.5 16.429a5 5 0 0 1 7 0"/><path d="M5 12.859a10 10 0 0 1 5.17-2.69"/><path d="M19 12.859a10 10 0 0 0-2.007-1.523"/><path d="M2 8.82a15 15 0 0 1 4.177-2.643"/><path d="M22 8.82a15 15 0 0 0-11.288-3.764"/><path d="m2 2 20 20"/></symbol>
+<symbol id="i-key" viewBox="0 0 24 24"><circle cx="7.5" cy="15.5" r="4.5"/><path d="m10.7 12.3 9.8-9.8M16 7l3 3M14 9l3 3"/></symbol>
+<symbol id="i-save" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></symbol>
+<symbol id="i-map" viewBox="0 0 24 24"><path d="M14.1 4.4 9 2.5 3.4 4.6A1 1 0 0 0 3 5.5v14.9a.5.5 0 0 0 .7.5L9 18.5l5.1 1.9 5.5-2.1a1 1 0 0 0 .4-.9V3.6a.5.5 0 0 0-.7-.5z"/><path d="M9 2.5v16M15 5.5v16"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></symbol>
+<symbol id="i-pin2" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0"/><circle cx="12" cy="10" r="3"/></symbol>
+</defs>
+</svg>
 
 <div class="bg-glow"></div>
 
 <!-- ════════ LOGIN GATE ════════ -->
 <div id="ewLogin">
   <div class="lg-head">
-    <svg class="brand-logo" style="width:min(300px,72vw);height:auto;display:block;margin:0 auto 6px;" role="img" aria-label="E-Wallet" viewBox="0 0 810 280" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="walletGradH_2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d5c4f"/>
-      <stop offset="50%" stop-color="#1a9b73"/>
-      <stop offset="100%" stop-color="#4ce0a8"/>
-    </linearGradient>
-    <linearGradient id="flapGradH_2" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a4a40"/>
-      <stop offset="100%" stop-color="#136b56"/>
-    </linearGradient>
-  </defs>
-  <rect x="60" y="4" width="120" height="52" rx="9" fill="url(#flapGradH_2)" transform="rotate(-14 120 30)"/>
-  <rect x="16" y="48" width="162" height="108" rx="22" fill="url(#walletGradH_2)"/>
-  <rect x="50" y="83" width="58" height="13" rx="6.5" fill="#fff"/>
-  <rect x="50" y="108" width="58" height="13" rx="6.5" fill="#fff"/>
-  <circle cx="161" cy="102" r="13" fill="#fff"/>
-  <circle cx="161" cy="102" r="6.5" fill="#1a9b73"/>
-  <text x="205" y="118" font-family="'Bricolage Grotesque',Arial,sans-serif" font-weight="800" font-size="58"><tspan fill="#1a9b73">E-</tspan><tspan fill="#ffffff">Wallet</tspan></text>
-  <text x="207" y="155" font-family="'Bricolage Grotesque',Arial,sans-serif" font-size="19" fill="#d8d8d8" letter-spacing="0.5">Finance &amp; Work Management</text>
-</svg>
-    <div class="brand-text">
-      <div class="lg-eyebrow">Tradclab Wallet</div>
-      <div class="lg-tag">Un accesso solo, le tue app pronte.</div>
-    </div>
+    <div class="lg-brand"><span class="emblem"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M10.5 13.5 27 8l2 5.2" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/><rect x="6" y="13" width="28" height="20" rx="6" fill="#fff"/><circle cx="27.5" cy="23" r="3" fill="#0c8f6c"/></svg></span><h1 class="lg-title"><span>E-</span>Wallet</h1></div>
+    <div class="hh-wm" style="display:flex;justify-content:center"><span class="wm m2"><span class="seal">TC</span><span class="tx">TRAD.CLAB</span></span></div>
+    <div class="lg-tag">Un accesso solo, le tue app pronte.</div>
   </div>
 
   <div class="lg-card">
@@ -720,227 +588,188 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
 
 <!-- ════════ HUB ════════ -->
 <div id="hub">
-  <div class="hub-head" style="position:relative;">
-    <svg class="ew-star ew-star-1" viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
-    <svg class="ew-star ew-star-2" viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
-    <svg class="ew-star ew-star-3" viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
-    <svg class="ew-star ew-star-4" viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
-    <svg class="ew-star ew-star-5" viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
-    <svg class="ew-star ew-star-6" viewBox="0 0 24 24"><path d="M12 0 L14.5 9.5 L24 12 L14.5 14.5 L12 24 L9.5 14.5 L0 12 L9.5 9.5 Z"/></svg>
-    <svg class="brand-logo logo-pulse" style="width:min(460px,88vw);height:auto;display:block;margin:0 auto 6px;" role="img" aria-label="E-Wallet" viewBox="0 0 810 280" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="walletGradH_3" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d5c4f"/>
-      <stop offset="50%" stop-color="#1a9b73"/>
-      <stop offset="100%" stop-color="#4ce0a8"/>
-    </linearGradient>
-    <linearGradient id="flapGradH_3" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a4a40"/>
-      <stop offset="100%" stop-color="#136b56"/>
-    </linearGradient>
-  </defs>
-  <rect x="60" y="4" width="120" height="52" rx="9" fill="url(#flapGradH_3)" transform="rotate(-14 120 30)"/>
-  <rect x="16" y="48" width="162" height="108" rx="22" fill="url(#walletGradH_3)"/>
-  <rect x="50" y="83" width="58" height="13" rx="6.5" fill="#fff"/>
-  <rect x="50" y="108" width="58" height="13" rx="6.5" fill="#fff"/>
-  <circle cx="161" cy="102" r="13" fill="#fff"/>
-  <circle cx="161" cy="102" r="6.5" fill="#1a9b73"/>
-  <text x="205" y="118" font-family="'Bricolage Grotesque',Arial,sans-serif" font-weight="800" font-size="58"><tspan fill="#1a9b73">E-</tspan><tspan fill="#ffffff">Wallet</tspan></text>
-  <text x="207" y="155" font-family="'Bricolage Grotesque',Arial,sans-serif" font-size="19" fill="#d8d8d8" letter-spacing="0.5">Finance &amp; Work Management</text>
-</svg>
-    <div class="brand-text">
-      <div class="hub-eyebrow">Tradclab Wallet</div>
-      <div class="hub-tag">Le tue app, un solo portafoglio.</div>
-    </div>
-    <div class="hub-user" id="hubUser"></div>
-  </div>
-
-  <div class="wallet" id="wallet">
-    <div class="wallet-pocket"></div>
-    <div class="wallet-stitch-1"></div>
-    <div class="wallet-stitch-2"></div>
-    <div class="card front" id="card-tc" data-app="tc" onclick="cardTap('tc')">
-      <div class="card-row"><div class="chip"></div><div class="card-mono">GB</div></div>
-      <div class="card-row">
-        <div><div class="card-name">GoBank</div><div class="card-sub">Budget · Famiglia</div></div>
-        <div class="card-open">Apri ›</div>
-      </div>
-    </div>
-    <div class="card back" id="card-gw" data-app="gw" onclick="cardTap('gw')">
-      <div class="card-row"><div class="chip"></div><div class="card-mono">GW</div></div>
-      <div class="card-row">
-        <div><div class="card-name">GoWork</div><div class="card-sub">Gestione · Orari</div></div>
-        <div class="card-open">Apri ›</div>
-      </div>
+ <div class="hub-in">
+  <div class="hub-head">
+    <span class="emblem"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M10.5 13.5 27 8l2 5.2" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/><rect x="6" y="13" width="28" height="20" rx="6" fill="#fff"/><circle cx="27.5" cy="23" r="3" fill="#0c8f6c"/></svg></span>
+    <div class="hh-t">
+      <div class="hh-wm"><span class="wm m2"><span class="seal">TC</span><span class="tx">TRAD.CLAB</span></span></div>
+      <h1 class="hub-title"><span>E-</span>Wallet</h1>
+      <small class="hub-tag">Le tue app, un solo portafoglio.</small>
     </div>
   </div>
+  <p class="hub-user" id="hubUser"></p>
 
-  <div class="switcher" id="switcher">
-    <button class="active tc" data-app="tc" onclick="bringFront('tc')">GoBank</button>
-    <button class="gw" data-app="gw" onclick="bringFront('gw')">GoWork</button>
+  <div class="passes" id="wallet">
+    <button type="button" class="pass gb front" id="card-tc" data-app="tc" onclick="cardTap('tc')" aria-label="Apri GoBank">
+      <span class="p-mono">GB</span>
+      <span class="p-txt"><span class="p-name">GoBank</span><span class="p-sub">Budget · Famiglia</span><span class="p-val num" id="hubValTc"></span></span>
+      <span class="p-open"><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></span>
+    </button>
+    <button type="button" class="pass gw back" id="card-gw" data-app="gw" onclick="cardTap('gw')" aria-label="Apri GoWork">
+      <span class="p-mono">GW</span>
+      <span class="p-txt"><span class="p-name">GoWork</span><span class="p-sub">Gestione · Orari</span><span class="p-val num" id="hubValGw"></span></span>
+      <span class="p-open"><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></span>
+    </button>
+  </div>
+
+  <div class="hub-actions">
+    <div class="switcher" id="switcher" role="tablist">
+      <button class="active tc" data-app="tc" onclick="bringFront('tc')">GoBank</button>
+      <button class="gw" data-app="gw" onclick="bringFront('gw')">GoWork</button>
+    </div>
+    <button class="hub-lock" onclick="ewLock()"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span>Blocca / cambia profilo</span></button>
   </div>
 
   <div class="hub-foot">
-    <button class="hub-lock" onclick="ewLock()">🔒 Blocca / cambia profilo</button>
+    <div class="lux">LUX.COMICS</div>
     <div class="hub-copy">© 2026/2027 TRAD.CLAB · E-WALLET</div>
   </div>
+ </div>
 </div>
 
 <!-- ════════ EW LAUNCHER (icone GoBank) ════════ -->
 <section class="ew-launcher" id="ewLauncher">
   <div class="ew-topbar">
-    <div class="ew-brand">
-      <svg style="height:52px;width:auto;display:block;" role="img" aria-label="E-Wallet" viewBox="0 0 810 280" xmlns="http://www.w3.org/2000/svg">
-  <defs>
-    <linearGradient id="walletGradH_4" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0d5c4f"/>
-      <stop offset="50%" stop-color="#1a9b73"/>
-      <stop offset="100%" stop-color="#4ce0a8"/>
-    </linearGradient>
-    <linearGradient id="flapGradH_4" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0a4a40"/>
-      <stop offset="100%" stop-color="#136b56"/>
-    </linearGradient>
-  </defs>
-  <rect x="60" y="4" width="120" height="52" rx="9" fill="url(#flapGradH_4)" transform="rotate(-14 120 30)"/>
-  <rect x="16" y="48" width="162" height="108" rx="22" fill="url(#walletGradH_4)"/>
-  <rect x="50" y="83" width="58" height="13" rx="6.5" fill="#fff"/>
-  <rect x="50" y="108" width="58" height="13" rx="6.5" fill="#fff"/>
-  <circle cx="161" cy="102" r="13" fill="#fff"/>
-  <circle cx="161" cy="102" r="6.5" fill="#1a9b73"/>
-  <text x="205" y="118" font-family="'Bricolage Grotesque',Arial,sans-serif" font-weight="800" font-size="58"><tspan fill="#1a9b73">E-</tspan><tspan fill="#ffffff">Wallet</tspan></text>
-  <text x="207" y="155" font-family="'Bricolage Grotesque',Arial,sans-serif" font-size="19" fill="#d8d8d8" letter-spacing="0.5">Finance &amp; Work Management</text>
-</svg>
-      <div class="ew-brand-name">TRAD.CLUB</div>
-    </div>
-    <div class="ew-actions">
-      <button class="ew-abtn" id="ewThemeBtn" onclick="launcherToggleTheme()">☀️ Giorno</button>
-      <button class="ew-abtn" id="ewSyncBtn" onclick="ewOpenSyncPanel()">📶 Online</button>
-      <button class="ew-abtn" onclick="ewLock()">🔒 Blocca</button>
-      <button class="ew-abtn" id="ewInstallBtn" onclick="launcherInstall()">📲 Installa</button>
-      <button class="ew-abtn" onclick="launcherOpenProfile()">👤 Utente</button>
-      <button class="ew-abtn" onclick="launcherResetMonth()">♻️ Reset</button>
-      <button class="ew-abtn danger" onclick="launcherResetYear()">🗑️ Cancella Anno</button>
-      <button class="ew-abtn" onclick="closeLauncher()">‹ Wallet</button>
+    <div class="l"><button type="button" class="ew-back" onclick="closeLauncher()"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Wallet</span></button></div>
+    <div class="c"><span class="ew-navtitle">GoBank</span></div>
+    <div class="r ew-actions">
+      <button type="button" id="ewSyncBtn" onclick="ewOpenSyncPanel()"><svg class="ic" aria-hidden="true"><use href="#i-cloud-ok"/></svg><span>Online</span></button>
+      <button type="button" class="ew-more" id="ewMoreBtn" aria-label="Altri comandi" aria-haspopup="menu" aria-expanded="false" onclick="ewToggleMenu()"><svg class="ic" aria-hidden="true"><use href="#i-more"/></svg></button>
     </div>
   </div>
-  <div class="ew-health" id="ewHealth" hidden role="status" aria-live="polite">
-    <div class="ew-health-text" id="ewHealthText"></div>
-    <div class="ew-health-btns">
-      <button type="button" class="ew-health-btn primary" id="ewHealthGo" onclick="ewHealthGo()">Controlla</button>
-      <button type="button" class="ew-health-btn" id="ewHealthLater" onclick="ewHealthLater()">Più tardi</button>
-    </div>
+  <div class="ew-menuscrim" id="ewMenuScrim" onclick="ewCloseMenu()"></div>
+  <div class="ew-menu" id="ewMenu" role="menu">
+    <button type="button" role="menuitem" id="ewThemeBtn" onclick="ewCloseMenu();launcherToggleTheme()"><span>Giorno</span><svg class="ic" aria-hidden="true"><use href="#i-sun"/></svg></button>
+    <button type="button" role="menuitem" onclick="ewCloseMenu();ewLock()"><span>Blocca</span><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg></button>
+    <button type="button" role="menuitem" id="ewInstallBtn" onclick="ewCloseMenu();launcherInstall()"><span>Installa</span><svg class="ic" aria-hidden="true"><use href="#i-download"/></svg></button>
+    <button type="button" role="menuitem" onclick="ewCloseMenu();launcherOpenProfile()"><span>Utente</span><svg class="ic" aria-hidden="true"><use href="#i-user"/></svg></button>
+    <hr>
+    <button type="button" role="menuitem" onclick="ewCloseMenu();launcherResetMonth()"><span>Reset</span><svg class="ic" aria-hidden="true"><use href="#i-refresh"/></svg></button>
+    <button type="button" role="menuitem" class="danger" onclick="ewCloseMenu();launcherResetYear()"><span>Cancella anno</span><svg class="ic" aria-hidden="true"><use href="#i-trash"/></svg></button>
   </div>
-  <div class="ew-grid">
-    <div class="ew-tile big" onclick="openTcSection('dashboard')">
-      <div>
-        <div class="ic" style="background:linear-gradient(135deg,var(--gold-bright),#c9862e);">📅</div>
-        <div class="lb">Calendario &amp; Dashboard</div>
+  <div class="ew-wrap">
+    <div class="ew-head">
+      <div class="brandrow"><span class="wm m2"><span class="seal">TC</span><span class="tx">TRAD.CLAB</span></span></div>
+      <h1 class="lt">GoBank</h1>
+      <p class="lt-sub">Budget · Famiglia</p>
+    </div>
+    <div class="ew-health" id="ewHealth" hidden role="status" aria-live="polite">
+      <div class="ew-health-text" id="ewHealthText"></div>
+      <div class="ew-health-btns">
+        <button type="button" class="ew-health-btn primary" id="ewHealthGo" onclick="ewHealthGo()">Controlla</button>
+        <button type="button" class="ew-health-btn" id="ewHealthLater" onclick="ewHealthLater()">Più tardi</button>
       </div>
-      <div class="ew-preview" id="ewDashPreview">
-        <div class="ew-date" id="ewPreviewDate">—</div>
-        <div class="ew-greeting" id="ewGreeting">
-          <div class="ew-greeting-top">
-            <div class="ew-greeting-hello" id="ewGreetingHello">—</div>
-            <div class="ew-greeting-clock" id="ewGreetingClock">—</div>
+    </div>
+    <div class="ew-grid">
+      <div class="ew-tile big" onclick="openTcSection('dashboard')">
+        <div class="hero-h"><span class="sq c-gold"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span class="lb">Calendario &amp; Dashboard</span><svg class="ic cv" aria-hidden="true"><use href="#i-chev-r"/></svg></div>
+        <div class="ew-preview" id="ewDashPreview">
+          <div class="ew-date" id="ewPreviewDate">—</div>
+          <div class="ew-greeting" id="ewGreeting">
+            <div class="ew-greeting-top">
+              <div class="ew-greeting-hello" id="ewGreetingHello">—</div>
+              <div class="ew-greeting-clock" id="ewGreetingClock">—</div>
+            </div>
+            <div class="ew-quote" id="ewGreetingQuote">—<cite id="ewGreetingQuoteAuthor"></cite></div>
           </div>
-          <div class="ew-quote" id="ewGreetingQuote">—<cite id="ewGreetingQuoteAuthor"></cite></div>
-        </div>
-        <div class="ew-diary" id="ewDiaryBox" style="display:none;">
-          <div class="ew-diary-top"><span id="ewDiaryMood">📔</span> <span id="ewDiaryLabel">Diario di oggi</span> <span id="ewDiaryTime"></span></div>
-          <div class="ew-diary-text" id="ewDiaryText"></div>
-        </div>
-        <div class="ew-vacspese" id="ewVacSpeseBox" style="display:none;">
-          <div class="ew-diary-top" id="ewVacSpeseTitle"><span id="ewVacSpeseTitleTxt">🧳 Spese vacanza di oggi</span><button class="ew-card-close" onclick="ewDismissVacSpese()" title="Nascondi">✕</button></div>
-          <div id="ewVacSpeseList"></div>
-        </div>
-        <div class="ew-stats">
-          <div><div class="ew-stat-label">Rimanenza</div><div class="ew-stat-val" id="ewPreviewRim" style="color:var(--green);">—</div></div>
-          <div><div class="ew-stat-label">Spese mese</div><div class="ew-stat-val" id="ewPreviewSpese" style="color:var(--gold);">—</div></div>
-          <div><div class="ew-stat-label">Spese settimana</div><div class="ew-stat-val" id="ewPreviewWeek" style="color:#4a90e8;">—</div></div>
-          <div><div class="ew-stat-label" id="ewPreviewVacLabel">Vacanza in corso</div><div class="ew-stat-val" id="ewPreviewVac" style="color:#a78bfa;">—</div></div>
+          <div class="ew-diary" id="ewDiaryBox" style="display:none;">
+            <div class="ew-diary-top"><span id="ewDiaryMood">📔</span> <span id="ewDiaryLabel">Diario di oggi</span> <span id="ewDiaryTime"></span></div>
+            <div class="ew-diary-text" id="ewDiaryText"></div>
+          </div>
+          <div class="ew-vacspese" id="ewVacSpeseBox" style="display:none;">
+            <div class="ew-diary-top" id="ewVacSpeseTitle"><span id="ewVacSpeseTitleTxt">🧳 Spese vacanza di oggi</span><button class="ew-card-close" onclick="event.stopPropagation();ewDismissVacSpese()" title="Nascondi">✕</button></div>
+            <div id="ewVacSpeseList"></div>
+          </div>
+          <div class="ew-stats">
+            <div><div class="ew-stat-label">Rimanenza</div><div class="ew-stat-val" id="ewPreviewRim" style="color:var(--good);">—</div></div>
+            <div><div class="ew-stat-label">Spese mese</div><div class="ew-stat-val" id="ewPreviewSpese" style="color:var(--act);">—</div></div>
+            <div><div class="ew-stat-label">Spese settimana</div><div class="ew-stat-val" id="ewPreviewWeek" style="color:var(--blue);">—</div></div>
+            <div><div class="ew-stat-label" id="ewPreviewVacLabel">Vacanza in corso</div><div class="ew-stat-val" id="ewPreviewVac" style="color:var(--purple);">—</div></div>
+          </div>
         </div>
       </div>
-    </div>
-    <div class="ew-right">
+      <div class="ew-right">
       <div class="ew-tile" onclick="launcherOpenProfile()">
-        <div class="ic ic-impostazioni">⚙️</div>
+        <span class="sq c-gray"><svg class="ic" aria-hidden="true"><use href="#i-gear"/></svg></span>
         <div class="lb">Impostazioni</div>
       </div>
       <div class="ew-tile" onclick="launcherOpenSub('gestione')">
-        <div class="ic ic-gestione">🗂️</div>
+        <span class="sq c-blue"><svg class="ic" aria-hidden="true"><use href="#i-folder"/></svg></span>
         <div class="lb">Gestione</div>
       </div>
       <div class="ew-tile" onclick="openTcSection('settimanale')">
-        <div class="ic ic-altro">📅</div>
+        <span class="sq c-orange"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span>
         <div class="lb">Spese Settimanali</div>
       </div>
       <div class="ew-tile" onclick="openTcSection('calendario')">
-        <div class="ic ic-altro">🗓️</div>
+        <span class="sq c-red"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span>
         <div class="lb">Calendario &amp; Note</div>
       </div>
-      <div class="ew-tile" onclick="openTcSection('grafici')" style="border:1.5px solid rgba(74,232,122,0.3);position:relative;">
-        <div style="position:absolute;top:6px;right:6px;background:#4ae87a;color:#0a1a08;font-size:8px;font-weight:700;padding:1px 5px;border-radius:6px;">NEW</div>
-        <div class="ic ic-altro">📊</div>
-        <div class="lb" style="color:#4ae87a;">Grafici</div>
+      <div class="ew-tile" onclick="openTcSection('grafici')">
+        <span class="badge">NEW</span>
+        <span class="sq c-green"><svg class="ic" aria-hidden="true"><use href="#i-bars"/></svg></span>
+        <div class="lb">Grafici</div>
       </div>
       <div class="ew-tile" onclick="openTcSection('speseCasa')">
-        <div class="ic ic-altro">🏘️</div>
+        <span class="sq c-teal"><svg class="ic" aria-hidden="true"><use href="#i-house"/></svg></span>
         <div class="lb">Spese Casa</div>
       </div>
       <div class="ew-tile wide" onclick="launcherOpenSub('banca')">
-        <div class="ic ic-banca">🏦</div>
-        <div><div class="lb">Banca</div><div class="sb">Conto corrente, import PDF</div></div>
+        <span class="sq c-indigo s40"><svg class="ic" aria-hidden="true"><use href="#i-bank"/></svg></span>
+        <div class="tt"><div class="lb">Banca</div><div class="sb">Conto corrente, import PDF</div></div>
+        <svg class="ic chev" aria-hidden="true"><use href="#i-chev-r"/></svg>
       </div>
       <div class="ew-tile wide" onclick="openTcSection('vacanze')">
-        <div class="ic ic-altro">🧳</div>
-        <div><div class="lb">Viaggi e Ferie</div><div class="sb">Permessi e giorni liberi</div></div>
+        <span class="sq c-purple s40"><svg class="ic" aria-hidden="true"><use href="#i-plane"/></svg></span>
+        <div class="tt"><div class="lb">Viaggi e Ferie</div><div class="sb">Permessi e giorni liberi</div></div>
+        <svg class="ic chev" aria-hidden="true"><use href="#i-chev-r"/></svg>
       </div>
-    </div>
-    <div class="ew-mapsection" id="ewMapSection">
-      <div class="ew-mapsection-head">
-        <span>🗺️ Mappa delle spese</span>
-        <button class="ew-map-refresh" id="ewMapRefreshBtn" onclick="ewInitMap(true)" style="display:none;">↻ Aggiorna</button>
-        <button class="ew-map-refresh" id="ewMapLocateBtn" onclick="ewCenterOnMe()" style="display:none;">📍 Centra su di me</button>
       </div>
-      <div id="ewMapKeyForm">
-        <p>Per vedere le tue spese su una mappa vera serve una chiave gratuita di Google ("Maps Demo Key" — nessuna carta richiesta).</p>
-        <ol>
-          <li>Apri <a href="https://console.cloud.google.com/google/maps-hosted/tos" target="_blank" rel="noopener">questo link</a> col tuo account Google</li>
-          <li>Tocca "Get a Demo Key" e accetta</li>
-          <li>Incolla la chiave qui sotto</li>
-        </ol>
-        <div class="ew-mapkey-row">
-          <input type="text" id="ewMapKeyInput" placeholder="Incolla qui la chiave...">
-          <button class="btn-gold-ew" onclick="ewSaveMapKey()">Salva</button>
+      <div class="ew-mapsection" id="ewMapSection">
+        <div class="ew-mapsection-head">
+          <span>Mappa delle spese</span>
+          <button class="ew-map-refresh" id="ewMapRefreshBtn" onclick="ewInitMap(true)" style="display:none;">↻ Aggiorna</button>
+          <button class="ew-map-refresh" id="ewMapLocateBtn" onclick="ewCenterOnMe()" style="display:none;">📍 Centra su di me</button>
         </div>
-        <div id="ewMapKeyMsg"></div>
-      </div>
-      <div id="ewMapContainer" style="display:none;"></div>
-      <div id="ewQuickAddWrap" style="display:none;">
-        <button class="ew-map-refresh" id="ewQuickAddToggle" onclick="ewToggleQuickAdd()" style="margin-top:12px;">➕ Aggiungi spesa qui</button>
-        <div id="ewQuickAddForm" style="display:none;">
-          <div class="ew-qa-field">
-            <label>Luogo</label>
-            <input type="text" id="ewQaPlaceSearch" placeholder="Cerca un posto e premi Invio..." autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();ewSearchPlace(this.value);}">
-            <div class="ew-qa-quickchips">
-              <button type="button" onclick="ewSearchPlace(document.getElementById('ewQaPlaceSearch').value)">🔍 Cerca</button>
-              <button type="button" onclick="ewQuickNearby('restaurant')">🍽️ Ristoranti vicini</button>
-              <button type="button" onclick="ewQuickNearby('bar')">🍺 Bar vicini</button>
+        <div id="ewMapKeyForm">
+          <p>Per vedere le tue spese su una mappa vera serve una chiave gratuita di Google ("Maps Demo Key" — nessuna carta richiesta).</p>
+          <ol>
+            <li>Apri <a href="https://console.cloud.google.com/google/maps-hosted/tos" target="_blank" rel="noopener">questo link</a> col tuo account Google</li>
+            <li>Tocca "Get a Demo Key" e accetta</li>
+            <li>Incolla la chiave qui sotto</li>
+          </ol>
+          <div class="ew-mapkey-row">
+            <input type="text" id="ewMapKeyInput" placeholder="Incolla qui la chiave...">
+            <button class="btn-gold-ew" onclick="ewSaveMapKey()">Salva</button>
+          </div>
+          <div id="ewMapKeyMsg"></div>
+        </div>
+        <div id="ewMapContainer" style="display:none;"></div>
+        <div id="ewQuickAddWrap" style="display:none;">
+          <button class="ew-map-refresh" id="ewQuickAddToggle" onclick="ewToggleQuickAdd()" style="margin-top:12px;">➕ Aggiungi spesa qui</button>
+          <div id="ewQuickAddForm" style="display:none;">
+            <div class="ew-qa-field">
+              <label>Luogo</label>
+              <input type="text" id="ewQaPlaceSearch" placeholder="Cerca un posto e premi Invio..." autocomplete="off" onkeydown="if(event.key==='Enter'){event.preventDefault();ewSearchPlace(this.value);}">
+              <div class="ew-qa-quickchips">
+                <button type="button" onclick="ewSearchPlace(document.getElementById('ewQaPlaceSearch').value)">🔍 Cerca</button>
+                <button type="button" onclick="ewQuickNearby('restaurant')">🍽️ Ristoranti vicini</button>
+                <button type="button" onclick="ewQuickNearby('bar')">🍺 Bar vicini</button>
+              </div>
+              <div id="ewQaPlaceResults"></div>
             </div>
-            <div id="ewQaPlaceResults"></div>
+            <div class="ew-qa-row">
+              <div class="ew-qa-field"><label>Causale</label><input type="text" id="ewQaCausale" placeholder="Es. Pranzo"></div>
+              <div class="ew-qa-field" style="max-width:110px;"><label>Importo</label><input type="text" inputmode="decimal" id="ewQaImporto" placeholder="0,00"></div>
+              <div class="ew-qa-field" style="max-width:96px;"><label>Valuta</label><select id="ewQaValuta"><option value="EUR">€ EUR</option><option value="GBP">£ GBP</option><option value="RON">RON</option><option value="USD">$ USD</option><option value="CHF">CHF</option></select></div>
+            </div>
+            <div class="ew-qa-row">
+              <div class="ew-qa-field"><label>Data</label><input type="date" id="ewQaData"></div>
+              <div class="ew-qa-field"><label>Ora</label><input type="time" id="ewQaOra"></div>
+            </div>
+            <button class="btn-gold-ew" id="ewQaSubmit" onclick="ewQuickAddExpense()" style="width:100%;margin-top:10px;">Aggiungi spesa</button>
+            <div id="ewQaMsg"></div>
           </div>
-          <div class="ew-qa-row">
-            <div class="ew-qa-field"><label>Causale</label><input type="text" id="ewQaCausale" placeholder="Es. Pranzo"></div>
-            <div class="ew-qa-field" style="max-width:100px;"><label>Importo</label><input type="text" inputmode="decimal" id="ewQaImporto" placeholder="0,00"></div>
-            <div class="ew-qa-field" style="max-width:84px;"><label>Valuta</label><select id="ewQaValuta" style="width:100%;padding:10px 6px;border-radius:9px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.16);color:var(--text);font-size:13px;font-family:inherit;box-sizing:border-box;"><option value="EUR">€ EUR</option><option value="GBP">£ GBP</option><option value="RON">RON</option><option value="USD">$ USD</option><option value="CHF">CHF</option></select></div>
-          </div>
-          <div class="ew-qa-row">
-            <div class="ew-qa-field"><label>Data</label><input type="date" id="ewQaData"></div>
-            <div class="ew-qa-field"><label>Ora</label><input type="time" id="ewQaOra"></div>
-          </div>
-          <button class="btn-gold-ew" id="ewQaSubmit" onclick="ewQuickAddExpense()" style="width:100%;margin-top:6px;">Aggiungi spesa</button>
-          <div id="ewQaMsg"></div>
         </div>
       </div>
     </div>
@@ -948,32 +777,55 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
 </section>
 
 <section class="ew-sublauncher" id="ewSubGestione">
-  <div class="ew-sub-head">
-    <button class="ew-sub-back" onclick="launcherBack()">‹ Home</button>
-    <div class="ew-sub-title">🗂️ Gestione</div>
+  <div class="ew-topbar">
+    <div class="l"><button type="button" class="ew-sub-back" onclick="launcherBack()"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Home</span></button></div>
+    <div class="c"><span class="ew-navtitle">Gestione</span></div>
+    <div class="r ew-actions"></div>
   </div>
-  <div class="ew-sub-grid">
-    <div class="ew-tile" onclick="openTcSection('aggiungiSpesa')"><div class="ic ic-gestione">➕</div><div class="lb">Aggiungi Spesa</div></div>
-    <div class="ew-tile" onclick="openTcSection('entrate')"><div class="ic ic-gestione">💰</div><div class="lb">Entrate</div></div>
-    <div class="ew-tile" onclick="openTcSection('speseFisse')"><div class="ic ic-gestione">🏠</div><div class="lb">Spese Fisse</div></div>
+  <div class="ew-wrap">
+    <h1 class="ew-sub-title">Gestione</h1>
+    <div class="ew-sub-grid">
+      <div class="ew-tile" onclick="openTcSection('aggiungiSpesa')">
+        <span class="sq c-green"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span>
+        <div class="lb">Aggiungi Spesa</div>
+      </div>
+      <div class="ew-tile" onclick="openTcSection('entrate')">
+        <span class="sq c-orange"><svg class="ic" aria-hidden="true"><use href="#i-euro"/></svg></span>
+        <div class="lb">Entrate</div>
+      </div>
+      <div class="ew-tile" onclick="openTcSection('speseFisse')">
+        <span class="sq c-blue"><svg class="ic" aria-hidden="true"><use href="#i-house"/></svg></span>
+        <div class="lb">Spese Fisse</div>
+      </div>
+    </div>
   </div>
 </section>
 
 <section class="ew-sublauncher" id="ewSubBanca">
-  <div class="ew-sub-head">
-    <button class="ew-sub-back" onclick="launcherBack()">‹ Home</button>
-    <div class="ew-sub-title">🏦 Banca</div>
+  <div class="ew-topbar">
+    <div class="l"><button type="button" class="ew-sub-back" onclick="launcherBack()"><svg class="ic" aria-hidden="true"><use href="#i-chev-l"/></svg><span>Home</span></button></div>
+    <div class="c"><span class="ew-navtitle">Banca</span></div>
+    <div class="r ew-actions"></div>
   </div>
-  <div class="ew-sub-grid">
-    <div class="ew-tile" onclick="openTcSection('contocorrente')"><div class="ic ic-banca">💳</div><div class="lb">Conto Corrente</div></div>
-    <div class="ew-tile" onclick="openTcSection('documenti')"><div class="ic ic-banca">📁</div><div class="lb">Importa PDF &amp; Documenti</div></div>
+  <div class="ew-wrap">
+    <h1 class="ew-sub-title">Banca</h1>
+    <div class="ew-sub-grid">
+      <div class="ew-tile" onclick="openTcSection('contocorrente')">
+        <span class="sq c-indigo"><svg class="ic" aria-hidden="true"><use href="#i-card"/></svg></span>
+        <div class="lb">Conto Corrente</div>
+      </div>
+      <div class="ew-tile" onclick="openTcSection('documenti')">
+        <span class="sq c-teal"><svg class="ic" aria-hidden="true"><use href="#i-doc"/></svg></span>
+        <div class="lb">Importa PDF &amp; Documenti</div>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- ════════ SYNC STATUS PANEL ════════ -->
 <div id="ewSyncPanel" class="ew-syncpanel">
   <div class="ew-syncpanel-card">
-    <button class="ew-syncpanel-close" onclick="ewCloseSyncPanel()">✕</button>
+    <button class="ew-syncpanel-close" onclick="ewCloseSyncPanel()" aria-label="Chiudi">✕</button>
     <div class="ew-syncpanel-icon" id="ewSyncPanelIcon">📶</div>
     <div class="ew-syncpanel-status" id="ewSyncPanelStatus">Online</div>
     <div class="ew-syncpanel-hint" id="ewSyncPanelHint" style="display:none"></div>
@@ -1038,6 +890,8 @@ const APPS = {
 const EW_KEY='ew_user';
 let frontApp='tc', activeApp=null, selEmail=null;
 const loaded={tc:false,gw:false};
+try{ewInitTheme();}catch(e){}
+document.addEventListener('DOMContentLoaded',function(){try{ewInitTheme();}catch(e){}});
 
 // ════════ HASH (copiati dalle app, per validare le password vere) ════════
 function tcHash(pass){            // TradoCroods · hashPasswordSync
@@ -1122,6 +976,7 @@ function skipLogin(){
 
 // ════════ HUB ════════
 function enterHub(skipped){
+  try{ewInitTheme();}catch(e){}
   const lg=document.getElementById('ewLogin'); lg.style.opacity='0';
   setTimeout(()=>{ lg.style.display='none'; }, 400);
   document.getElementById('hub').classList.add('show');
@@ -1144,18 +999,19 @@ function ewLock(){
 function bringFront(which){
   frontApp=which;
   const tc=document.getElementById('card-tc'), gw=document.getElementById('card-gw');
-  if(which==='tc'){ tc.className='card front'; gw.className='card back'; }
-  else { gw.className='card front'; tc.className='card back'; }
+  if(which==='tc'){ tc.className='pass gb front'; gw.className='pass gw back'; }
+  else { gw.className='pass gw front'; tc.className='pass gb back'; }
   document.querySelectorAll('#switcher button').forEach(b=>b.classList.toggle('active', b.dataset.app===which));
 }
 function cardTap(which){
-  if(which!==frontApp){ bringFront(which); return; }
+  frontApp=which;
   if(which==='tc'){ openLauncher(); return; }
   openApp(which);
 }
 
 // ════════ EW LAUNCHER (home a icone di GoBank) ════════
 function openLauncher(){
+  try{ewCloseMenu();}catch(e){}
   document.getElementById('hub').style.opacity='0';
   document.getElementById('ewLauncher').classList.add('open');
   ewShowTodayLabel();
@@ -1185,23 +1041,24 @@ function ewUpdateSyncBtn(){
   if(!btn) return;
   var st=ewHealthStatus();
   btn.classList.remove('offline','conflict','warn','bad','ok');
+  var put=function(icon,label){ btn.innerHTML='<svg class="ic" aria-hidden="true"><use href="#i-'+icon+'"/></svg><span>'+label+'</span>'; };
   if(!st){
     var online=navigator.onLine;
-    btn.textContent = online ? '📶 Online' : '📵 Offline';
+    put(online?'wifi':'wifi-off', online?'Online':'Offline');
     btn.classList.toggle('offline', !online);
     return;
   }
-  var label='☁️ Salvato', cls='ok';
+  var label='Salvato', icon='cloud-ok', cls='ok';
   switch(st.code){
-    case 'stale':     label='⚠️ Cloud fermo'; cls='bad'; break;
-    case 'noreach':   label='⚠️ Cloud non risponde'; cls='warn'; break;
-    case 'offline':   label='📵 Offline'; cls='offline'; break;
-    case 'nosession': label='☁️ Non collegato'; cls='warn'; break;
-    case 'saving': case 'retry': label='☁️ Salvo…'; cls=''; break;
-    case 'checking':  label='☁️ …'; cls=''; break;
+    case 'stale':     label='Cloud fermo'; icon='alert'; cls='bad'; break;
+    case 'noreach':   label='Cloud non risponde'; icon='alert'; cls='warn'; break;
+    case 'offline':   label='Offline'; icon='wifi-off'; cls='offline'; break;
+    case 'nosession': label='Non collegato'; icon='cloud'; cls='warn'; break;
+    case 'saving': case 'retry': label='Salvo…'; icon='cloud'; cls=''; break;
+    case 'checking':  label='…'; icon='cloud'; cls=''; break;
   }
-  if(st.conflict && st.code==='saved'){ label='ℹ️ Nota sync'; cls='conflict'; }
-  btn.textContent=label;
+  if(st.conflict && st.code==='saved'){ label='Nota sync'; icon='info'; cls='conflict'; }
+  put(icon,label);
   if(cls) btn.classList.add(cls);
 }
 var EW_SNOOZE_MS={stale:3*3600000, noreach:6*3600000, nosession:24*3600000, file:24*3600000};
@@ -1930,7 +1787,7 @@ function ewUpdateClock(){
   var now=new Date(), gw=ewGreetingWords(now.getHours());
   var u=JSON.parse(localStorage.getItem(EW_KEY)||'null');
   var name=(u&&u.name)?(', '+u.name.split(' ')[0]):'';
-  hEl.textContent=gw[0]+' '+gw[1]+name;
+  hEl.textContent=gw[1]+name;
   cEl.textContent=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
 }
 function ewInitGreeting(){
@@ -1943,19 +1800,23 @@ function ewInitGreeting(){
     aEl.textContent='— '+pick.a;
   }
 }
+function ewSetThemeBtn(isDay){
+  var btn=document.getElementById('ewThemeBtn');
+  if(btn) btn.innerHTML='<span>'+(isDay?'Notte':'Giorno')+'</span><svg class="ic" aria-hidden="true"><use href="#i-'+(isDay?'moon':'sun')+'"/></svg>';
+  // barra di stato leggibile anche sul chiaro (stessa fascia scura che usano le app chiare)
+  try{ var scr=document.getElementById('statusScrim'); if(scr && !activeApp) scr.style.opacity=isDay?'1':'0'; }catch(e){}
+}
 function ewInitTheme(){
   var saved=localStorage.getItem('tc_theme');
   var isDay=(saved==='light');
   document.body.classList.toggle('ew-day', isDay);
-  var btn=document.getElementById('ewThemeBtn');
-  if(btn) btn.textContent = isDay ? '☀️ Giorno' : '🌙 Notte';
+  ewSetThemeBtn(isDay);
 }
 function launcherToggleTheme(){
-  var btn=document.getElementById('ewThemeBtn');
   var goingDay=!document.body.classList.contains('ew-day');
   document.body.classList.toggle('ew-day', goingDay);
   localStorage.setItem('tc_theme', goingDay?'light':'dark');
-  if(btn) btn.textContent = goingDay ? '☀️ Giorno' : '🌙 Notte';
+  ewSetThemeBtn(goingDay);
   // Sincronizza silenziosamente GoBank se già caricato in background, senza uscire dal launcher
   try{
     var f=document.getElementById('frame-tc');
@@ -2000,6 +1861,7 @@ function ewUpdateDashPreview(){
     var speseTarget=document.getElementById('ewPreviewSpese');
     if(rimEl && rimTarget) rimTarget.textContent=rimEl.textContent||'—';
     if(speseEl && speseTarget) speseTarget.textContent=speseEl.textContent||'—';
+    try{ var hv=document.getElementById('hubValTc'); if(hv){ var rv=(rimTarget&&rimTarget.textContent)||''; hv.textContent=(rv&&rv!=='—')?('Rimanenza '+rv):''; } }catch(e){}
     // Spese settimana: usa la stessa funzione reale di GoBank (renderWeek) invece di ricalcolare.
     // Nota: weekOffset è dichiarata con "let" dentro il loro script, quindi non è raggiungibile
     // come proprietà su win dall'esterno — showSection('dashboard') la corregge già internamente.
@@ -2084,7 +1946,24 @@ function ewUpdateDashPreview(){
     }
   }catch(e){}
 }
+// ── menu «⋯» del launcher + barra che si fissa allo scorrimento ──
+function ewCloseMenu(){
+  var m=document.getElementById('ewMenu'), sc=document.getElementById('ewMenuScrim'), b=document.getElementById('ewMoreBtn');
+  if(m) m.classList.remove('on'); if(sc) sc.classList.remove('on'); if(b) b.setAttribute('aria-expanded','false');
+}
+function ewToggleMenu(){
+  var m=document.getElementById('ewMenu'); if(!m) return;
+  if(m.classList.contains('on')){ ewCloseMenu(); return; }
+  m.classList.add('on'); document.getElementById('ewMenuScrim').classList.add('on');
+  var b=document.getElementById('ewMoreBtn'); if(b) b.setAttribute('aria-expanded','true');
+}
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') ewCloseMenu(); });
+['ewLauncher','ewSubGestione','ewSubBanca'].forEach(function(id){
+  var el=document.getElementById(id); if(!el) return;
+  el.addEventListener('scroll',function(){ el.classList.toggle('scrolled', el.scrollTop>8); },{passive:true});
+});
 function closeLauncher(){
+  try{ewCloseMenu();}catch(e){}
   document.getElementById('ewLauncher').classList.remove('open');
   document.querySelectorAll('.ew-sublauncher').forEach(function(s){ s.classList.remove('open'); });
   document.getElementById('hub').style.opacity='1';
@@ -2107,7 +1986,7 @@ function ewApplyFocusMode(win){
     st.id='ewFocusStyle';
     st.textContent='.sidebar,.sidebar-overlay,.hamburger-btn,.topbar-fixed-logo{display:none!important;}'+
       '#app[style*="display:block"] .main-content,#app[style*="display: block"] .main-content,.main-content{margin-left:0!important;width:100%!important;max-width:none!important;box-sizing:border-box!important;overflow-x:hidden!important;}'+
-      '.grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;}'+
+      '@media (min-width:700px){.grid-2{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important;}}'+
       '.grid-2>*,.summary-grid>*,.card{min-width:0!important;}'+
       '.summary-grid{grid-template-columns:repeat(auto-fit,minmax(0,1fr))!important;}'+
       '@media (min-width:768px){'+
@@ -2290,6 +2169,7 @@ function closeApp(){
   document.body.style.backgroundColor='';
   var _scr=document.getElementById('statusScrim'); if(_scr) _scr.style.opacity='0';
   activeApp=null;
+  try{ewInitTheme();}catch(e){}
 }
 
 
