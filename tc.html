@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261027-v313-per-azienda';
+  var BUILD = '20261031-v315-bar-calendario';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -6709,7 +6709,7 @@ setTimeout(_updateOfflineBanner, 500);
               <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:5px;">Partenza</div>
               <div style="font-size:25px;font-weight:800;color:var(--text);letter-spacing:0.5px;">TORINO</div>
             </div>
-            <div style="flex:1;position:relative;height:2px;background:repeating-linear-gradient(90deg,rgba(232,180,74,0.55) 0 7px,transparent 7px 14px);margin:20px 8px 0;min-width:60px;">
+            <div style="flex:1;position:relative;height:2px;background:repeating-linear-gradient(90deg,rgba(232,180,74,0.55) 0 7px,transparent 7px 14px);margin:20px 8px 0;min-width:60px;" class="vc-route">
               <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:22px;">✈️</div>
             </div>
             <div style="flex-shrink:0;text-align:right;max-width:45%;">
@@ -6733,7 +6733,7 @@ setTimeout(_updateOfflineBanner, 500);
         <!-- ===== CONTENUTO (form + lista) ===== -->
         <div style="overflow-y:auto;flex:1;">
         <div style="padding:20px 26px;border-bottom:1px solid var(--border);">
-          <div style="display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) minmax(0,1fr);gap:10px;margin-bottom:12px;">
+          <div id="vacSpFormGrid" style="display:grid;grid-template-columns:minmax(0,1.9fr) minmax(0,1fr) minmax(0,1.3fr) minmax(0,1fr);gap:10px;margin-bottom:12px;">
             <div class="fld" style="margin:0;">
               <label>Importo</label>
               <div style="display:flex;gap:6px;">
@@ -6765,6 +6765,21 @@ setTimeout(_updateOfflineBanner, 500);
               <label>Causale</label>
               <input type="text" id="vacSpCausale" placeholder="Descrizione spesa...">
             </div>
+            <div class="fld" style="margin:0;">
+              <label>Categoria</label>
+              <select id="vacSpCat" aria-label="Categoria della spesa">
+                <option value="">Scegli…</option>
+                <option value="ristorante">🍽️ Ristorante</option>
+                <option value="bar">☕ Bar</option>
+                <option value="viaggi">✈️ Viaggi</option>
+                <option value="hotel">🏨 Hotel</option>
+                <option value="svago">🎭 Svago</option>
+                <option value="musei">🏛️ Musei</option>
+                <option value="extra">💡 Extra</option>
+                <option value="supermercato">🛒 Supermercato</option>
+                <option value="rata">📦 Rata</option>
+              </select>
+            </div>
           </div>
           <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;margin-bottom:10px;">
             <div class="fld" style="margin:0;">
@@ -6792,6 +6807,7 @@ setTimeout(_updateOfflineBanner, 500);
           <span style="font-size:18px;font-weight:800;color:var(--gold);" id="vacSpTotale">€0,00</span>
         </div>
         <div style="padding:16px 26px 20px;">
+          <div id="vcCatBar" class="vc-bar" role="group" aria-label="Spese per categoria" style="display:none;"></div>
           <div id="vacSpeseList"></div>
           <div id="vacSpeseEmpty" style="text-align:center;padding:24px 10px;color:var(--text-muted);display:none;font-size:13px;">Nessuna spesa registrata per questo viaggio</div>
         </div>
@@ -30793,10 +30809,280 @@ supermercato: {
       "SuperValue"
     ]}
   ]
+},
+
+/* ═══════════════ BAR · marche di caffè, caffetterie e catene ═══════════════ */
+bar: {
+  title: "Marca / catena",
+  ph: "Cerca: Lavazza, Vergnano, Starbucks…",
+  noun: "marca di bar",
+  groups: [
+    { id:"caf", ic:"☕", n:"Marche di caffè", chip:"Marche di caffè", items:[
+      "Lavazza|il caffe lavazza|caffe lavazza|lavazza spa|lavazza blue|lavazza a modo mio|lavazza espresso|lavazza coffee|lavazza cafe|lavazza tierra",
+      "Vergnano|caffe vergnano|vergnano 1882|gran caffe vergnano|caffe vergnano 1882|vergnano spa|vergnano torino",
+      "Costadoro|caffe costadoro|costadoro caffe|torrefazione costadoro",
+      "illy|illycaffe|illy caffe|illy espresso|illy espressamente|espressamente illy|illy art|illy spa|illy cafe",
+      "Segafredo|segafredo zanetti|segafredo zanetti espresso|segafredo espresso|segafredo cafe|segafredo coffee|segafredo caffe",
+      "Kimbo|caffe kimbo|kimbo caffe|kimbo spa",
+      "Caffè Borbone|borbone caffe|=borbone|borbone cialde|borbone capsule|caffe borbone srl",
+      "Caffè Pellini|pellini caffe|=pellini|pellini spa",
+      "Pascucci|caffe pascucci|pascucci caffe|pascucci torrefazione|pascucci cafe",
+      "Hausbrandt|caffe hausbrandt|hausbrandt trieste",
+      "Caffè Mauro|mauro caffe|caffe mauro spa|caffe mauro srl",
+      "Moak|caffe moak|moak caffe|moak coffee",
+      "Caffè Danesi|danesi caffe",
+      "Caffè Passalacqua|passalacqua caffe",
+      "Diemme|caffe diemme|diemme caffe",
+      "Dersut|caffe dersut|dersut caffe",
+      "Bristot|caffe bristot|bristot caffe",
+      "Caffè Carraro|carraro caffe",
+      "Caffè Musetti|musetti caffe|=musetti",
+      "Caffè Molinari|molinari caffe",
+      "Mokador|caffe mokador|mokador caffe",
+      "Saquella|caffe saquella|saquella caffe",
+      "Caffè Trombetta|trombetta caffe",
+      "Cremcaffè|cremcaffe|crem caffe",
+      "Caffè Quarta|quarta caffe",
+      "Nespresso|nespresso boutique|nespresso italia|nespresso sa|nespresso cafe",
+      "Tchibo|tchibo filiale|tchibo gmbh",
+      "Julius Meinl|meinl|julius meinl am graben",
+      "Dallmayr|dallmayr kaffee|dallmayr cafe",
+      "Malongo|cafes malongo|malongo cafe"
+    ]},
+    { id:"cat", ic:"🏪", n:"Caffetterie e catene", chip:"Caffetterie", items:[
+      "Starbucks|starbucks coffee|starbucks reserve|starbucks roastery|starbucks reserve roastery|starbucks italia|starbucks italy|starbuck|starbuks|starbux|starbucs|sbux",
+      "Costa Coffee|costa cafe|costa coffe|costa express|costa coffee uk",
+      "Caffè Nero (catena)|=caffe nero|cafe nero|caffe nero uk|caffe nero group|caffe nero london",
+      "Pret A Manger|=pret|pret uk",
+      "McCafé|mccafe|mc cafe|mcdonalds cafe|mc donalds cafe",
+      "Dunkin'|dunkin donuts|dunkin coffee",
+      "Tim Hortons|timhortons|tim horton",
+      "Joe & The Juice|joe and juice|joe the juice"
+    ]},
+    { id:"aut", ic:"🛣️", n:"Autostrada, stazioni e aeroporti", chip:"Autostrada", items:[
+      "Autogrill|autogrill spa|autogrill italia|autogrill ristorazione",
+      "Chef Express|chefexpress|chef express spa|my chef|mychef",
+      "Motta (Autogrill)|bar motta|motta autogrill|caffe motta|motta cafe|motta bar",
+      "Alemagna|bar alemagna|alemagna autogrill",
+      "Eni Café|enicafe|eni cafe|eni caffe|enicaffe|agip cafe",
+      "Caffè Ritazza|ritazza|cafe ritazza",
+      "Upper Crust|uppercrust",
+      "~Area di servizio (altro)|area di servizio|aree di servizio|area servizio|service area|motorway services|raststatte|aire de service"
+    ]},
+    { id:"sto", ic:"🏛️", n:"Caffè storici", chip:"Caffè storici", items:[
+      "#Torino",
+      "Caffè San Carlo|san carlo caffe|caffe s carlo|caffe san carlo torino",
+      "Baratti & Milano|baratti and milano|baratti e milano|baratti milano|baratti",
+      "Mulassano|caffe mulassano",
+      "Al Bicerin|bicerin|caffe al bicerin",
+      "Caffè Fiorio|fiorio caffe",
+      "Caffè Platti|platti caffe",
+      "Caffè Elena|caffe elena torino",
+      "#Italia",
+      "Caffè Florian|florian venezia|florian cafe",
+      "Caffè Quadri|quadri venezia",
+      "Antico Caffè Greco|caffe greco|antico caffe greco roma",
+      "Sant'Eustachio Il Caffè|santeustachio|sant eustachio|sant eustachio il caffe",
+      "Tazza d'Oro|tazza doro|tazza d oro|la casa del caffe tazza d oro",
+      "Camparino (Milano)|camparino|camparino in galleria|bar camparino",
+      "Gran Caffè Gambrinus|caffe gambrinus|gambrinus napoli",
+      "Caffè Pedrocchi|pedrocchi",
+      "Caffè degli Specchi",
+      "Caffè Tommaseo",
+      "Caffè Gilli|gilli firenze",
+      "Caffè Rivoire|rivoire firenze",
+      "Caffè Paszkowski|paszkowski",
+      "Caffè Giubbe Rosse|giubbe rosse",
+      "#Europa",
+      "Café de Flore|cafe de flore|de flore paris",
+      "Les Deux Magots|deux magots",
+      "Café Sacher|sacher|sacher cafe|hotel sacher cafe",
+      "Demel|cafe demel|demel wien",
+      "Café Landtmann|landtmann",
+      "Café Gerbeaud|gerbeaud",
+      "Café Slavia|cafe slavia|kavarna slavia",
+      "A Brasileira|cafe a brasileira|a brasileira chiado",
+      "Pastéis de Belém|pasteis de belem|antiga confeitaria de belem",
+      "Café Majestic|majestic cafe porto|cafe majestic porto"
+    ]},
+    { id:"pas", ic:"🥐", n:"Pasticcerie, cioccolaterie e panetterie", chip:"Pasticcerie", items:[
+      "Pasticceria Marchesi 1824|marchesi 1824|pasticceria marchesi|marchesi milano",
+      "Pasticceria Cucchi|cucchi milano",
+      "Pasticceria Cova|cova milano|caffe cova|cova montenapoleone",
+      "Pasticceria Scaturchio|scaturchio",
+      "Sal De Riso|salderiso",
+      "Guido Gobino|gobino",
+      "Caffarel|caffarel torino",
+      "Pfatisch|pfatisch torino",
+      "Peyrano|peyrano torino",
+      "Stratta|pasticceria stratta|stratta torino",
+      "Panino Giusto|panino giusto milano",
+      "~Pasticceria / panetteria (altra)|pasticceria|pasticcerie|pasticcini|pasticcino|cornetteria|cornetto|cornetti|brioche|brioches|panetteria|forno|panificio|bakery|bakeries|boulangerie|patisserie|konditorei|baeckerei|backerei|panaderia|pasteleria|padaria|pastelaria|confeitaria|bakkerij|cofetarie|cofetaria|brutarie|patiserie|piekarnia|cukiernia"
+    ]},
+    { id:"gel", ic:"🍦", n:"Gelaterie e yogurt", chip:"Gelaterie", items:[
+      "Grom|grom gelato|grom gelateria",
+      "Venchi|venchi cioccolato|venchi gelato|venchi cioccolato e gelato",
+      "Amorino|amorino gelato|amorino gelati",
+      "Gelateria La Romana|la romana gelateria|la romana gelato",
+      "Alberto Marchetti|marchetti gelato|gelateria marchetti|alberto marchetti torino",
+      "Pepino|gelati pepino|pepino torino|pepino gelato",
+      "Giolitti|gelateria giolitti|giolitti roma",
+      "Vivoli|gelateria vivoli|vivoli firenze",
+      "Fatamorgana|gelateria fatamorgana",
+      "Gelateria dei Neri|dei neri firenze",
+      "Gelateria della Palma|della palma gelato|della palma roma",
+      "Otaleg|gelateria otaleg",
+      "Gelatissimo",
+      "Ben & Jerry's|ben jerrys",
+      "Häagen-Dazs|haagen dazs|haagendazs",
+      "Baskin-Robbins|baskin robbins|baskin and robbins",
+      "Cold Stone Creamery|cold stone",
+      "Dairy Queen",
+      "Pinkberry",
+      "Yogurtland",
+      "Menchie's|menchies",
+      "~Gelateria / yogurt (altra)|gelateria|gelaterie|gelato|gelati|gelataio|ice cream|icecream|glace|glacier|helado|heladeria|eis|eiscafe|eisdiele|yogurteria|frozen yogurt|cremeria|sorbetteria"
+    ]},
+    { id:"pub", ic:"🍺", n:"Pub, birrerie e aperitivo", chip:"Pub e aperitivo", items:[
+      "BrewDog|brew dog",
+      "Wetherspoons|wetherspoon|jd wetherspoon|j d wetherspoon",
+      "O'Neill's|o neills",
+      "Baladin|open baladin",
+      "~Pub / birreria / aperitivo (altro)|pub|pubs|birreria|birrerie|birra|birre|beer|beers|enoteca|enoteche|vineria|wine bar|cocktail|cocktails|cocktail bar|lounge bar|aperitivo|aperitivi|apericena|spritz|happy hour|taproom|brewery|brewpub|biergarten|brauhaus"
+    ]},
+    { id:"vend", ic:"🔌", n:"Distributori automatici", chip:"Distributori", items:[
+      "Buonristoro|buonoristoro|buono ristoro|buon ristoro|buonristoro vending|buonristoro spa",
+      "IVS Italia|ivs|ivs group|ivs spa",
+      "Selecta|selecta italia|selecta vending",
+      "~Distributore automatico (altro)|distributore automatico|distributori automatici|distributore bevande|distributore caffe|distributore snack|vending|vending machine|macchinetta|macchinette|chiavetta|chiavette"
+    ]},
+    { id:"loc", ic:"📍", n:"Bar e caffetterie di zona", chip:"Bar di zona", items:[
+      "~Bar / caffetteria (altro)|bar|bars|caffetteria|caffetterie|caffe|cafe|cafes|cafeteria|coffee|coffee shop|coffeeshop|coffee bar|espresso|espresso bar|cappuccino|capuccino|cappucino|cafenea|cafeneaua|kaffee|kaffeehaus|kavarna|kahve"
+    ]},
+
+    { id:"uk", ic:"🇬🇧", n:"Regno Unito e Irlanda", chip:"Estero", ci:"🌍", items:[
+      "Greggs",
+      "Gail's|gails bakery",
+      "Black Sheep Coffee",
+      "Esquires Coffee|esquires",
+      "Insomnia Coffee Company|insomnia coffee",
+      "Bewley's|bewleys cafe",
+      "Patisserie Valerie"
+    ]},
+    { id:"fr", ic:"🇫🇷", n:"Francia e Benelux", chip:"Estero", ci:"🌍", items:[
+      "Paul (boulangerie)|=paul|paul boulangerie|paul patisserie|paul bakery|paul cafe|paul france|paul paris|paul italia|paul uk|paul roma|paul milano|paul lisboa|paul bruxelles",
+      "La Brioche Dorée|brioche doree",
+      "Columbus Café|columbus cafe|columbus cafe and co",
+      "Maison Kayser|eric kayser",
+      "Ladurée|laduree",
+      "Pierre Hermé|pierre herme",
+      "Angelina (Parigi)|angelina paris|angelina cafe|salon de the angelina",
+      "Pomme de Pain",
+      "Delifrance",
+      "Le Pain Quotidien|pain quotidien",
+      "Exki",
+      "Panos (Belgio)|panos bruxelles|panos brussels|panos belgique|panos bakery|panos cafe",
+      "Anne&Max|anne max",
+      "Bagels & Beans|bagels and beans"
+    ]},
+    { id:"de", ic:"🇩🇪", n:"Germania, Austria e Svizzera", chip:"Estero", ci:"🌍", items:[
+      "Coffee Fellows|coffeefellows",
+      "Balzac Coffee",
+      "Sprüngli|sprungli|spruengli|confiserie sprungli|confiserie spruengli",
+      "Backwerk",
+      "Ditsch",
+      "Le Crobag|crobag"
+    ]},
+    { id:"es", ic:"🇪🇸", n:"Spagna e Portogallo", chip:"Estero", ci:"🌍", items:[
+      "Pans & Company|pans and company|pans company",
+      "Viena Capellanes",
+      "Granier|panaderias granier",
+      "Santagloria|santa gloria",
+      "Delta Cafés|delta cafes|delta q",
+      "A Padaria Portuguesa|padaria portuguesa",
+      "Manteigaria"
+    ]},
+    { id:"ne", ic:"🇸🇪", n:"Europa del Nord e dell'Est", chip:"Estero", ci:"🌍", items:[
+      "Espresso House",
+      "Wayne's Coffee|waynes coffee",
+      "5 to go|5togo|5 to go coffee",
+      "Fornetti"
+    ]},
+    { id:"gr", ic:"🇬🇷", n:"Grecia e Turchia", chip:"Estero", ci:"🌍", items:[
+      "Coffee Island",
+      "Gregory's|gregorys|gregorys coffee",
+      "Everest (Grecia)|everest sandwiches|everest coffee|everest greece|everest hellas",
+      "Mado (Turchia)|mado dondurma|mado cafe|mado turkey",
+      "Kahve Dünyası|kahve dunyasi",
+      "Simit Sarayı|simit sarayi"
+    ]},
+    { id:"na", ic:"🇺🇸", n:"Nord America", chip:"Estero", ci:"🌍", items:[
+      "Peet's Coffee|peets|peets coffee|peets tea",
+      "Dutch Bros|dutch bros coffee|dutch brothers",
+      "Caribou Coffee",
+      "The Coffee Bean & Tea Leaf|coffee bean and tea leaf|coffee bean tea leaf|cbtl|the coffee bean",
+      "Blue Bottle Coffee|blue bottle|bluebottle coffee",
+      "Philz Coffee|philz",
+      "Intelligentsia Coffee|intelligentsia",
+      "Stumptown Coffee Roasters|stumptown",
+      "Second Cup|second cup coffee",
+      "Panera Bread|panera",
+      "Krispy Kreme",
+      "Cinnabon",
+      "Auntie Anne's|auntie annes",
+      "Jamba Juice|jamba",
+      "Smoothie King",
+      "Einstein Bros. Bagels|einstein bros|einstein bagels"
+    ]},
+    { id:"as", ic:"🌏", n:"Asia", chip:"Estero", ci:"🌍", items:[
+      "Luckin Coffee|luckin",
+      "Cotti Coffee",
+      "Manner Coffee",
+      "Pacific Coffee",
+      "Tully's Coffee|tullys|tullys coffee",
+      "Doutor Coffee|doutor coffee shop",
+      "Komeda's Coffee|komedas coffee|komeda coffee",
+      "Saint Marc Café|saint marc cafe|st marc cafe",
+      "Café Bene|cafe bene|caffe bene",
+      "Ediya Coffee|ediya",
+      "A Twosome Place|twosome place",
+      "Paris Baguette",
+      "Tous les Jours (Corea)|tous les jours bakery|tous les jours cafe|tous les jours korea",
+      "Kopi Kenangan|kenangan",
+      "Janji Jiwa",
+      "Old Town White Coffee",
+      "Ya Kun Kaya Toast|ya kun",
+      "Toast Box",
+      "Café Coffee Day|cafe coffee day|ccd cafe",
+      "Chaayos",
+      "Chai Point",
+      "Mister Donut",
+      "Gong cha|gongcha|gong cha tea",
+      "CoCo Fresh Tea & Juice|coco fresh tea and juice|coco fresh tea",
+      "Chatime",
+      "Tiger Sugar",
+      "Sharetea|share tea",
+      "Kung Fu Tea",
+      "~Bubble tea (altro)|bubble tea|boba|boba tea|milk tea|bubble tea shop"
+    ]},
+    { id:"oc", ic:"🦘", n:"Oceania", chip:"Estero", ci:"🌍", items:[
+      "Gloria Jean's|gloria jeans|gloria jeans coffees",
+      "Zarraffa's Coffee|zarraffas|zarraffas coffee",
+      "The Coffee Club",
+      "Muffin Break",
+      "Boost Juice|boost juice bars",
+      "Michel's Patisserie|michels patisserie"
+    ]},
+    { id:"la", ic:"🌎", n:"America Latina", chip:"Estero", ci:"🌍", items:[
+      "Juan Valdez Café|juan valdez|juan valdez cafe",
+      "Havanna",
+      "Café Martínez|cafe martinez"
+    ]}
+  ]
 }
 };
 /* ═══════════════════════════════════════════════════════════════
-   EWSUB — «Azienda» per le categorie Viaggi e Supermercato
+   EWSUB — «Azienda» per le categorie Viaggi, Supermercato e Bar
    · riconosce l'azienda dalla descrizione (anche per le spese vecchie)
    · selettore con ricerca nei moduli spesa
    · resoconto per azienda / per tipo nel dettaglio categoria
@@ -31195,7 +31481,7 @@ supermercato: {
 
   /* ───────── campo «Azienda» nei moduli ───────── */
   var F = {};
-  var FLD_LABEL = { viaggi: 'Azienda di trasporto', supermercato: 'Supermercato / negozio' };
+  var FLD_LABEL = { viaggi: 'Azienda di trasporto', supermercato: 'Supermercato / negozio', bar: 'Marca / catena' };
 
   function attach(o) {
     var sel = $(o.sel); if (!sel || F[o.sel]) return;
@@ -31357,7 +31643,8 @@ supermercato: {
   var GENTOK = toSet('market minimarket mini supermercato supermarket spesa taxi bus treno shop store point center centro di da del della dei degli il lo la le gli un una and the a in per con su alimentari gastronomia bar pizzeria ristorante torino milano roma napoli genova san mauro tor to italia it com net ' +
     'bazar bazaar emporio drogheria macelleria panificio forno pescheria ortofrutta frutteria salumeria latteria negozio negozi bottega discount iper ipermercato mercato ' +
     'biglietto biglietti abbonamento ticket viaggio viaggi corsa tratta andata ritorno notte stazione aeroporto metro tram linea urbano extraurbano mensile settimanale giornaliero annuale pass tessera ricarica carnet autobus pullman navetta volo voli traghetto nave ' +
-    'frutta verdura pane latte uova acqua carne pesce pasta riso formaggi formaggio biscotti caffe olio surgelati pomodori birra birre vino detersivi detersivo carta igienica igiene pulizia pulizie casa famiglia settimana weekend cena pranzo colazione merenda snack bevande dolci dolce gelato pizza fresco freschi scorte frigo dispensa extra varie vari');
+    'frutta verdura pane latte uova acqua carne pesce pasta riso formaggi formaggio biscotti caffe olio surgelati pomodori birra birre vino detersivi detersivo carta igienica igiene pulizia pulizie casa famiglia settimana weekend cena pranzo colazione merenda snack bevande dolci dolce gelato pizza fresco freschi scorte frigo dispensa extra varie vari ' +
+    'cappuccino cappuccini capuccino cappucino espresso brioche brioches cornetto cornetti aperitivo aperitivi apericena spritz tramezzino tramezzini panino panini toast te tea coffee cafe caffetteria caffetterie macchiato marocchino orzo ginseng cioccolata gelateria pasticceria pasticcini pub birreria enoteca distributore distributori automatico automatici vending chiavetta macchinetta');
   function clusterKey(desc) {
     var toks = norm(desc).split(' ').filter(Boolean), keep = [], i, t;
     for (i = 0; i < toks.length; i++) {
@@ -32027,6 +32314,27 @@ body.light{
 :is(html,#_) body .cal-day.other-month{opacity:.35}
 :is(html,#_) body .cal-day-label{color:var(--label2)!important;font-size:11px!important}
 :is(html,#_) body .cal-reminder{background:var(--tint-p)!important;color:var(--pink)!important;border-radius:6px!important}
+@media screen and (min-width:1100px){:is(html,#_) body.ew-embed .main-content{margin-left:max(calc(var(--sidebar-w,260px) + 16px),calc((100% - 700px)/2))!important}}
+@media screen and (min-width:1100px){:is(html,#_) body.ew-embed .main-content:has(#sec-calendario.active){max-width:none!important;width:auto!important;
+    margin-left:max(calc(var(--sidebar-w,260px) + 16px),calc(var(--sidebar-w,260px) + (100% - var(--sidebar-w,260px) - var(--cal-max,1400px))/2))!important;
+    margin-right:max(16px,calc((100% - var(--sidebar-w,260px) - var(--cal-max,1400px))/2))!important}
+:is(html,#_) body #sec-calendario>.grid-2{grid-template-columns:minmax(0,1fr)!important;gap:18px!important;align-items:start}
+:is(html,#_) body #sec-calendario>.grid-2>div:nth-child(2){display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
+:is(html,#_) body #sec-calendario>.grid-2>div:nth-child(2)>.card{margin-bottom:0!important}
+:is(html,#_) body #sec-calendario .cal-grid{gap:6px!important}
+:is(html,#_) body #sec-calendario .cal-day{min-height:104px!important;padding:8px 6px 6px!important;border-radius:14px!important}
+:is(html,#_) body #sec-calendario .cal-day.has-reminder{border-color:color-mix(in srgb,var(--pink) 45%,transparent)!important}
+:is(html,#_) body #sec-calendario .cal-day.today{border-color:var(--ac)!important}
+:is(html,#_) body #sec-calendario .cal-day .day-num{text-align:left!important;margin-bottom:6px!important;padding-left:2px}
+:is(html,#_) body #sec-calendario .cal-reminder{font-size:11px!important;line-height:1.3;padding:3px 6px!important;margin-bottom:3px!important;border-radius:7px!important}
+:is(html,#_) body #sec-calendario .cal-day-label{font-size:12px!important;letter-spacing:.08em!important}}
+@media screen and (min-width:1400px){:is(html,#_) body #sec-calendario>.grid-2{grid-template-columns:minmax(0,1fr) clamp(300px,28%,390px)!important}}
+@media screen and (min-width:1760px){:is(html,#_) body.ew-embed .main-content:has(#sec-calendario.active){--cal-max:1640px}
+:is(html,#_) body #sec-calendario>.grid-2{grid-template-columns:minmax(0,1fr) clamp(320px,26%,420px)!important}
+:is(html,#_) body #sec-calendario .cal-day{min-height:116px!important}}
+@media screen and (min-width:1400px){:is(html,#_) body #sec-calendario>.grid-2>div:nth-child(2){display:block}
+:is(html,#_) body #sec-calendario>.grid-2>div:nth-child(2)>.card{margin-bottom:18px!important}
+:is(html,#_) body #sec-calendario>.grid-2>div:nth-child(2)>.card:last-child{margin-bottom:0!important}}
 :is(html,#_) body .modal-overlay,:is(html,#_) body [id$="Modal"]:not(#profileModal),:is(html,#_) body [id^="modal-"]{background:var(--scrim)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
 :is(html,#_) body .modal,:is(html,#_) body .modal-box,:is(html,#_) body .fb-modal,:is(html,#_) body .priv-box,:is(html,#_) body [id$="Modal"]:not(#profileModal)>div{background:var(--sheet)!important;border:1px solid var(--hair)!important;
   border-radius:28px!important;box-shadow:0 24px 70px rgba(0,0,0,.42)!important;color:var(--label)!important;-webkit-backdrop-filter:none!important;backdrop-filter:none!important}
@@ -32244,6 +32552,8 @@ body.light{
 :is(html,#_) body .logo-dot,:is(html,#_) body .logo-clab{color:var(--ac2)!important;-webkit-text-fill-color:var(--ac2)!important}
 :is(html,#_) body.light .laside .logo-trad{color:#fff!important;-webkit-text-fill-color:#fff!important}
 :is(html,#_) body.light .laside .logo-dot,:is(html,#_) body.light .laside .logo-clab{color:var(--ac2)!important;-webkit-text-fill-color:var(--ac2)!important}
+:is(html,#_) body.light .sidebar-logo .logo-trad{color:var(--label)!important;-webkit-text-fill-color:var(--label)!important}
+:is(html,#_) body.light .sidebar-logo .logo-dot,:is(html,#_) body.light .sidebar-logo .logo-clab{color:var(--act)!important;-webkit-text-fill-color:var(--act)!important}
 :is(html,#_) body .laside-sub,:is(html,#_) body .llp-quote,:is(html,#_) body .lchip{font-family:var(--font)!important}
 :is(html,#_) body .llp-quote{font-family:ui-serif,"New York",Georgia,serif!important}
 :is(html,#_) body .lux-corner{display:none!important}
@@ -32275,6 +32585,8 @@ body.light{
 :is(html,#_) body .az-sb{flex:1 1 0;min-width:0;min-height:36px;padding:6px 8px;border:0;border-radius:9px;background:transparent;color:var(--label2);
   font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
 :is(html,#_) body .az-sb.on{background:var(--ac-soft);color:var(--act);box-shadow:inset 0 0 0 1px var(--ac-ring)}
+:is(html,#_) body .az-seg.az-catseg .az-sb{flex:1 1 auto;padding:6px 6px}
+@media (max-width:359px){:is(html,#_) body .az-seg.az-catseg .az-sb{font-size:13px;padding:6px 4px}}
 :is(html,#_) body .az-seg.sm{flex:none;margin:0;padding:2px;border-radius:10px}
 :is(html,#_) body .az-seg.sm .az-sb{flex:none;min-height:30px;padding:4px 11px;font-size:12.5px;border-radius:8px}
 :is(html,#_) body .az-cap{margin:-2px 2px 12px;font-size:13px;color:var(--label2);line-height:1.35}
@@ -32420,11 +32732,50 @@ body.light{
 :is(html,#_) body .az-tbl tbody tr:last-child td{border-bottom:1px solid var(--hair)!important}
 :is(html,#_) body .az-tbl tfoot td{font-weight:700;border-bottom:0!important}
 @media (prefers-reduced-motion:reduce){:is(html,#_) body .az *{transition:none!important;animation:none!important}}
+@media (max-width:899px){:is(html,#_) body #vacSpFormGrid{grid-template-columns:minmax(0,1fr) minmax(0,1fr)!important}}
+@media (max-width:480px){:is(html,#_) body #vacSpFormGrid > :nth-child(3),:is(html,#_) body #vacSpFormGrid > :nth-child(4){grid-column:1 / -1}}
+@media (max-width:359px){:is(html,#_) body #vacSpeseModal .vc-route{min-width:24px!important;margin-left:2px!important;margin-right:2px!important}
+:is(html,#_) body #vacSpFormGrid > :nth-child(1),:is(html,#_) body #vacSpFormGrid > :nth-child(2){grid-column:1 / -1}}
+:is(html,#_) body #vacSpCat{min-width:0;text-overflow:ellipsis}
+:is(html,#_) body #vacSpCat.vc-empty{color:var(--label3)}
+:is(html,#_) body #vacSpCat option{color:var(--label)}
+:is(html,#_) body #vacSpeseList .sb-chip{max-width:100%;white-space:normal;overflow-wrap:anywhere;border-radius:10px}
+:is(html,#_) body .vc-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:1px 8px;border-radius:999px;background:var(--ac-soft);color:var(--act);
+  font-size:10px;font-weight:600;line-height:1.5;white-space:nowrap}
+:is(html,#_) body .vc-bar{display:flex;gap:8px;overflow-x:auto;margin:0 -4px 12px;padding:2px 4px 6px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+:is(html,#_) body .vc-bar::-webkit-scrollbar{display:none}
+:is(html,#_) body .vc-cb{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;margin:0;padding:8px 12px;border:1px solid var(--hair);border-radius:14px;
+  background:var(--sf2);color:var(--label);font-family:var(--font);text-align:left;cursor:pointer;-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .vc-cb b{font-size:12.5px;font-weight:600;white-space:nowrap}
+:is(html,#_) body .vc-cb i{font-style:normal;font-size:11px;color:var(--label2);white-space:nowrap;font-variant-numeric:tabular-nums}
+:is(html,#_) body .vc-cb.on{border-color:var(--ac);background:var(--ac-soft)}
+:is(html,#_) body .vc-cb:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+:is(html,#_) body .vc-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 14px}
+:is(html,#_) body .vc-kpi{min-width:0;padding:10px 6px;text-align:center;background:var(--sf2);border:1px solid var(--hair);border-radius:14px}
+:is(html,#_) body .vc-kpi b{display:block;font-size:15px;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+:is(html,#_) body .vc-kpi b.vc-sm{font-size:11.5px}
+:is(html,#_) body .vc-kpi i{display:block;margin-top:2px;font-style:normal;font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--label2)}
+:is(html,#_) body .vc-sec{margin:16px 0 8px;font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--label2)}
+:is(html,#_) body .vc-row{margin:0 0 12px}
+:is(html,#_) body .vc-rh{display:flex;justify-content:space-between;align-items:baseline;gap:10px;font-size:13px}
+:is(html,#_) body .vc-rn{min-width:0;overflow-wrap:anywhere;font-weight:600}
+:is(html,#_) body .vc-rv{flex:none;font-weight:700;font-variant-numeric:tabular-nums;color:var(--act)}
+:is(html,#_) body .vc-meter{height:8px;margin:5px 0 4px;border-radius:5px;background:var(--fill3);overflow:hidden}
+:is(html,#_) body .vc-meter span{display:block;height:100%;border-radius:5px;background:var(--ac)}
+:is(html,#_) body .vc-rs{font-size:11.5px;color:var(--label2)}
+:is(html,#_) body .vc-types{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+:is(html,#_) body .vc-t{max-width:100%;padding:3px 9px;border-radius:999px;background:var(--fill);font-size:11.5px;color:var(--label);overflow-wrap:anywhere}
+:is(html,#_) body .vc-t small{color:var(--label2);font-size:11px}
+:is(html,#_) body .vc-org{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:6px 0;border-bottom:1px solid var(--hair);font-size:12.5px}
+:is(html,#_) body .vc-on{min-width:0;overflow-wrap:anywhere}
+:is(html,#_) body .vc-ov{flex:none;font-weight:700;font-variant-numeric:tabular-nums}
+:is(html,#_) body .vc-ov small{font-weight:500;color:var(--label2)}
+:is(html,#_) body .vc-pay{margin-top:14px;font-size:12px;line-height:1.5;color:var(--label2)}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
    EWAZ — «Per Azienda» nei Grafici di GoBank
-   · classifica dei negozi / delle aziende (Viaggi e Supermercato)
+   · classifica dei negozi / delle aziende / delle marche (Viaggi, Supermercato e Bar)
    · più speso / meno speso, variazione rispetto al periodo precedente
    · confronto fra 1–4 aziende, mese per mese (grafico + tabella)
    Dipende da: EWSUB (riconosce l'azienda dal testo della spesa).
@@ -32435,8 +32786,12 @@ body.light{
 
   /* ───────── configurazione ───────── */
   var CATS = [
-    { id: 'viaggi', ic: '🚆', label: 'Viaggi', many: 'aziende', one: 'azienda', pick: 'Scegli fino a 4 aziende da confrontare', what: 'di trasporto' },
-    { id: 'supermercato', ic: '🛒', label: 'Supermercati', many: 'negozi', one: 'negozio', pick: 'Scegli fino a 4 negozi da confrontare', what: 'di spesa' }
+    { id: 'viaggi', ic: '🚆', label: 'Viaggi', many: 'aziende', one: 'azienda', pick: 'Scegli fino a 4 aziende da confrontare', what: 'di trasporto',
+      none: 'nessuna azienda riconosciuta', another: 'serve un’altra azienda', any: 'un’azienda' },
+    { id: 'supermercato', ic: '🛒', label: 'Supermercati', many: 'negozi', one: 'negozio', pick: 'Scegli fino a 4 negozi da confrontare', what: 'di spesa',
+      none: 'nessun negozio riconosciuto', another: 'serve un altro negozio', any: 'un negozio' },
+    { id: 'bar', ic: '☕', label: 'Bar', many: 'marche', one: 'marca', pick: 'Scegli fino a 4 marche da confrontare', what: 'di bar',
+      none: 'nessuna marca riconosciuta', another: 'serve un’altra marca', any: 'una marca' }
   ];
   var PERS = [{ id: 'month', label: 'Mese' }, { id: 'year', label: 'Anno' }, { id: 'all', label: 'Sempre' }];
   var M3 = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
@@ -32792,7 +33147,7 @@ body.light{
 
   function htmlTop(M, st, cats) {
     var cat = catDef(M.cat), h = '';
-    h += seg('cat', M.cat, cats.map(function (c) { return { id: c.id, label: c.ic + ' ' + c.label }; }));
+    h += seg('cat', M.cat, cats.map(function (c) { return { id: c.id, label: c.ic + ' ' + c.label }; }), 'az-catseg');
     h += seg('per', M.period, PERS);
     h += '<div class="az-cap"><b>' + esc(M.label) + '</b>' + (M.cmpLabel && !M.cmpEmpty ? ' <span>· confronto con ' + esc(M.cmpLabel) + '</span>' : '') + '</div>';
 
@@ -32815,8 +33170,8 @@ body.light{
     h += '<div class="az-kpis">' +
       '<div class="az-kpi"><div class="az-kl">Totale speso</div><div class="az-kv' + vcls(money(M.total)) + '">' + money(M.total) + '</div>' + kpiDelta(M) + '</div>' +
       '<div class="az-kpi"><div class="az-kl">Operazioni</div><div class="az-kv">' + M.count + '</div><div class="az-ks">⌀ ' + money(M.total / M.count) + ' a spesa</div></div>' +
-      (M.top ? kpiCo('Più speso', M.top) : '<div class="az-kpi"><div class="az-kl">Più speso</div><div class="az-kv sm">—</div><div class="az-ks">nessuna ' + cat.one + ' riconosciuta</div></div>') +
-      (M.low ? kpiCo('Meno speso', M.low) : '<div class="az-kpi"><div class="az-kl">Meno speso</div><div class="az-kv sm">—</div><div class="az-ks">' + (M.top ? 'serve un’altra ' + cat.one : '&nbsp;') + '</div></div>') +
+      (M.top ? kpiCo('Più speso', M.top) : '<div class="az-kpi"><div class="az-kl">Più speso</div><div class="az-kv sm">—</div><div class="az-ks">' + esc(cat.none) + '</div></div>') +
+      (M.low ? kpiCo('Meno speso', M.low) : '<div class="az-kpi"><div class="az-kl">Meno speso</div><div class="az-kv sm">—</div><div class="az-ks">' + (M.top ? esc(cat.another) : '&nbsp;') + '</div></div>') +
       '</div>';
 
     var list = M.cos.slice();
@@ -32916,7 +33271,7 @@ body.light{
     }).join('') + (M.cand.length > shown.length ? '<button type="button" class="az-chip more" data-az="chipsall">+ altre ' + (M.cand.length - shown.length) + '</button>' : '') + '</div>';
 
     if (!M.series.length) {
-      h += '<div class="az-empty">Scegli almeno ' + (cat.one === 'azienda' ? 'un’azienda' : 'un negozio') + ' per vedere il confronto.</div>';
+      h += '<div class="az-empty">Scegli almeno ' + esc(cat.any) + ' per vedere il confronto.</div>';
       return h;
     }
     var vd = verdict(M);
@@ -33150,6 +33505,472 @@ body.light{
       }
     }, true);
   }
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script id="vcat-js">
+/* ═══════════════════════════════════════════════════════════════
+   EWVC — «Categorie» nella Carta Spese di Viaggio (GoBank → Vacanze)
+   · stesso campo «Categoria» delle altre spese: Ristorante, Bar, Viaggi, Hotel,
+     Svago, Musei, Extra, Supermercato, Rata
+   · la categoria si propone da sola mentre scrivi la causale (si può sempre cambiare)
+   · per Viaggi, Supermercato e Bar c'è anche «Azienda» (lo stesso catalogo di EWSUB: treni e voli, negozi, marche di caffè e catene)
+   · le spese già salvate (senza categoria) vengono riconosciute dalla causale:
+     nessun dato vecchio viene riscritto
+   · elenco con categoria, riepilogo per categoria (toccando si filtra),
+     Statistiche e Stampa con numero di volte e importi
+   Il calcolo (guess, catOf, stats, testi) non tocca la pagina: si prova da solo.
+   ═══════════════════════════════════════════════════════════════ */
+(function (global) {
+  'use strict';
+
+  /* ───────── categorie (le stesse del modulo «Aggiungi spesa») ───────── */
+  var CATS = [
+    { k: 'ristorante', ic: '🍽️', n: 'Ristorante' },
+    { k: 'bar', ic: '☕', n: 'Bar' },
+    { k: 'viaggi', ic: '✈️', n: 'Viaggi' },
+    { k: 'hotel', ic: '🏨', n: 'Hotel' },
+    { k: 'svago', ic: '🎭', n: 'Svago' },
+    { k: 'musei', ic: '🏛️', n: 'Musei' },
+    { k: 'extra', ic: '💡', n: 'Extra' },
+    { k: 'supermercato', ic: '🛒', n: 'Supermercato' },
+    { k: 'rata', ic: '📦', n: 'Rata' }
+  ];
+  var BYK = dict();
+  CATS.forEach(function (c) { BYK[c.k] = c; });
+  /* categorie che hanno anche «Azienda» (le stesse del catalogo EWSUB) e categorie di cui si mostrano i «tipi» (Treno, Taxi… / Gelaterie, Pub…) */
+  var ORGC = dict(), TYPED = dict();
+  ORGC.viaggi = ORGC.supermercato = ORGC.bar = true;
+  TYPED.viaggi = TYPED.bar = true;
+  var SEL = 'vacSpCat';
+
+  /* ───────── utilità ───────── */
+  function dict() { return Object.create(null); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function r2(v) { return Math.round((v || 0) * 100) / 100; }
+  function money(v) { return '€' + r2(v).toFixed(2).replace('.', ','); }
+  function volte(n) { return n + (n === 1 ? ' volta' : ' volte'); }
+  function pct(p) { return p > 0 && p < 1 ? '<1%' : Math.round(p) + '%'; }
+  function $(id) { return global.document ? global.document.getElementById(id) : null; }
+  function norm(s) {
+    s = String(s == null ? '' : s).toLowerCase();
+    try { s = s.normalize('NFD').replace(/[̀-ͯ]/g, ''); } catch (e) { }
+    return s.replace(/['’`´]/g, '').replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim();
+  }
+  function amountOf(s) {
+    var v = (s && s.importoEUR != null) ? s.importoEUR : (s && s.importo);
+    v = Number(v);
+    return isFinite(v) ? v : 0;
+  }
+
+  /* ───────── riconoscimento della categoria dalla causale ─────────
+     Solo un suggerimento: chi scrive può cambiarlo; per le spese vecchie serve a
+     mostrarle e contarle senza modificare i dati salvati. */
+  var PRE = [
+    ['rata', /\b(rata|rate|scalapay|klarna|finanziament\w*)\b/],
+    ['ristorante', /\b(pranz\w*|cena|cene|cenato|colazion\w*|ristorant\w*|trattori\w*|osteria|pizz\w*|kebab|sushi|burger|mc ?donald\w*|mec ?donald\w*|kfc|brunch|lunch|dinner|breakfast|tavola calda|fast food|panin\w*|pub|taverna|locanda|rosticceri\w*|friggitori\w*)\b/],
+    ['bar', /\b(bar|caff\w*|cap+u+c+in\w*|aperitiv\w*|spritz|birr\w*|cocktail|drink|gelat\w*|dolc\w*|brioche|cornett\w*|pasticcer\w*|bevand\w*|acqua|merendin\w*|patatin\w*|snack|coffee|tea|succo|spremuta|granita|distributor\w* automatic\w*|vending|macchinett\w*|chiavett\w*)\b/],
+    ['hotel', /\b(hotel|alberg\w*|alloggi\w*|soggiorn\w*|pernott\w*|campegg\w*|camping|b and b|bnb|airbnb|ostello|hostel|resort|agriturism\w*|residence|appartament\w*|villaggio|bungalow|glamping)\b/],
+    ['musei', /\b(muse\w*|mostra|mostre|galleri\w*|gallery|pinacotec\w*|castell\w*|scavi|abbazi\w*|cattedral\w*|basilic\w*|duomo|monaster\w*|fortezz\w*|acropoli|colosseo|uffizi|louvre)\b/],
+    ['svago', /\b(cinema|teatro|concert\w*|spettacol\w*|parco|luna park|escursion\w*|gita|discotec\w*|club|spiagg\w*|lido|ombrellon\w*|sdraio|terme|spa|skipass|funivi\w*|zoo|acquari\w*|giostr\w*|karaoke|bowling|casino|sci|tour|crocier\w*|gondola|trekking|bici|biciclett\w*|monopattin\w*|escape room|ingresso)\b/]
+  ];
+  var RX_VIAGGI = /\b(taxi|tassi|uber|bolt|freenow|bus|pullman|autobus|navett\w*|volo|voli|aere\w*|flight|aeroport\w*|bagagli\w*|treno|treni|train|metro|metropolitana|tram|traghett\w*|nave|ferry|battello|vaporetto|carburant\w*|benzin\w*|diesel|gasolio|pedagg\w*|autostrad\w*|parcheggi\w*|noleggi\w*|oyster|tube|biglietto)\b/;
+  var RX_SUPER = /\b(supermercat\w*|spesa|coop|conad|esselunga|lidl|carrefour|tesco|aldi|eurospin|penny|despar|alimentar\w*|minimarket|iper|kaufland|auchan|profi|sainsbury\w*|waitrose|morrisons|asda)\b/;
+
+  /* R(cat, testo) → l'azienda riconosciuta dal catalogo (EWSUB) oppure null; facoltativa */
+  var CORP = /\b(spa|srl|snc|sas|sagl|ltd|gmbh)\b/;
+  function guess(text, R) {
+    var T = norm(text), i, b = null;
+    if (!T) return '';
+    if (R) b = R('bar', text);
+    if (b && !b.generic && CORP.test(T)) return 'bar';        // «Autogrill spa»: «spa» è la società, non le terme
+    for (i = 0; i < PRE.length; i++) if (PRE[i][1].test(T)) return PRE[i][0];
+    if (b && !b.generic) return 'bar';                          // marca di bar o catena: Lavazza, Starbucks, Autogrill…
+    if (R && R('viaggi', text)) return 'viaggi';
+    if (RX_VIAGGI.test(T)) return 'viaggi';
+    if (R && R('supermercato', text)) return 'supermercato';
+    if (RX_SUPER.test(T)) return 'supermercato';
+    if (b) return 'bar';                                        // solo il tipo di locale: forno, area di servizio…
+    return '';
+  }
+  function catOf(s, R) {
+    if (s && s.cat && BYK[s.cat]) return s.cat;
+    return guess(s && s.causale, R) || 'extra';
+  }
+
+  /* ───────── numeri: per categoria, per tipo di viaggio, per azienda ─────────
+     ctx.R(cat, testo) · ctx.O(cat, spesa) → { n, gid, generic } · ctx.G(cat, gid) → { ic, n } */
+  function stats(spese, ctx) {
+    ctx = ctx || {};
+    var R = ctx.R || null, O = ctx.O || null, G = ctx.G || null;
+    var by = dict(), orgs = dict(), total = 0, count = 0, cash = 0, card = 0, list = [], olist = [], k;
+    (spese || []).forEach(function (s) {
+      if (!s || typeof s !== 'object') return;
+      var a = amountOf(s), c = catOf(s, R), row = by[c];
+      count++; total += a;
+      if (!row) row = by[c] = { k: c, ic: BYK[c].ic, n: BYK[c].n, count: 0, total: 0, types: dict(), typed: 0, typedTotal: 0 };
+      row.count++; row.total += a;
+      if (ORGC[c]) {
+        var o = O ? O(c, s) : null, g = (o && G) ? G(c, o.gid) : null;
+        if (o && TYPED[c]) {
+          // Bar: i tipi si chiamano come le etichette brevi del catalogo (così tutti i gruppi esteri diventano «🌍 Estero»)
+          var bar = c === 'bar', tn = g ? (bar ? (g.chip || g.n) : g.n) : (bar ? 'Bar' : 'Viaggi'),
+              ti = g ? (bar ? (g.ci || g.ic) : g.ic) : (bar ? '☕' : '✈️'), tk = bar ? tn : o.gid;
+          var t = row.types[tk];
+          if (!t) t = row.types[tk] = { ic: ti, n: tn, count: 0, total: 0 };
+          t.count++; t.total += a; row.typed++; row.typedTotal += a;
+        }
+        if (o && !o.generic) {
+          var ok = c + '\u0001' + o.n, og = orgs[ok];
+          if (!og) og = orgs[ok] = { n: o.n, cat: c, ic: g ? g.ic : BYK[c].ic, count: 0, total: 0 };
+          og.count++; og.total += a;
+        }
+      }
+      if (s.pay === 'contanti') cash++; else if (s.pay !== 'satispay') card++;
+    });
+    for (k in by) {
+      var r = by[k], tl = [], tk;
+      for (tk in r.types) tl.push(r.types[tk]);
+      tl.sort(function (x, y) { return y.total - x.total || y.count - x.count || (x.n < y.n ? -1 : (x.n > y.n ? 1 : 0)); });
+      if (tl.length && r.typed < r.count) tl.push({ ic: '•', n: 'Altro', count: r.count - r.typed, total: r.total - r.typedTotal });
+      r.typesList = tl; r.types = undefined;
+      r.share = total > 0 ? r.total / total * 100 : 0;
+      list.push(r);
+    }
+    list.sort(function (x, y) { return y.total - x.total || y.count - x.count || (x.n < y.n ? -1 : (x.n > y.n ? 1 : 0)); });
+    for (k in orgs) olist.push(orgs[k]);
+    olist.sort(function (x, y) { return y.total - x.total || y.count - x.count || (x.n < y.n ? -1 : (x.n > y.n ? 1 : 0)); });
+    return { total: total, count: count, avg: count ? total / count : 0, cats: list, orgs: olist, cash: cash, card: card };
+  }
+
+  /* ───────── testi ───────── */
+  function payLine(st) { return '💵 Contanti: ' + volte(st.cash) + ' · 💳 Carta: ' + volte(st.card); }
+  function statsText(st) {
+    var L = [];
+    st.cats.forEach(function (c) {
+      L.push(c.ic + ' ' + c.n + ': ' + volte(c.count) + ' · ' + money(c.total));
+      c.typesList.forEach(function (t) { L.push('   ' + t.ic + ' ' + t.n + ': ' + volte(t.count) + ' · ' + money(t.total)); });
+    });
+    if (st.orgs.length) {
+      L.push('');
+      st.orgs.slice(0, 6).forEach(function (o) { L.push(o.ic + ' ' + o.n + ': ' + volte(o.count) + ' · ' + money(o.total)); });
+    }
+    L.push('');
+    L.push(payLine(st));
+    L.push('🧾 Totale: ' + money(st.total) + ' · ' + st.count + (st.count === 1 ? ' spesa' : ' spese'));
+    return L.join('\n');
+  }
+  function statsHtml(st) {
+    var kb = function (t) { return '<b' + (t.length > 9 ? ' class="vc-sm"' : '') + '>' + esc(t) + '</b>'; };   // cifre molto lunghe: carattere più piccolo, mai spezzate su due righe
+    var h = '<div class="vc-kpis">' +
+      '<div class="vc-kpi">' + kb(money(st.total)) + '<i>Totale</i></div>' +
+      '<div class="vc-kpi">' + kb(String(st.count)) + '<i>Spese</i></div>' +
+      '<div class="vc-kpi">' + kb(money(st.avg)) + '<i>Media</i></div></div>';
+    h += '<div class="vc-sec">Per categoria</div>';
+    var max = st.cats.length ? st.cats[0].total : 0;
+    st.cats.forEach(function (c) {
+      var w = max > 0 ? Math.max(3, Math.round(c.total / max * 100)) : 0;
+      h += '<div class="vc-row"><div class="vc-rh"><span class="vc-rn">' + c.ic + ' ' + esc(c.n) + '</span><span class="vc-rv">' + esc(money(c.total)) + '</span></div>' +
+        '<div class="vc-meter"><span style="width:' + w + '%"></span></div>' +
+        '<div class="vc-rs">' + volte(c.count) + ' · ' + pct(c.share) + ' della spesa</div>';
+      if (c.typesList.length) {
+        h += '<div class="vc-types">' + c.typesList.map(function (t) {
+          return '<span class="vc-t">' + esc(t.ic) + ' ' + esc(t.n) + ' <small>' + t.count + ' · ' + esc(money(t.total)) + '</small></span>';
+        }).join('') + '</div>';
+      }
+      h += '</div>';
+    });
+    if (st.orgs.length) {
+      h += '<div class="vc-sec">Aziende</div>';
+      st.orgs.slice(0, 6).forEach(function (o) {
+        h += '<div class="vc-org"><span class="vc-on">' + esc(o.ic) + ' ' + esc(o.n) + '</span><span class="vc-ov">' + esc(money(o.total)) + ' <small>' + volte(o.count) + '</small></span></div>';
+      });
+    }
+    h += '<div class="vc-pay">' + esc(payLine(st)) + '</div>';
+    return h;
+  }
+
+  /* ───────── stampa ───────── */
+  var PAY_LABEL = { sella: 'Banca Sella', bancomat: 'Bancomat', contanti: 'Contanti', satispay: 'Satispay', tickets: 'Tickets', klarna: 'Klarna', scalapay: 'Scalapay', bonifico: 'Bonifico' };
+  var GIORNI = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+  var MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+  function effDate(s) { return s.data || (s.createdAt ? s.createdAt.slice(0, 10) : ''); }
+  function printItems(spese, ctx, amountLabel) {
+    ctx = ctx || {};
+    var byDate = dict();
+    (spese || []).forEach(function (s) { var k = effDate(s) || 'zzz'; (byDate[k] = byDate[k] || []).push(s); });
+    return Object.keys(byDate).sort().map(function (dk) {
+      var day = byDate[dk].slice().sort(function (a, b) { return (a.ora || '').localeCompare(b.ora || ''); });
+      var tot = day.reduce(function (t, x) { return t + amountOf(x); }, 0), head = '';
+      if (dk !== 'zzz') {
+        var d = new Date(dk + 'T12:00:00');
+        head = "<div class='vs-day'><span>" + GIORNI[d.getDay()] + ' ' + d.getDate() + ' ' + MESI[d.getMonth()] + "</span><span class='vs-day-tot'>" + money(tot) + '</span></div>';
+      }
+      return head + day.map(function (s) {
+        var c = catOf(s, ctx.R), ci = BYK[c], o = (ctx.O && ORGC[c]) ? ctx.O(c, s) : null;
+        var meta = [];
+        if (s.ora) meta.push(esc(s.ora));
+        meta.push(esc(ci.n));
+        if (o && (o.explicit || !o.generic)) meta.push(esc(o.n));
+        meta.push(esc(PAY_LABEL[s.pay] || s.pay || '—'));
+        if (s.luogo) meta.push('📍 ' + esc(s.luogo));
+        return "<div class='vs-item'><div class='vs-item-left'><span class='vs-badge'>" + ci.ic + "</span><div><div class='vs-item-name'>" + esc(s.causale) +
+          "</div><div class='vs-item-meta'>" + meta.join(' · ') + "</div></div></div><div class='vs-amt'>" + esc(amountLabel ? amountLabel(s) : money(amountOf(s))) + '</div></div>';
+      }).join('');
+    }).join('');
+  }
+  function printCats(st) {
+    if (!st.cats.length) return '';
+    return "<div class='vs-day'><span>Per categoria</span><span class='vs-day-tot'>" + money(st.total) + '</span></div>' +
+      st.cats.map(function (c) {
+        return "<div class='vs-item'><div class='vs-item-left'><span class='vs-badge'>" + c.ic + "</span><div><div class='vs-item-name'>" + esc(c.n) +
+          "</div><div class='vs-item-meta'>" + volte(c.count) + ' · ' + pct(c.share) + "</div></div></div><div class='vs-amt'>" + money(c.total) + '</div></div>';
+      }).join('');
+  }
+
+  global.EWVC = {
+    CATS: CATS, norm: norm, guess: guess, catOf: catOf, amountOf: amountOf, stats: stats,
+    statsText: statsText, statsHtml: statsHtml, printItems: printItems, printCats: printCats, money: money, esc: esc
+  };
+
+  /* ═════════════════════ dalla pagina in poi: solo nel browser, dentro GoBank ═════════════════════ */
+  if (!global.document || typeof getVacanze !== 'function' || !$(SEL)) return;
+
+  var FILTER = '';     // categoria scelta nel riepilogo sopra l'elenco ('' = tutte)
+  var manual = false;  // la categoria è stata scelta a mano: smette il suggerimento automatico
+
+  function ctx() {
+    var E = global.EWSUB;
+    return {
+      R: (E && E.resolve) ? function (cat, text) { try { return E.resolve({ cat: cat, desc: text }); } catch (e) { return null; } } : null,
+      O: (E && E.resolve) ? function (cat, s) { try { return E.resolve({ cat: cat, sub: s.sub, desc: s.causale }); } catch (e) { return null; } } : null,
+      G: (E && E.group) ? function (cat, gid) { try { return E.group(cat, gid); } catch (e) { return null; } } : null
+    };
+  }
+  function currentTrip() {
+    var id = global._vacSpeseCurrentId;
+    if (!id) return null;
+    var arr = getVacanze(), i;
+    for (i = 0; i < arr.length; i++) if (arr[i].id === id) return arr[i];
+    return null;
+  }
+  function paintSel() { var el = $(SEL); if (el) el.classList.toggle('vc-empty', !el.value); }
+  function selAuto(key) {
+    var el = $(SEL); if (!el) return;
+    el.value = key || '';
+    paintSel();
+    try { if (global.EWSUB && global.EWSUB.refresh) global.EWSUB.refresh(SEL); } catch (e) { }
+  }
+
+  /* ───────── modulo: suggerimento mentre scrivi ───────── */
+  function onCausale() {
+    var el = $(SEL), c = $('vacSpCausale');
+    if (!el || !c || manual) return;
+    try { if (global.EWSUB && global.EWSUB.value && global.EWSUB.value(SEL)) return; } catch (e) { }
+    var k = guess(c.value, ctx().R);
+    if (el.value !== k) selAuto(k);
+  }
+  function onCatChange() { var el = $(SEL); manual = !!(el && el.value); paintSel(); }
+
+  function cancelEdit() {
+    global._vacSpEditId = null;
+    manual = false;
+    $('vacSpImporto').value = '';
+    $('vacSpCausale').value = '';
+    $('vacSpLuogo').value = '';
+    $('vacSpValuta').value = 'EUR';
+    $('vacSpOra').value = new Date().toTimeString().slice(0, 5);
+    $('vacSpData').value = localDateStr(new Date());
+    var prev = $('vacSpConvertPreview'); if (prev) prev.textContent = '';
+    var el = $(SEL); if (el) el.value = '';
+    paintSel();
+    try { if (global.EWSUB && global.EWSUB.reset) global.EWSUB.reset(SEL); } catch (e) { }
+    var btn = $('vacSpAddBtn');
+    if (btn) { btn.textContent = '➕ Aggiungi'; btn.setAttribute('onclick', 'addVacSpesa()'); }
+    var wrap = $('vacSpCancelEditWrap'); if (wrap) wrap.style.display = 'none';
+  }
+
+  async function addSpesa(editId) {
+    var vacId = global._vacSpeseCurrentId;
+    if (!vacId) return;
+    var importo = parseFloat($('vacSpImporto').value.replace(',', '.'));
+    var valuta = $('vacSpValuta').value;
+    var pay = $('vacSpPay').value;
+    var causaleRaw = $('vacSpCausale').value.trim();
+    var causale = causaleRaw || '—';
+    var luogo = $('vacSpLuogo').value.trim();
+    var ora = $('vacSpOra').value || new Date().toTimeString().slice(0, 5);
+    var data = $('vacSpData').value || localDateStr(new Date());
+    if (!importo || importo <= 0) { showToast('⚠️ Importo non valido'); return; }
+    var chosen = $(SEL).value;
+    var cat = BYK[chosen] ? chosen : (guess(causaleRaw, ctx().R) || 'extra');
+    var sub = '';
+    try { sub = (global.EWSUB && global.EWSUB.value) ? (global.EWSUB.value(SEL) || '') : ''; } catch (e) { sub = ''; }
+    if (!ORGC[cat]) sub = '';
+    var rates = await _vacFetchFxRates();
+    var importoEUR = _vacConvertToEUR(importo, valuta, rates);
+    var arr = getVacanze();
+    var v = arr.find(function (x) { return x.id === vacId; });
+    if (!v) return;
+    if (!v.spese) v.spese = [];
+    var now = new Date().toISOString();
+    if (editId) {
+      var idx = v.spese.findIndex(function (s) { return s.id === editId; });
+      if (idx >= 0) {
+        var next = Object.assign({}, v.spese[idx], { importo: importo, valuta: valuta, importoEUR: importoEUR, pay: pay, causale: causale, luogo: luogo, ora: ora, data: data, cat: cat, updatedAt: now });
+        if (sub) next.sub = sub; else delete next.sub;
+        v.spese[idx] = next;
+      }
+    } else {
+      var item = { id: Date.now().toString() + Math.random().toString(36).slice(2, 7), importo: importo, valuta: valuta, importoEUR: importoEUR, pay: pay, causale: causale, luogo: luogo, ora: ora, data: data, cat: cat, createdAt: now };
+      if (sub) item.sub = sub;
+      v.spese.push(item);
+    }
+    var ok = saveVacanze(arr);
+    if (!ok) { showToast('❌ Salvataggio fallito: spazio esaurito. Riprova dopo aver liberato spazio.'); return; }
+    bumpVersion(); fbPushToCloud(true);
+    var wasEdit = !!editId;
+    FILTER = '';
+    cancelEdit();
+    renderList();
+    showToast(wasEdit ? '✏️ Spesa aggiornata' : '🧾 Spesa aggiunta!');
+  }
+
+  function editSpesa(id) {
+    var v = currentTrip(); if (!v) return;
+    var s = (v.spese || []).find(function (x) { return x.id === id; });
+    if (!s) return;
+    $('vacSpImporto').value = s.importo;
+    $('vacSpPay').value = s.pay;
+    $('vacSpCausale').value = s.causale === '—' ? '' : s.causale;
+    $('vacSpLuogo').value = s.luogo || '';
+    $('vacSpValuta').value = s.valuta || 'EUR';
+    $('vacSpOra').value = s.ora || '';
+    $('vacSpData').value = s.data || (s.createdAt ? s.createdAt.slice(0, 10) : localDateStr(new Date()));
+    var c = catOf(s, ctx().R);
+    $(SEL).value = c;
+    manual = true;
+    paintSel();
+    try {
+      if (global.EWSUB && global.EWSUB.setFor) global.EWSUB.setFor(SEL, { cat: c, sub: s.sub, desc: s.causale });
+    } catch (e) { }
+    _vacUpdateConvertPreview();
+    global._vacSpEditId = id;
+    var btn = $('vacSpAddBtn');
+    if (btn) { btn.textContent = '💾 Salva'; btn.setAttribute('onclick', "addVacSpesa('" + id + "')"); }
+    var wrap = $('vacSpCancelEditWrap'); if (wrap) wrap.style.display = 'block';
+  }
+
+  /* ───────── elenco + riepilogo per categoria ───────── */
+  function renderBar(v, st) {
+    var bar = $('vcCatBar'); if (!bar) return;
+    if (!(v.spese || []).length) { bar.innerHTML = ''; bar.style.display = 'none'; return; }
+    bar.style.display = '';
+    bar.innerHTML = st.cats.map(function (c) {
+      return '<button type="button" class="vc-cb' + (FILTER === c.k ? ' on' : '') + '" data-vc="filter" data-k="' + c.k + '" aria-pressed="' + (FILTER === c.k ? 'true' : 'false') + '">' +
+        '<b>' + c.ic + ' ' + esc(c.n) + '</b><i>' + esc(money(c.total)) + ' · ' + c.count + '</i></button>';
+    }).join('');
+  }
+
+  function renderList() {
+    var v = currentTrip(); if (!v) return;
+    var spese = v.spese || [];
+    var list = $('vacSpeseList'), empty = $('vacSpeseEmpty'), totEl = $('vacSpTotale');
+    if (!list) return;
+    var PAY = {
+      sella: { label: 'Banca Sella', icon: '🏦' }, bancomat: { label: 'Bancomat', icon: '💳' }, contanti: { label: 'Contanti', icon: '💵' },
+      satispay: { label: 'Satispay', icon: '📱' }, tickets: { label: 'Tickets', icon: '🎫' }, klarna: { label: 'Klarna', icon: '🅺' },
+      scalapay: { label: 'Scalapay', icon: '🔷' }, bonifico: { label: 'Bonifico', icon: '🏦' }
+    };
+    var total = _vacSpTotal(v);
+    if (totEl) totEl.textContent = '€' + total.toFixed(2).replace('.', ',');
+    var cx = ctx(), st = stats(spese, cx);
+    if (FILTER && !st.cats.some(function (c) { return c.k === FILTER; })) FILTER = '';
+    renderBar(v, st);
+    if (!spese.length) { list.innerHTML = ''; if (empty) empty.style.display = 'block'; return; }
+    if (empty) empty.style.display = 'none';
+    var shown = FILTER ? spese.filter(function (s) { return catOf(s, cx.R) === FILTER; }) : spese;
+    var sorted = shown.slice().sort(function (a, b) {
+      return effDate(b).localeCompare(effDate(a)) || (b.ora || '').localeCompare(a.ora || '') || (b.createdAt || '').localeCompare(a.createdAt || '');
+    });
+    list.innerHTML = sorted.map(function (s) {
+      var info = PAY[s.pay] || { label: s.pay || '—', icon: '💳' };
+      var c = catOf(s, cx.R), ci = BYK[c], chip = '';
+      if (global.EWSUB && global.EWSUB.chip && ORGC[c]) {
+        try { chip = global.EWSUB.chip({ cat: c, sub: s.sub, desc: s.causale }) || ''; } catch (e) { chip = ''; }
+      }
+      var line = (effDate(s) ? ('📅 ' + effDate(s).split('-').slice(1).reverse().join('/') + ' · ') : '') +
+        (s.ora ? ('🕐 ' + esc(s.ora)) : '') + (s.luogo ? (' · 📍 ' + esc(s.luogo)) : '');
+      return "<div style='background:var(--dark3);border:1px solid rgba(201,168,76,0.14);border-radius:12px;padding:10px 14px;margin-bottom:8px;'>" +
+        "<div style='display:flex;align-items:flex-start;justify-content:space-between;gap:10px;flex-wrap:wrap;'>" +
+        "<div style='flex:1;min-width:140px;'>" +
+        "<div style='display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;'>" +
+        "<span style='font-size:13px;font-weight:700;color:var(--text);overflow-wrap:anywhere;'>" + esc(s.causale) + '</span>' +
+        "<span style='font-size:10px;color:var(--text-muted);background:rgba(255,255,255,0.06);padding:1px 7px;border-radius:20px;'>" + info.icon + ' ' + esc(info.label) + '</span>' +
+        '<span class="vc-chip">' + ci.ic + ' ' + esc(ci.n) + '</span>' + chip +
+        '</div>' +
+        "<div style='font-size:11px;color:var(--text-muted);overflow-wrap:anywhere;'>" + line + '</div>' +
+        '</div>' +
+        "<div style='display:flex;align-items:center;justify-content:flex-end;gap:6px 8px;flex-wrap:wrap;max-width:100%;flex-shrink:0;'>" +
+        "<span style='font-size:14px;font-weight:800;color:var(--gold);overflow-wrap:anywhere;'>" + esc(_vacAmountLabel(s)) + '</span>' +
+        "<button onclick=\"editVacSpesa('" + s.id + "')\" style='background:rgba(201,168,76,0.12);border:1px solid rgba(201,168,76,0.3);color:var(--gold);border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:var(--font);'>✏️</button>" +
+        "<button onclick=\"deleteVacSpesa('" + s.id + "')\" style='background:rgba(224,92,92,0.1);border:1px solid rgba(224,92,92,0.3);color:#e05c5c;border-radius:7px;padding:4px 8px;font-size:11px;cursor:pointer;font-family:var(--font);'>🗑</button>" +
+        '</div></div></div>';
+    }).join('');
+  }
+
+  /* ───────── Statistiche e Stampa ───────── */
+  function openStats() {
+    var v = currentTrip(); if (!v) return;
+    var spese = v.spese || [];
+    if (!spese.length) { showToast('⚠️ Nessuna spesa registrata'); return; }
+    var st = stats(spese, ctx());
+    var body = $('vacStatsBody'); if (body) body.innerHTML = statsHtml(st);
+    var tx = $('vacStatsText'); if (tx) tx.value = statsText(st);
+    var modal = $('vacStatsModal'); if (modal) modal.style.display = 'flex';
+  }
+  function printSpese() {
+    var v = currentTrip(); if (!v) return;
+    var spese = v.spese || [];
+    if (!spese.length) { showToast('⚠️ Nessuna spesa da stampare'); return; }
+    var cx = ctx(), st = stats(spese, cx);
+    var title = '🧾 Spese — ' + (v.location || v.tipo);
+    var subtitle = spese.length + (spese.length === 1 ? ' spesa' : ' spese') + ' · Totale ' + money(st.total);
+    _diarioPrintDocument(title, subtitle,
+      _vacPrintStatsHtml(st.total, spese.length, st.avg, st.cats.length) + printCats(st) + printItems(spese, cx, _vacAmountLabel));
+  }
+
+  /* ───────── collegamento ───────── */
+  global.cancelEditVacSpesa = cancelEdit;
+  global.addVacSpesa = addSpesa;
+  global.editVacSpesa = editSpesa;
+  global.renderVacSpeseList = renderList;
+  global.openVacStatsModal = openStats;
+  global.printVacSpese = printSpese;
+  global._vacSpesePrintHtml = function (spese) { var cx = ctx(); return printItems(spese, cx, _vacAmountLabel); };
+
+  var openOrig = global.openVacSpeseModal;
+  if (typeof openOrig === 'function') {
+    global.openVacSpeseModal = function () { FILTER = ''; return openOrig.apply(this, arguments); };
+  }
+
+  var cs = $('vacSpCausale'), sl = $(SEL), bar = $('vcCatBar');
+  if (cs) cs.addEventListener('input', onCausale);
+  if (sl) { sl.addEventListener('change', onCatChange); paintSel(); }
+  if (bar) bar.addEventListener('click', function (ev) {
+    var b = ev.target.closest ? ev.target.closest('[data-vc="filter"]') : null;
+    if (!b) return;
+    var k = b.getAttribute('data-k');
+    FILTER = (FILTER === k) ? '' : k;
+    renderList();
+  });
+  try {
+    if (global.EWSUB && global.EWSUB.attach) global.EWSUB.attach({ sel: SEL, desc: 'vacSpCausale', anchor: $('vacSpFormGrid') });
+  } catch (e) { console.warn('EWVC azienda', e); }
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
