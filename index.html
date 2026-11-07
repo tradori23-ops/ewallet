@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20261025-ew-v128-apple';
+  var BUILD='20261107-ew-v129-hub-largo';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -438,6 +438,256 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
 .ew-conflict-msg{font-size:14px;line-height:1.4;color:var(--label)}
 .ew-conflict-actions{display:flex;gap:8px;margin-top:10px}
 
+/* ═══════════════════════════════════════════════════════════════
+   Hub · schermi larghi (iPad, computer)
+   Si accende solo da 760px di larghezza e 520px di altezza: sul telefono tutto questo è spento
+   e l'Hub resta la colonna di prima. Plancia a griglia: GoBank grande, widget, scorciatoie.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* elementi solo-larghi: nascosti di base */
+.hw-aurora,.hw-clock,.hw-gb,.hw-gw,.hw-wrap,.hw-quick,.hw-lx{display:none}
+/* la testata delle carte (icona · nome · freccia) resta trasparente al layout di base */
+.p-head{display:contents}
+
+@media screen and (min-width:760px) and (min-height:520px){
+
+  /* ───────── sfondo vivo ───────── */
+  .hw-aurora{display:block;position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+  .hw-aurora i{position:absolute;display:block;border-radius:50%;will-change:transform}
+  .hw-aurora .a1{width:62vmax;height:62vmax;left:-18vmax;top:-26vmax;background:radial-gradient(closest-side,var(--au-a),transparent);animation:hwDrift1 38s ease-in-out infinite alternate}
+  .hw-aurora .a2{width:58vmax;height:58vmax;right:-20vmax;top:-4vmax;background:radial-gradient(closest-side,var(--au-b),transparent);animation:hwDrift2 46s ease-in-out infinite alternate}
+  .hw-aurora .a3{width:66vmax;height:66vmax;left:8vmax;bottom:-40vmax;background:radial-gradient(closest-side,var(--au-c),transparent);animation:hwDrift3 52s ease-in-out infinite alternate}
+  @keyframes hwDrift1{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(14vmax,9vmax,0) scale(1.16)}}
+  @keyframes hwDrift2{from{transform:translate3d(0,0,0) scale(1.06)}to{transform:translate3d(-12vmax,12vmax,0) scale(.92)}}
+  @keyframes hwDrift3{from{transform:translate3d(0,0,0) scale(.96)}to{transform:translate3d(16vmax,-10vmax,0) scale(1.14)}}
+
+  /* ───────── pagina: griglia a 6 colonne (tablet in verticale) ───────── */
+  #hub{padding:calc(env(safe-area-inset-top) + 22px) max(28px,env(safe-area-inset-right,0px)) calc(env(safe-area-inset-bottom) + 22px) max(28px,env(safe-area-inset-left,0px))}
+  .hub-in{position:relative;z-index:1;width:min(100%,1320px);display:grid;gap:16px;align-content:start;
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    grid-template-rows:auto auto auto auto auto auto 1fr auto;
+    grid-template-areas:
+      "hd hd hd hd ck ck"
+      "us us us us ck ck"
+      "gb gb gb gb gb gb"
+      "bu bu bu td td td"
+      "gw gw gw sc sc sc"
+      "sv sv sv qk qk qk"
+      ". . . . . ."
+      "ac ac ac ft ft ft"}
+  .hub-head{grid-area:hd;padding:0}
+  .hub-user{grid-area:us;margin:0;min-height:0;align-self:center;font-size:clamp(26px,3.4vw,38px)}
+  .hw-clock{display:flex;grid-area:ck;flex-direction:column;align-items:flex-end;justify-content:center;text-align:right;gap:6px}
+  .hw-time{font:700 clamp(44px,6vw,76px)/1 var(--font-num);letter-spacing:-.04em;color:var(--label)}
+  .hw-time .hw-colon{display:inline-block;margin:0 .02em;opacity:.55;animation:hwBlink 2s steps(1,end) infinite}
+  @keyframes hwBlink{0%,60%{opacity:.55}60.1%,100%{opacity:.12}}
+  .hw-date{font:500 15px var(--font);color:var(--label2);letter-spacing:.01em}
+
+  .passes{display:contents}
+  #card-tc{grid-area:gb}
+  #card-gw{grid-area:gw}
+  .hw-wrap{display:contents}
+  .hw-bud{grid-area:bu}
+  .hw-today{grid-area:td}
+  .hw-due{grid-area:sc}
+  .hw-salv{grid-area:sv}
+  .hw.hw-recent{grid-area:rc;display:none}
+  .hw-quick{display:grid;grid-area:qk;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:stretch}
+  .hub-actions{grid-area:ac;margin:0;flex-direction:row;align-items:center;gap:12px}
+  .hub-actions .switcher{display:none}
+  .hub-lock{width:auto;min-height:46px;padding:0 20px;font-size:15.5px;justify-content:flex-start}
+  .hub-foot{grid-area:ft;margin:0;padding:0;align-items:flex-end;justify-content:center;text-align:right;gap:8px}
+
+  /* ───────── superficie comune dei widget ───────── */
+  .hw{position:relative;display:flex;flex-direction:column;gap:12px;min-width:0;padding:18px 20px;text-align:left;color:var(--label);font:inherit;overflow:clip;cursor:pointer;
+    background:var(--sf);border:1px solid var(--sf-bd);border-radius:var(--r);box-shadow:var(--sf-sh),var(--sf-hl);-webkit-backdrop-filter:var(--sf-bf);backdrop-filter:var(--sf-bf);
+    transition:transform .3s cubic-bezier(.2,.8,.2,1),box-shadow .3s}
+  .hw:active{transform:scale(.985)}
+  .hw-h{display:flex;align-items:center;gap:8px;font:600 12px var(--font);letter-spacing:.09em;text-transform:uppercase;color:var(--label2)}
+  .hw-h .ic{font-size:16px;color:var(--act)}
+  .hw-h em{margin-left:auto;font-style:normal;font-weight:500;letter-spacing:.01em;text-transform:none;color:var(--label3);font-size:12.5px;white-space:nowrap}
+  .hw-bd{display:flex;flex-direction:column;flex:1 1 auto;min-width:0;gap:8px}
+  .hw-skel{display:block;height:15px;width:72%;border-radius:8px;background:linear-gradient(90deg,var(--fill) 25%,var(--fill2) 50%,var(--fill) 75%);background-size:200% 100%;animation:hwShim 1.4s linear infinite}
+  .hw-skel.s2{width:46%;margin-top:6px}
+  @keyframes hwShim{to{background-position:-200% 0}}
+  .hw-empty{margin:auto 0;font:500 14.5px/1.35 var(--font);color:var(--label2)}
+  .hw-empty b{display:block;margin-bottom:3px;font:600 16px var(--font);color:var(--label)}
+  .hw-li{display:flex;align-items:center;justify-content:space-between;gap:12px;font:500 14.5px/1.25 var(--font)}
+  .hw-li>span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hw-li>span:first-child{color:var(--label)}
+  .hw-li .am{flex:none;font-family:var(--font-num);font-weight:600;color:var(--label2)}
+  .hw-li em{flex:none;font:600 11.5px var(--font);font-style:normal;padding:3px 9px;border-radius:99px;background:var(--fill);color:var(--label2)}
+  .hw-li.soon em{background:rgba(255,179,64,.2);color:var(--warn)}
+  .hw-li.late em{background:rgba(255,105,97,.2);color:var(--bad)}
+  .hw-li.today em{background:rgba(255,179,64,.2);color:var(--warn)}
+
+  /* ───────── GoBank (carta grande) ───────── */
+  #card-tc,#card-gw{display:flex;flex-direction:column;align-items:stretch;width:auto;gap:0;padding:20px 22px;overflow:clip}
+  #card-tc .p-head,#card-gw .p-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:14px}
+  #card-tc .p-val{display:none}
+  #card-tc .hw-gb,#card-gw .hw-gw{display:flex;flex-direction:column;flex:1 1 auto;margin-top:14px}
+  .hw-lab{font:600 12px var(--font);letter-spacing:.09em;text-transform:uppercase;color:var(--label2)}
+  .hw-big{display:flex;align-items:center;flex-wrap:wrap;gap:6px 18px;margin-top:4px}
+  .hw-val{font:700 clamp(46px,5.4vw,78px)/1.02 var(--font-num);letter-spacing:-.035em;color:var(--label)}
+  .hw-chip::before{content:"";width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
+  .hw-val.na{color:var(--label3)!important;font-weight:600}
+  #card-tc[data-tone=green] .hw-val{color:var(--good)}
+  #card-tc[data-tone=amber] .hw-val{color:var(--warn)}
+  #card-tc[data-tone=red] .hw-val{color:var(--bad)}
+  .hw-chip{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:99px;font:600 14px var(--font);white-space:nowrap;background:var(--fill);color:var(--label2)}
+  .hw-chip[hidden]{display:none}
+  .hw-chip[data-tone=green]{background:rgba(48,209,88,.17);color:var(--good)}
+  .hw-chip[data-tone=amber]{background:rgba(255,179,64,.2);color:var(--warn)}
+  .hw-chip[data-tone=red]{background:rgba(255,105,97,.2);color:var(--bad)}
+  .hw-sub{margin-top:8px;min-height:20px;font:500 15px var(--font);color:var(--label2)}
+  .hw-mo{display:flex;flex-direction:column;gap:7px;margin-top:16px}
+  .hw-mo-t{display:flex;justify-content:space-between;gap:10px;font:500 12.5px var(--font);color:var(--label2)}
+  .hw-mo-t b{font-weight:600;color:var(--label)}
+  .hw-mo .hw-pb{height:6px}
+  .hw-kpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:auto;padding-top:16px;border-top:1px solid var(--sep)}
+  .hw-kpi b{display:block;font:700 22px/1.1 var(--font-num);letter-spacing:-.02em;color:var(--label)}
+  .hw-kpi i{display:block;margin-top:3px;font:500 12.5px/1.25 var(--font);font-style:normal;color:var(--label2)}
+
+  /* ───────── GoWork: striscia della settimana ───────── */
+  .hw-wk{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px;margin-top:8px}
+  .hw-wk i{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:7px 0;border-radius:12px;background:var(--fill);font:700 15px/1 var(--font-num);font-style:normal;color:var(--label)}
+  .hw-wk i small{font:600 9.5px var(--font);letter-spacing:.07em;text-transform:uppercase;opacity:.65}
+  .hw-wk i.we{opacity:.62}
+  .hw-wk i.on{background:linear-gradient(180deg,#5fe0a5,#1a9b73);color:#fff;box-shadow:0 8px 18px -8px rgba(26,155,115,.85);opacity:1}
+
+  /* ───────── Budget settimana: anello + barre dei giorni ───────── */
+  .hw-bud{--tone:var(--good)}
+  .hw-bud[data-tone=low]{--tone:var(--warn)}
+  .hw-bud[data-tone=over]{--tone:var(--bad)}
+  .hw-bud .hw-bd{flex-direction:row;align-items:center;gap:20px}
+  .hw-ring{position:relative;width:112px;height:112px;flex:none}
+  .hw-ring svg{width:100%;height:100%;transform:rotate(-90deg);display:block}
+  .hw-ring circle{fill:none;stroke-width:9;stroke-linecap:round}
+  .hw-ring .rg-bg{stroke:var(--fill2)}
+  .hw-ring .rg-fg{stroke:var(--tone);transition:stroke-dashoffset 1.1s cubic-bezier(.2,.8,.2,1)}
+  .hw-ring-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:1px}
+  .hw-ring-c b{font:700 19px var(--font-num);letter-spacing:-.02em}
+  .hw-ring-c b.lg{font-size:16px}
+  .hw-ring-c i{font:600 10.5px var(--font);font-style:normal;letter-spacing:.07em;text-transform:uppercase;color:var(--label2)}
+  .hw-br{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1}
+  .hw-nums{display:flex;gap:22px;flex-wrap:wrap}
+  .hw-nums span{display:flex;flex-direction:column;font:700 18px/1.1 var(--font-num);letter-spacing:-.02em}
+  .hw-nums small{margin-top:3px;font:500 12px var(--font);color:var(--label2);letter-spacing:0}
+  .hw-pd{font:500 13.5px var(--font);color:var(--label2)}
+  .hw-pd b{color:var(--label);font-weight:600}
+  .hw-bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;align-items:end;height:40px}
+  .hw-bars i{display:block;height:4px;min-height:4px;border-radius:5px 5px 2px 2px;background:var(--fill2);transition:height .8s cubic-bezier(.2,.8,.2,1)}
+  .hw-bars i.td{background:var(--tone)}
+  .hw-bars i.fu{opacity:.4}
+  .hw-bl{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin-top:-4px}
+  .hw-bl i{font:600 9.5px var(--font);font-style:normal;text-align:center;letter-spacing:.06em;text-transform:uppercase;color:var(--label3)}
+  .hw-bl i.td{color:var(--label)}
+
+  /* ───────── Oggi ───────── */
+  .hw-tot{font:700 32px/1 var(--font-num);letter-spacing:-.03em}
+  .hw-tot small{font:500 13px var(--font);letter-spacing:0;color:var(--label2);margin-left:8px}
+  .hw-list{display:flex;flex-direction:column;gap:7px;margin-top:2px}
+  .hw-cta{display:inline-flex;align-items:center;gap:6px;margin-top:auto;font:600 14px var(--font);color:var(--act)}
+  .hw-cta .ic{font-size:16px}
+
+  /* ───────── Salvadanaio ───────── */
+  .hw-goal{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+  .hw-goal b{font:600 16px var(--font);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hw-goal span{flex:none;font:700 16px var(--font-num);color:var(--act)}
+  .hw-pb{display:block;height:10px;border-radius:99px;background:var(--fill2);overflow:hidden}
+  .hw-pb i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--ac),var(--ac2));transition:width 1s cubic-bezier(.2,.8,.2,1)}
+  .hw-pl{display:flex;justify-content:space-between;gap:10px;font:500 13px var(--font);color:var(--label2)}
+  .hw-pl .num{font-weight:600;color:var(--label)}
+
+  /* ───────── Ultime spese ───────── */
+  .hw-recent .hw-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px 36px;margin-top:0}
+  .hw-recent .hw-li{padding:0}
+  .hw-recent .hw-li>span:first-child{flex:1 1 auto}
+
+  /* ───────── Scorciatoie ───────── */
+  .hw-quick button{display:flex;align-items:center;gap:10px;min-width:0;padding:11px 14px;border:1px solid var(--sf-bd);border-radius:18px;background:var(--sf);box-shadow:var(--sf-hl);color:var(--label);font:600 14.5px var(--font);text-align:left;
+    -webkit-backdrop-filter:var(--sf-bf);backdrop-filter:var(--sf-bf);transition:transform .25s cubic-bezier(.2,.8,.2,1),background .2s}
+  .hw-quick button>span:last-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .hw-quick button:active{transform:scale(.97)}
+
+  /* ───────── launcher di GoBank: settimana a barre nella carta grande ───────── */
+  .hw-lx{display:flex;flex-direction:column;gap:7px;margin-top:auto;padding-top:18px;--tone:var(--act)}
+  .hw-lx[hidden]{display:none}
+  .hw-lx[data-tone=ok]{--tone:var(--good)}
+  .hw-lx[data-tone=low]{--tone:var(--warn)}
+  .hw-lx[data-tone=over]{--tone:var(--bad)}
+  .hw-lx-h{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font:600 11px var(--font);letter-spacing:.06em;text-transform:uppercase;color:var(--label2)}
+  .hw-lx-h b{font-weight:600}
+  .hw-lx-h em{font-style:normal;font-weight:500;letter-spacing:0;text-transform:none;font-size:12px;color:var(--label3)}
+  .hw-lx-bars{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;align-items:end;height:58px}
+  .hw-lx-bars i{display:block;min-height:5px;border-radius:7px 7px 3px 3px;background:var(--fill2)}
+  .hw-lx-bars i.td{background:var(--tone)}
+  .hw-lx-bars i.fu{opacity:.4}
+  .hw-lx-bl{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px}
+  .hw-lx-bl i{font:600 10px var(--font);font-style:normal;text-align:center;letter-spacing:.06em;text-transform:uppercase;color:var(--label3)}
+  .hw-lx-bl i.td{color:var(--label)}
+  .hw-lx-t{font:500 13.5px var(--font);color:var(--label2)}
+  .hw-lx-t b{font-weight:700;color:var(--label);font-family:var(--font-num)}
+
+  /* ───────── riflesso che segue il puntatore (solo dove c'è un mouse/trackpad) ───────── */
+  .hw::after,#card-tc::after,#card-gw::after,.hw-quick button::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:0;transition:opacity .3s;
+    background:radial-gradient(380px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.2),transparent 60%)}
+  .hw-quick button{position:relative;overflow:clip}
+  @media (hover:hover) and (pointer:fine){
+    .hw:hover,#card-tc:hover,#card-gw:hover{transform:perspective(1100px) rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg)) translateY(-3px);box-shadow:0 18px 40px -14px rgba(0,0,0,.34),var(--sf-hl)}
+    .hw:hover::after,#card-tc:hover::after,#card-gw:hover::after,.hw-quick button:hover::after{opacity:1}
+    .hw-quick button:hover{transform:translateY(-2px)}
+  }
+  body.ew-day .hw::after,body.ew-day #card-tc::after,body.ew-day #card-gw::after,body.ew-day .hw-quick button::after{background:radial-gradient(380px circle at var(--mx,50%) var(--my,0%),rgba(255,255,255,.75),transparent 60%)}
+
+  /* ───────── ingresso a cascata ───────── */
+  @keyframes hwUp{from{opacity:0;transform:translateY(20px) scale(.97)}to{opacity:1;transform:none}}
+  #hub.show .hub-in>*:not(.passes):not(.hw-wrap),#hub.show .passes>*,#hub.show .hw-wrap>*{animation:hwUp .75s cubic-bezier(.2,.8,.2,1) backwards;animation-delay:calc(var(--i,0)*70ms + 100ms)}
+}
+
+/* tablet in verticale più largo / computer: la plancia passa a 12 colonne */
+@media screen and (min-width:1000px) and (min-height:520px){
+  .hub-in{grid-template-columns:repeat(12,minmax(0,1fr));
+    grid-template-rows:auto auto auto auto auto auto 1fr auto;
+    grid-template-areas:
+      "hd hd hd hd us us us us ck ck ck ck"
+      "gb gb gb gb gb gb gb bu bu bu bu bu"
+      "gb gb gb gb gb gb gb td td td td td"
+      "gw gw gw gw sc sc sc sc sv sv sv sv"
+      "rc rc rc rc rc rc rc rc rc rc rc rc"
+      "qk qk qk qk qk qk qk qk qk qk qk qk"
+      ". . . . . . . . . . . ."
+      "ac ac ac ac ac ac ft ft ft ft ft ft"}
+  .hub-user{font-size:clamp(24px,2.7vw,36px)}
+  .hw-time{font-size:clamp(40px,4.4vw,64px)}
+  .hw-quick{grid-template-columns:repeat(6,minmax(0,1fr))}
+}
+
+/* schermi alti: compare anche l'elenco delle ultime spese */
+@media screen and (min-width:1000px) and (min-height:900px){
+  .hw.hw-recent{display:flex}
+}
+
+/* computer grande */
+@media screen and (min-width:1700px) and (min-height:520px){
+  .hub-in{width:min(100%,1480px);gap:20px}
+  .hw{padding:22px 24px}
+  .hw-val{font-size:clamp(64px,5vw,92px)}
+}
+
+/* schermi bassi (iPad in orizzontale, finestre): niente scorciatoie, così la plancia sta in una schermata */
+@media screen and (min-width:760px) and (min-height:520px) and (max-height:780px){
+  .hw-quick{display:none}
+  .hub-in{gap:14px}
+  #hub{padding-top:calc(env(safe-area-inset-top) + 16px);padding-bottom:calc(env(safe-area-inset-bottom) + 16px)}
+}
+
+@media (prefers-reduced-motion:reduce){
+  .hw-aurora i,.hw-time .hw-colon,.hw-skel{animation:none!important}
+  #hub.show .hub-in>*,#hub.show .passes>*,#hub.show .hw-wrap>*{animation:none!important}
+  .hw,.hw-quick button,#card-tc,#card-gw{transition:none!important}
+}
+
 </style>
 <link rel="manifest" href="manifest.json"></head>
 <body>
@@ -588,8 +838,9 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
 
 <!-- ════════ HUB ════════ -->
 <div id="hub">
- <div class="hub-in">
-  <div class="hub-head">
+ <div class="hw-aurora" aria-hidden="true"><i class="a1"></i><i class="a2"></i><i class="a3"></i></div>
+ <div class="hub-in" id="hubIn">
+  <div class="hub-head" style="--i:0">
     <span class="emblem"><svg viewBox="0 0 40 40" fill="none" aria-hidden="true"><path d="M10.5 13.5 27 8l2 5.2" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" opacity=".92"/><rect x="6" y="13" width="28" height="20" rx="6" fill="#fff"/><circle cx="27.5" cy="23" r="3" fill="#0c8f6c"/></svg></span>
     <div class="hh-t">
       <div class="hh-wm"><span class="wm m2"><span class="seal">TC</span><span class="tx">TRAD.CLAB</span></span></div>
@@ -597,22 +848,77 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
       <small class="hub-tag">Le tue app, un solo portafoglio.</small>
     </div>
   </div>
-  <p class="hub-user" id="hubUser"></p>
+  <p class="hub-user" id="hubUser" style="--i:1"></p>
+  <div class="hw-clock" id="hwClock" style="--i:1" aria-hidden="true">
+    <span class="hw-time num" id="hwTime">--:--</span>
+    <span class="hw-date" id="hwDate"></span>
+  </div>
 
   <div class="passes" id="wallet">
-    <button type="button" class="pass gb front" id="card-tc" data-app="tc" onclick="cardTap('tc')" aria-label="Apri GoBank">
-      <span class="p-mono">GB</span>
+    <button type="button" class="pass gb front" id="card-tc" data-app="tc" onclick="cardTap('tc')" aria-label="Apri GoBank" style="--i:2">
+      <span class="p-head">
+        <span class="p-mono">GB</span>
       <span class="p-txt"><span class="p-name">GoBank</span><span class="p-sub">Budget · Famiglia</span><span class="p-val num" id="hubValTc"></span></span>
       <span class="p-open"><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></span>
+      </span>
+      <span class="hw-gb">
+        <span class="hw-lab">Rimanenza reale ad oggi</span>
+        <span class="hw-big"><span class="hw-val num" id="hwRimVal">—</span><span class="hw-chip" id="hwRimChip" data-tone="" hidden></span></span>
+        <span class="hw-sub" id="hwRimSub"></span>
+        <span class="hw-mo"><span class="hw-mo-t"><b id="hwMoLab"></b><span id="hwMoDays"></span></span><span class="hw-pb"><i id="hwMoBar"></i></span></span>
+        <span class="hw-kpis">
+          <span class="hw-kpi"><b class="num" id="hwKMonth">—</b><i>Spese del mese</i></span>
+          <span class="hw-kpi"><b class="num" id="hwKWeek">—</b><i>Spese della settimana</i></span>
+          <span class="hw-kpi"><b class="num" id="hwKDue">—</b><i>Scadenze entro 7 giorni</i></span>
+        </span>
+      </span>
     </button>
-    <button type="button" class="pass gw back" id="card-gw" data-app="gw" onclick="cardTap('gw')" aria-label="Apri GoWork">
-      <span class="p-mono">GW</span>
+    <button type="button" class="pass gw back" id="card-gw" data-app="gw" onclick="cardTap('gw')" aria-label="Apri GoWork" style="--i:5">
+      <span class="p-head">
+        <span class="p-mono">GW</span>
       <span class="p-txt"><span class="p-name">GoWork</span><span class="p-sub">Gestione · Orari</span><span class="p-val num" id="hubValGw"></span></span>
       <span class="p-open"><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></span>
+      </span>
+      <span class="hw-gw">
+        <span class="hw-lab" id="hwWeekLab">Questa settimana</span>
+        <span class="hw-wk" id="hwWeek"></span>
+      </span>
     </button>
   </div>
 
-  <div class="hub-actions">
+  <div class="hw-wrap" id="hwWrap">
+    <button type="button" class="hw hw-bud" id="hwBud" onclick="hwGo('settimanale')" style="--i:3" aria-label="Budget della settimana: apri Spese settimanali">
+      <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-bars"/></svg><b>Budget settimana</b><em id="hwBudLab"></em></span>
+      <span class="hw-bd" id="hwBudBd"><span class="hw-skel"></span><span class="hw-skel s2"></span></span>
+    </button>
+    <button type="button" class="hw hw-today" id="hwToday" onclick="hwGo('aggiungiSpesa')" style="--i:4" aria-label="Spese di oggi: aggiungi una spesa">
+      <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><b>Oggi</b><em id="hwTodayLab"></em></span>
+      <span class="hw-bd" id="hwTodayBd"><span class="hw-skel"></span><span class="hw-skel s2"></span></span>
+    </button>
+    <button type="button" class="hw hw-due" id="hwDue" onclick="hwGo('speseFisse')" style="--i:6" aria-label="Prossime scadenze: apri Spese fisse">
+      <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><b>Prossime scadenze</b></span>
+      <span class="hw-bd" id="hwDueBd"><span class="hw-skel"></span><span class="hw-skel s2"></span></span>
+    </button>
+    <button type="button" class="hw hw-salv" id="hwSalv" onclick="hwGo('settimanale')" style="--i:7" aria-label="Salvadanaio">
+      <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg><b>Salvadanaio</b></span>
+      <span class="hw-bd" id="hwSalvBd"><span class="hw-skel"></span><span class="hw-skel s2"></span></span>
+    </button>
+    <button type="button" class="hw hw-recent" id="hwRecent" onclick="hwGo('dashboard')" style="--i:8" aria-label="Ultime spese: apri la dashboard">
+      <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-list"/></svg><b>Ultime spese</b><em id="hwRecentLab"></em></span>
+      <span class="hw-bd" id="hwRecentBd"><span class="hw-skel"></span><span class="hw-skel s2"></span></span>
+    </button>
+  </div>
+
+  <div class="hw-quick" id="hwQuick" style="--i:8" role="group" aria-label="Scorciatoie GoBank">
+    <button type="button" onclick="hwGo('aggiungiSpesa')"><span class="sq s30 c-gold"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg></span><span>Nuova spesa</span></button>
+    <button type="button" onclick="hwGo('settimanale')"><span class="sq s30 c-orange"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span>Settimana</span></button>
+    <button type="button" onclick="hwGo('calendario')"><span class="sq s30 c-red"><svg class="ic" aria-hidden="true"><use href="#i-book"/></svg></span><span>Calendario</span></button>
+    <button type="button" onclick="hwGo('grafici')"><span class="sq s30 c-green"><svg class="ic" aria-hidden="true"><use href="#i-bars"/></svg></span><span>Grafici</span></button>
+    <button type="button" onclick="hwGo('contocorrente')"><span class="sq s30 c-indigo"><svg class="ic" aria-hidden="true"><use href="#i-bank"/></svg></span><span>Banca</span></button>
+    <button type="button" onclick="hwGo('speseCasa')"><span class="sq s30 c-teal"><svg class="ic" aria-hidden="true"><use href="#i-house"/></svg></span><span>Spese casa</span></button>
+  </div>
+
+  <div class="hub-actions" style="--i:9">
     <div class="switcher" id="switcher" role="tablist">
       <button class="active tc" data-app="tc" onclick="bringFront('tc')">GoBank</button>
       <button class="gw" data-app="gw" onclick="bringFront('gw')">GoWork</button>
@@ -620,13 +926,12 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
     <button class="hub-lock" onclick="ewLock()"><svg class="ic" aria-hidden="true"><use href="#i-lock"/></svg><span>Blocca / cambia profilo</span></button>
   </div>
 
-  <div class="hub-foot">
+  <div class="hub-foot" style="--i:9">
     <div class="lux">LUX.COMICS</div>
     <div class="hub-copy">© 2026/2027 TRAD.CLAB · E-WALLET</div>
   </div>
  </div>
 </div>
-
 <!-- ════════ EW LAUNCHER (icone GoBank) ════════ -->
 <section class="ew-launcher" id="ewLauncher">
   <div class="ew-topbar">
@@ -685,6 +990,12 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             <div><div class="ew-stat-label">Spese mese</div><div class="ew-stat-val" id="ewPreviewSpese" style="color:var(--act);">—</div></div>
             <div><div class="ew-stat-label">Spese settimana</div><div class="ew-stat-val" id="ewPreviewWeek" style="color:var(--blue);">—</div></div>
             <div><div class="ew-stat-label" id="ewPreviewVacLabel">Vacanza in corso</div><div class="ew-stat-val" id="ewPreviewVac" style="color:var(--purple);">—</div></div>
+          </div>
+          <div class="hw-lx" id="hwLx" hidden>
+            <div class="hw-lx-h"><b>Questa settimana</b><em id="hwLxLab"></em></div>
+            <div class="hw-lx-bars" id="hwLxBars"></div>
+            <div class="hw-lx-bl" id="hwLxBl"></div>
+            <div class="hw-lx-t" id="hwLxT"></div>
           </div>
         </div>
       </div>
@@ -974,6 +1285,285 @@ function skipLogin(){
   enterHub(true);
 }
 
+// ════════ HUB · plancia per schermi larghi (iPad, computer) ════════
+// Legge i dati dall'istantanea che GoBank espone (ewSnapshot) e riempie i widget dell'Hub.
+// Sul telefono (sotto 760px) tutto resta spento: nessun dato viene letto, nessun timer parte.
+function hwGo(id){ try{ openTcSection(id); }catch(e){} }
+var HW=(function(){
+  var MQ='(min-width:760px) and (min-height:520px)';
+  var DOW=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];
+  var DOW3=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
+  var DL=['D','L','M','M','G','V','S'];
+  var MON=['Gennaio','Febbraio','Marzo','Aprile','Maggio','Giugno','Luglio','Agosto','Settembre','Ottobre','Novembre','Dicembre'];
+  var MON3=['gen','feb','mar','apr','mag','giu','lug','ago','set','ott','nov','dic'];
+  var RING=326.73;   // circonferenza dell'anello (r = 52)
+  var timer=0, clockT=0, tries=0, hooked=false, fxDone=false, mqBound=false, lastMin='';
+  function $(id){ return document.getElementById(id); }
+  function esc(t){ return String(t==null?'':t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  function eur(v){ var n=Math.abs(+v||0); return (v<0&&Math.round(n*100)!==0?'−':'')+'€'+n.toFixed(2).replace('.',','); }
+  function eur0(v){ return '€'+(Math.round(v)===v?String(v):v.toFixed(2).replace('.',',')); }
+  function eurS(v){ var n=Math.abs(+v||0); return (v<0&&Math.round(n*100)!==0?'−':'')+'€'+(n>=100?String(Math.round(n)):n.toFixed(2).replace('.',',')); }
+  function reduced(){ try{ return window.matchMedia('(prefers-reduced-motion:reduce)').matches; }catch(e){ return false; } }
+  function isWide(){ try{ return window.matchMedia(MQ).matches; }catch(e){ return false; } }
+  function pad(n){ return n<10?'0'+n:''+n; }
+
+  // numero che «scorre» fino al valore (alla prima volta parte da zero); con «riduci movimento» compare subito
+  function setNum(el,v,fmt){
+    if(!el) return;
+    var prev=el._v; el._v=v;
+    if(v==null||!isFinite(v)){ el.textContent='—'; return; }
+    if(reduced()||prev===v){ el.textContent=fmt(v); return; }
+    var from=(prev==null||!isFinite(prev))?0:prev, t0=performance.now(), dur=850;
+    cancelAnimationFrame(el._raf);
+    (function step(t){
+      var k=Math.min(1,Math.max(0,(t-t0)/dur)), e=1-Math.pow(1-k,3);
+      el.textContent=fmt(from+(v-from)*e);
+      if(k<1) el._raf=requestAnimationFrame(step); else el.textContent=fmt(v);
+    })(t0);
+  }
+
+  /* ───────── orologio + saluto ───────── */
+  function tick(){
+    var d=new Date(), mm=d.getHours()+':'+d.getMinutes();
+    if(mm===lastMin) return; lastMin=mm;
+    var t=$('hwTime'); if(t) t.innerHTML=pad(d.getHours())+'<span class="hw-colon">:</span>'+pad(d.getMinutes());
+    var dt=$('hwDate'); if(dt) dt.textContent=DOW[d.getDay()]+' '+d.getDate()+' '+MON[d.getMonth()];
+    try{
+      var u=$('hubUser'), b=u&&u.querySelector('b');
+      if(b){ var g=_ewGreeting()+' '; if(u.firstChild&&u.firstChild.nodeType===3&&u.firstChild.nodeValue!==g) u.firstChild.nodeValue=g; }
+    }catch(e){}
+    weekStrip(d);
+    try{
+      var dim=new Date(d.getFullYear(),d.getMonth()+1,0).getDate(), ml=$('hwMoLab'), md=$('hwMoDays'), mb=$('hwMoBar');
+      if(ml) ml.textContent=MON[d.getMonth()]+' '+d.getFullYear();
+      if(md) md.textContent='giorno '+d.getDate()+' di '+dim;
+      if(mb){ var w=(d.getDate()/dim*100).toFixed(1)+'%'; if(reduced()) mb.style.width=w; else setTimeout(function(){ mb.style.width=w; },350); }
+    }catch(e){}
+  }
+  function isoWeek(d){
+    var t=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())), n=t.getUTCDay()||7;
+    t.setUTCDate(t.getUTCDate()+4-n);
+    var y0=new Date(Date.UTC(t.getUTCFullYear(),0,1));
+    return Math.ceil(((t-y0)/86400000+1)/7);
+  }
+  function weekStrip(d){
+    var box=$('hwWeek'); if(!box) return;
+    var dow=(d.getDay()+6)%7, mon=new Date(d.getFullYear(),d.getMonth(),d.getDate()-dow), h='';
+    for(var i=0;i<7;i++){
+      var x=new Date(mon.getFullYear(),mon.getMonth(),mon.getDate()+i);
+      h+='<i class="'+(i===dow?'on':(i>=5?'we':''))+'"><small>'+DL[x.getDay()]+'</small>'+x.getDate()+'</i>';
+    }
+    if(box._h!==h){ box._h=h; box.innerHTML=h; }
+    var lab=$('hwWeekLab'); if(lab) lab.textContent='Settimana '+isoWeek(d)+' · '+MON[d.getMonth()];
+  }
+
+  /* ───────── dati ───────── */
+  function snap(){
+    try{
+      var f=$('frame-tc'); if(!f||!loaded['tc']) return null;
+      var w=f.contentWindow; if(!w||typeof w.ewSnapshot!=='function') return null;
+      return w.ewSnapshot();
+    }catch(e){ return null; }
+  }
+  function chipText(r,s){
+    if(r.state==='red') return r.value<0?'In rosso':'Budget da rivedere';
+    if(r.state==='amber') return 'Modera le spese · sotto '+eur0(r.th);
+    return (s.budget&&s.budget.amount)?'A posto · budget coperto':'A posto';
+  }
+  function renderHero(s){
+    var tc=$('card-tc'), r=s.rim, chip=$('hwRimChip'), sub=$('hwRimSub');
+    if(r){
+      var tone=r.state==='red'?'red':(r.state==='amber'?'amber':'green');
+      tc.setAttribute('data-tone',tone);
+      $('hwRimVal').classList.remove('na'); setNum($('hwRimVal'),r.value,eur);
+      chip.hidden=false; chip.setAttribute('data-tone',tone); chip.textContent=chipText(r,s);
+      sub.textContent=r.value<0?'Le entrate non coprono più le spese del mese.':(r.perDay?('Circa '+eur(r.perDay)+' al giorno per '+r.daysLeft+(r.daysLeft===1?' giorno':' giorni')):'');
+    }else{
+      tc.setAttribute('data-tone',''); var rv=$('hwRimVal'); rv._v=null; rv.textContent='—'; rv.classList.add('na'); chip.hidden=true; sub.textContent='';
+    }
+    setNum($('hwKMonth'),s.month?s.month.variable:null,eur);
+    setNum($('hwKWeek'),s.budget?s.budget.spent:null,eur);
+    var n=0; (s.due||[]).forEach(function(it){ if(it.days<=7) n++; });
+    $('hwKDue').textContent=String(n);
+  }
+  function renderBudget(s){
+    var b=s.budget, el=$('hwBud'), bd=$('hwBudBd'), lab=$('hwBudLab');
+    if(!b){ return; }
+    lab.textContent=b.label||'';
+    if(b.amount==null){
+      el.setAttribute('data-tone','none');
+      bd.style.flexDirection='column'; bd._k='none';
+      bd.innerHTML='<div class="hw-empty"><b>Nessun budget impostato</b>Scrivi l’importo della settimana (es. 130): ogni spesa lo scala da sola, giorno per giorno.</div><span class="hw-cta">Imposta il budget <svg class="ic" aria-hidden="true"><use href="#i-arrow-r"/></svg></span>';
+      return;
+    }
+    el.setAttribute('data-tone',b.status);
+    var spent=Math.max(0,b.spent||0), pct=Math.max(0,Math.min(100,b.pct||0));
+    var free=(b.days||[]).map(function(d){ return +d.free||0; }), mx=1;
+    free.forEach(function(v){ if(v>mx) mx=v; });
+    var bars='', lbl='';
+    (b.days||[]).forEach(function(d,i){
+      var p=d.ds.split('-'), x=new Date(+p[0],+p[1]-1,+p[2]), cls=(i===b.todayIdx?'td ':'')+(b.todayIdx>=0&&i>b.todayIdx?'fu':'');
+      bars+='<i class="'+cls+'" data-h="'+Math.max(8,Math.round(free[i]/mx*100))+'" title="'+esc(DOW3[x.getDay()]+' '+x.getDate()+' · '+eur(free[i]))+'"></i>';
+      lbl+='<i class="'+(i===b.todayIdx?'td':'')+'">'+DL[x.getDay()]+'</i>';
+    });
+    var rem=b.remaining, over=rem<0;
+    var sig=b.amount+'|'+spent+'|'+b.todayIdx+'|'+free.join(',');
+    if(bd._k!==sig){
+      bd._k=sig; bd.style.flexDirection='';
+      bd.innerHTML=
+        '<div class="hw-ring"><svg viewBox="0 0 120 120" aria-hidden="true"><circle class="rg-bg" cx="60" cy="60" r="52"/><circle class="rg-fg" cx="60" cy="60" r="52" stroke-dasharray="'+RING+'" stroke-dashoffset="'+RING+'"/></svg>'+
+        '<div class="hw-ring-c"><b class="num" id="hwBudRem">—</b><i>'+(over?'sforato':'restano')+'</i></div></div>'+
+        '<div class="hw-br"><div class="hw-nums"><span class="num">'+eur(b.amount)+'<small>Budget</small></span><span class="num">'+eur(spent)+'<small>Speso</small></span></div>'+
+        '<div class="hw-pd">'+(b.perDay?('<b>'+eur(b.perDay)+'</b> al giorno · '+b.daysLeft+(b.daysLeft===1?' giorno':' giorni')):(over?'Budget superato di <b>'+eur(-rem)+'</b>':'Settimana conclusa'))+'</div>'+
+        '<div class="hw-bars">'+bars+'</div><div class="hw-bl">'+lbl+'</div></div>';
+      var fg=bd.querySelector('.rg-fg'), off=RING*(1-pct/100);
+      var bs=bd.querySelectorAll('.hw-bars i');
+      if(reduced()){ fg.setAttribute('stroke-dashoffset',off); for(var i=0;i<bs.length;i++) bs[i].style.height=bs[i].getAttribute('data-h')+'%'; }
+      else requestAnimationFrame(function(){ requestAnimationFrame(function(){
+        fg.setAttribute('stroke-dashoffset',off);
+        for(var i=0;i<bs.length;i++){ bs[i].style.transitionDelay=(i*55)+'ms'; bs[i].style.height=bs[i].getAttribute('data-h')+'%'; }
+      }); });
+    }
+    var br=$('hwBudRem'); if(br) br.classList.toggle('lg',eurS(rem).length>6);
+    setNum(br,rem,eurS);
+  }
+  function renderToday(s){
+    var t=s.today, bd=$('hwTodayBd'), n=new Date();
+    $('hwTodayLab').textContent=DOW3[n.getDay()]+' '+n.getDate()+' '+MON3[n.getMonth()];
+    if(!t) return;
+    if(!t.count){
+      bd.innerHTML='<div class="hw-empty"><b>Nessuna spesa oggi</b>Quando ne registri una la trovi qui.</div><span class="hw-cta"><svg class="ic" aria-hidden="true"><use href="#i-plus"/></svg>Aggiungi spesa</span>';
+      return;
+    }
+    var rows=(t.items||[]).slice(0,3).map(function(it){ return '<div class="hw-li"><span>'+esc(it.desc||it.cat||'Spesa')+'</span><span class="am">'+eur(it.amount)+'</span></div>'; }).join('');
+    var more=t.count>3?'<div class="hw-pd">+ '+(t.count-3)+(t.count-3===1?' altra spesa':' altre spese')+'</div>':'';
+    bd.innerHTML='<div class="hw-tot num">'+eur(t.total)+'<small>'+t.count+(t.count===1?' spesa':' spese')+'</small></div><div class="hw-list">'+rows+'</div>'+more;
+  }
+  function renderDue(s){
+    var bd=$('hwDueBd'), due=s.due||[];
+    if(!due.length){ bd.innerHTML='<div class="hw-empty"><b>Nessuna scadenza imminente</b>Tutto in ordine per ora.</div>'; return; }
+    bd.innerHTML='<div class="hw-list">'+due.slice(0,4).map(function(it){
+      var d=it.days, cls=d<0?'late':(d===0?'today':(d<=3?'soon':'')), w;
+      if(d<0) w='scaduta'; else if(d===0) w='oggi'; else if(d===1) w='domani'; else if(d<=7) w='tra '+d+' gg'; else { var p=it.ds.split('-'); w=(+p[2])+' '+MON3[+p[1]-1]; }
+      return '<div class="hw-li '+cls+'"><span>'+esc(it.name)+'</span><span class="am">'+eur(it.amount)+'</span><em>'+w+'</em></div>';
+    }).join('')+'</div>';
+  }
+  function renderSalv(s){
+    var bd=$('hwSalvBd'), v=s.salv;
+    if(!v){ bd.innerHTML='<div class="hw-empty"><b>Nessun obiettivo</b>Crea un salvadanaio per mettere da parte qualcosa.</div>'; return; }
+    var sig=v.name+'|'+v.saved+'|'+v.target+'|'+v.count;
+    if(bd._k!==sig){
+      bd._k=sig;
+      bd.innerHTML='<div class="hw-goal"><b>'+esc(v.name||'Obiettivo')+'</b><span class="num">'+v.pct+'%</span></div><div class="hw-pb"><i></i></div>'+
+        '<div class="hw-pl"><span><span class="num">'+eur(v.saved)+'</span> messi da parte</span><span>di <span class="num">'+eur(v.target)+'</span></span></div>'+
+        (v.count>1?'<div class="hw-pd">+ altri '+(v.count-1)+(v.count-1===1?' obiettivo':' obiettivi')+'</div>':'');
+      var bar=bd.querySelector('.hw-pb i');
+      if(reduced()) bar.style.width=v.pct+'%'; else requestAnimationFrame(function(){ requestAnimationFrame(function(){ bar.style.width=v.pct+'%'; }); });
+    }
+  }
+  function renderRecent(s){
+    var bd=$('hwRecentBd'), rec=s.recent||[], n=new Date(), lab=$('hwRecentLab');
+    if(lab) lab.textContent=MON[n.getMonth()];
+    if(!rec.length){ bd.innerHTML='<div class="hw-empty"><b>Ancora nessuna spesa</b>Le ultime che registri compaiono qui.</div>'; return; }
+    var t0=new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime();
+    bd.innerHTML='<div class="hw-list">'+rec.map(function(it){
+      var p=String(it.date||'').split('-'), w='';
+      if(p.length===3){ var dd=Math.round((t0-new Date(+p[0],+p[1]-1,+p[2]).getTime())/86400000); w=dd===0?'oggi':(dd===1?'ieri':(+p[2])+' '+MON3[+p[1]-1]); }
+      return '<div class="hw-li"><span>'+esc(it.desc||it.cat||'Spesa')+'</span><span class="am">'+eur(it.amount)+'</span><em>'+w+'</em></div>';
+    }).join('')+'</div>';
+  }
+  // launcher di GoBank: sotto le cifre, la settimana a barre (solo schermi larghi)
+  function renderLx(s){
+    var box=$('hwLx'), b=s.budget; if(!box) return;
+    if(!b||!b.days||!b.days.length){ box.hidden=true; return; }
+    box.hidden=false;
+    box.setAttribute('data-tone',b.amount==null?'none':b.status);
+    $('hwLxLab').textContent=b.label||'';
+    var free=b.days.map(function(d){ return +d.free||0; }), mx=1, bars='', lbl='';
+    free.forEach(function(v){ if(v>mx) mx=v; });
+    b.days.forEach(function(d,i){
+      var p=d.ds.split('-'), x=new Date(+p[0],+p[1]-1,+p[2]), cls=(i===b.todayIdx?'td ':'')+(b.todayIdx>=0&&i>b.todayIdx?'fu':'');
+      bars+='<i class="'+cls+'" style="height:'+Math.max(6,Math.round(free[i]/mx*100))+'%" title="'+esc(DOW3[x.getDay()]+' '+x.getDate()+' · '+eur(free[i]))+'"></i>';
+      lbl+='<i class="'+(i===b.todayIdx?'td':'')+'">'+DL[x.getDay()]+'</i>';
+    });
+    $('hwLxBars').innerHTML=bars; $('hwLxBl').innerHTML=lbl;
+    var t;
+    if(b.amount==null) t='Spese libere · <b>'+eur(b.spent||0)+'</b>';
+    else if(b.remaining<0) t='Budget superato di <b>'+eur(-b.remaining)+'</b>';
+    else t='<b>'+eur(b.remaining)+'</b> restano'+(b.perDay?' · <b>'+eur(b.perDay)+'</b> al giorno':'');
+    $('hwLxT').innerHTML=t;
+  }
+  function render(s){
+    try{ renderLx(s); }catch(e){}
+    try{ renderHero(s); }catch(e){}
+    try{ renderBudget(s); }catch(e){}
+    try{ renderToday(s); }catch(e){}
+    try{ renderDue(s); }catch(e){}
+    try{ renderSalv(s); }catch(e){}
+    try{ renderRecent(s); }catch(e){}
+  }
+
+  /* ───────── caricamento e aggiornamento ───────── */
+  function refresh(retry){
+    clearTimeout(timer);
+    if(!isWide()) return;
+    var s=document.hidden?null:snap();
+    var ready=!!(s&&s.ok&&s.rim);
+    if(s&&s.ok) render(s);
+    if(!ready&&retry!==false&&tries<40){ tries++; timer=setTimeout(function(){ refresh(true); }, tries<6?900:2200); }
+    else timer=setTimeout(function(){ refresh(false); }, 30000);
+  }
+  function start(){
+    if(!isWide()) return;
+    try{ if(!loaded['tc']) ewPreloadDashboardPreview(); }catch(e){}
+    tries=0; refresh(true);
+  }
+  // quando si torna all'Hub (da launcher o da un'app) i numeri si aggiornano
+  function hook(){
+    if(hooked) return; hooked=true;
+    ['openLauncher','closeLauncher','closeApp'].forEach(function(n){
+      var o=window[n]; if(typeof o!=='function') return;
+      window[n]=function(){ var r=o.apply(this,arguments); setTimeout(function(){ try{ refresh(false); }catch(e){} },160); return r; };
+    });
+    document.addEventListener('visibilitychange',function(){ if(!document.hidden){ try{ tick(); refresh(false); }catch(e){} } });
+  }
+
+  /* ───────── riflesso e inclinazione col puntatore (solo mouse/trackpad) ───────── */
+  function bindFx(){
+    if(fxDone) return; fxDone=true;
+    var fine=false; try{ fine=window.matchMedia('(hover:hover) and (pointer:fine)').matches; }catch(e){}
+    if(!fine) return;
+    var hub=$('hub'), cur=null, ev=null, raf=0, SEL='.hw,#card-tc,#card-gw,.hw-quick button';
+    function clear(){ if(cur){ cur.style.removeProperty('--rx'); cur.style.removeProperty('--ry'); cur=null; } }
+    function apply(){
+      raf=0; if(!cur||!ev) return;
+      var r=cur.getBoundingClientRect(); if(!r.width||!r.height) return;
+      var px=(ev.clientX-r.left)/r.width, py=(ev.clientY-r.top)/r.height;
+      cur.style.setProperty('--mx',(px*100).toFixed(1)+'%'); cur.style.setProperty('--my',(py*100).toFixed(1)+'%');
+      if(!cur.matches('.hw-quick button')&&!reduced()){ cur.style.setProperty('--ry',((px-.5)*5).toFixed(2)+'deg'); cur.style.setProperty('--rx',((.5-py)*4).toFixed(2)+'deg'); }
+    }
+    hub.addEventListener('pointermove',function(e){
+      if(e.pointerType&&e.pointerType!=='mouse'&&e.pointerType!=='pen') return;
+      var el=e.target&&e.target.closest?e.target.closest(SEL):null;
+      if(cur&&cur!==el) clear();
+      if(!el) return;
+      cur=el; ev=e; if(!raf) raf=requestAnimationFrame(apply);
+    },{passive:true});
+    hub.addEventListener('pointerleave',clear);
+  }
+
+  function enter(){
+    try{ hook(); }catch(e){}
+    try{ tick(); }catch(e){}
+    clearInterval(clockT); clockT=setInterval(function(){ try{ tick(); }catch(e){} },5000);
+    try{ bindFx(); }catch(e){}
+    if(!mqBound){ mqBound=true; try{ var m=window.matchMedia(MQ), f=function(){ if(m.matches) start(); }; if(m.addEventListener) m.addEventListener('change',f); else if(m.addListener) m.addListener(f); }catch(e){} }
+    start();
+  }
+  return { enter:enter, refresh:refresh, render:render };
+})();
+function ewHubWideEnter(){ HW.enter(); }
+
 // ════════ HUB ════════
 function enterHub(skipped){
   try{ewInitTheme();}catch(e){}
@@ -982,6 +1572,7 @@ function enterHub(skipped){
   document.getElementById('hub').classList.add('show');
   const u=JSON.parse(localStorage.getItem(EW_KEY)||'null');
   document.getElementById('hubUser').innerHTML = (u&&u.name)?(_ewGreeting()+' <b>'+u.name.split(' ')[0]+'</b>'):'';
+  try{ ewHubWideEnter(); }catch(e){}
 }
 function _ewGreeting(){
   const h = new Date().getHours();
@@ -1856,7 +2447,7 @@ function ewUpdateDashPreview(){
   try{
     var win=document.getElementById('frame-tc').contentWindow;
     var rimEl=win.document.getElementById('rim-result');
-    var speseEl=win.document.getElementById('vs-spese-tot')||win.document.getElementById('rim-var-libere');
+    var speseEl=win.document.getElementById('sum-var')||win.document.getElementById('vs-spese-tot')||win.document.getElementById('rim-var-libere');
     var rimTarget=document.getElementById('ewPreviewRim');
     var speseTarget=document.getElementById('ewPreviewSpese');
     if(rimEl && rimTarget) rimTarget.textContent=rimEl.textContent||'—';
@@ -2000,6 +2591,7 @@ function ewApplyFocusMode(win){
       '#profileHero>button{top:calc(env(safe-area-inset-top) + 12px)!important;}';
     win.document.head.appendChild(st);
     win.document.body.classList.add('ew-hide-topactions');
+    win.document.body.classList.add('ew-focus');
     var orig=win.showSection;
     if(typeof orig==='function'){
       win.showSection=function(id,el){
