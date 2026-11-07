@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261031-v315-bar-calendario';
+  var BUILD = '20261107-v316-budget-largo';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -10774,7 +10774,8 @@ function renderIncome() {
 
 // ══ SISTEMA ALERT RIMANENZA BASSA ══
 function rimGetAlertThreshold() {
-  return parseFloat(load('rim_alert_threshold', 200)) || 200;
+  const _t = parseFloat(load('rim_alert_threshold', 300));
+  return isNaN(_t) ? 300 : _t;
 }
 
 function rimCheckAlert(rimanenza, giorniRimasti, alGiorno, fmt) {
@@ -10860,7 +10861,8 @@ function updateRimanenza() {
   const liquidita = Math.round((totEntrate - totSpesePrev)*100)/100;
 
   // ── RIMANENZA REALE = Liquidità − fisse − spese reali mese corrente ──
-  const rimanenza = Math.round((liquidita - totTutteSpese)*100)/100;
+  const rimanenzaCalc = Math.round((liquidita - totTutteSpese)*100)/100;
+  const rimanenza = (window.EWBUD && EWBUD.adjust) ? EWBUD.adjust(rimanenzaCalc, yr, mo) : rimanenzaCalc;
 
   const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.',',');
 
@@ -11025,6 +11027,7 @@ function updateRimanenza() {
 
   // creditoRimanente per dashboard
   window._creditoRimanente = rimanenza;
+  try{ if(window.EWBUD) EWBUD.afterRim({ calc: rimanenzaCalc, value: rimanenza, yr: yr, mo: mo, giorniRimasti: giorniRimasti }); }catch(_e){}
 }
 
 
@@ -11866,6 +11869,7 @@ function renderWeek() {
     </div>`;
   });
   renderCasaWeekWarning();
+  try{ if(window.EWBUD) EWBUD.afterWeek(dates, exp); }catch(_e){}
 }
 
 function selectWeekDay(ds, label) {
@@ -24596,7 +24600,7 @@ const BUDGET_KEYWORDS = {
 
 function saveBudgetWeekly(val) {
   const v = parseFloat(val);
-  if(!isNaN(v) && v > 0) save('budget_weekly', { amount: v });
+  if(!isNaN(v) && v > 0) { save('budget_weekly', { amount: v }); try{ if(window.EWBUD) EWBUD.setFromHere(v); }catch(_e){} }
   else localStorage.removeItem(getKey('budget_weekly'));
   bumpVersion();
   clearTimeout(window._budgetSaveTimer);
@@ -24604,6 +24608,7 @@ function saveBudgetWeekly(val) {
 }
 
 function loadBudgetWeekly() {
+  try { if(window.EWBUD){ const _b = EWBUD.currentBudget(); if(_b > 0) return _b; } } catch(_e) {}
   const s = load('budget_weekly', null);
   return s ? s.amount : null;
 }
@@ -24924,7 +24929,9 @@ function renderOggiBanner() {
     ).join('');
   }
 
-  if(budgLbl) {
+  if(budgLbl && window.EWBUD && EWBUD.oggiLabel(budgLbl, fmt)) {
+    /* riga budget gestita da EWBUD */
+  } else if(budgLbl) {
     const bgt = loadBudgetWeekly ? loadBudgetWeekly() : null;
     if(bgt) {
       // Spese settimanali totali fino ad oggi
@@ -32314,8 +32321,8 @@ body.light{
 :is(html,#_) body .cal-day.other-month{opacity:.35}
 :is(html,#_) body .cal-day-label{color:var(--label2)!important;font-size:11px!important}
 :is(html,#_) body .cal-reminder{background:var(--tint-p)!important;color:var(--pink)!important;border-radius:6px!important}
-@media screen and (min-width:1100px){:is(html,#_) body.ew-embed .main-content{margin-left:max(calc(var(--sidebar-w,260px) + 16px),calc((100% - 700px)/2))!important}}
-@media screen and (min-width:1100px){:is(html,#_) body.ew-embed .main-content:has(#sec-calendario.active){max-width:none!important;width:auto!important;
+@media screen and (min-width:1100px){:is(html,#_) body.ew-embed:not(.ew-focus) .main-content{margin-left:max(calc(var(--sidebar-w,260px) + 16px),calc((100% - 700px)/2))!important}}
+@media screen and (min-width:1100px){:is(html,#_) body.ew-embed:not(.ew-focus) .main-content:has(#sec-calendario.active){max-width:none!important;width:auto!important;
     margin-left:max(calc(var(--sidebar-w,260px) + 16px),calc(var(--sidebar-w,260px) + (100% - var(--sidebar-w,260px) - var(--cal-max,1400px))/2))!important;
     margin-right:max(16px,calc((100% - var(--sidebar-w,260px) - var(--cal-max,1400px))/2))!important}
 :is(html,#_) body #sec-calendario>.grid-2{grid-template-columns:minmax(0,1fr)!important;gap:18px!important;align-items:start}
@@ -32329,7 +32336,7 @@ body.light{
 :is(html,#_) body #sec-calendario .cal-reminder{font-size:11px!important;line-height:1.3;padding:3px 6px!important;margin-bottom:3px!important;border-radius:7px!important}
 :is(html,#_) body #sec-calendario .cal-day-label{font-size:12px!important;letter-spacing:.08em!important}}
 @media screen and (min-width:1400px){:is(html,#_) body #sec-calendario>.grid-2{grid-template-columns:minmax(0,1fr) clamp(300px,28%,390px)!important}}
-@media screen and (min-width:1760px){:is(html,#_) body.ew-embed .main-content:has(#sec-calendario.active){--cal-max:1640px}
+@media screen and (min-width:1760px){:is(html,#_) body.ew-embed:not(.ew-focus) .main-content:has(#sec-calendario.active){--cal-max:1640px}
 :is(html,#_) body #sec-calendario>.grid-2{grid-template-columns:minmax(0,1fr) clamp(320px,26%,420px)!important}
 :is(html,#_) body #sec-calendario .cal-day{min-height:116px!important}}
 @media screen and (min-width:1400px){:is(html,#_) body #sec-calendario>.grid-2>div:nth-child(2){display:block}
@@ -32771,6 +32778,212 @@ body.light{
 :is(html,#_) body .vc-ov{flex:none;font-weight:700;font-variant-numeric:tabular-nums}
 :is(html,#_) body .vc-ov small{font-weight:500;color:var(--label2)}
 :is(html,#_) body .vc-pay{margin-top:14px;font-size:12px;line-height:1.5;color:var(--label2)}
+:is(html,#_) body #weekBudgetBar{display:none!important}
+:is(html,#_) body #ewBudCard{position:relative;margin-bottom:16px}
+:is(html,#_) body #ewBudCard[data-state="over"]{border-color:var(--bd-r)!important}
+:is(html,#_) body #ewBudCard[data-state="low"]{border-color:var(--bd-o)!important}
+:is(html,#_) body .ew-bud-hd{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+:is(html,#_) body .ew-bud-ttl{display:flex;align-items:center;gap:10px;min-width:0;flex-wrap:wrap;font:600 17px/1.25 var(--font);color:var(--label);letter-spacing:-.2px}
+:is(html,#_) body .ew-bud-ttl small{flex-basis:100%;margin-left:44px;margin-top:-6px;font:500 13px var(--font);color:var(--label2);letter-spacing:0}
+:is(html,#_) body .ew-bud-ic{display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:11px;background:var(--ac-soft);font-size:18px;flex:none}
+:is(html,#_) body .ew-bud-edit{flex:none;height:34px;padding:0 15px;border:0;border-radius:999px;background:var(--fill);color:var(--label);font:600 13.5px var(--font);cursor:pointer;-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .ew-bud-edit:active{background:var(--fill2)}
+:is(html,#_) body .ew-bud-main{display:flex;align-items:flex-end;justify-content:space-between;gap:14px 22px;flex-wrap:wrap}
+:is(html,#_) body .ew-bud-rem{display:flex;align-items:baseline;flex-wrap:wrap;gap:2px 10px;min-width:0}
+:is(html,#_) body .ew-bud-lbl{flex-basis:100%;font:600 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--label2)}
+:is(html,#_) body .ew-bud-num{font:700 46px/1 var(--font-num);letter-spacing:-1.4px;font-variant-numeric:tabular-nums;color:var(--green)}
+:is(html,#_) body .ew-bud-main[data-tone="low"] .ew-bud-num{color:var(--warn)}
+:is(html,#_) body .ew-bud-main[data-tone="over"] .ew-bud-num{color:var(--red)}
+:is(html,#_) body .ew-bud-side{display:flex;gap:22px}
+:is(html,#_) body .ew-bud-side>div{display:flex;flex-direction:column;gap:1px;min-width:0}
+:is(html,#_) body .ew-bud-side span{font:600 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--label2)}
+:is(html,#_) body .ew-bud-side b{font:700 19px var(--font-num);color:var(--label);font-variant-numeric:tabular-nums;letter-spacing:-.3px}
+:is(html,#_) body .ew-bud-side small{font:500 11.5px var(--font);color:var(--label2)}
+:is(html,#_) body .ew-bud-delta{display:inline-block;padding:3px 10px;border-radius:999px;background:var(--tint-r);color:var(--red);font:700 14px var(--font-num);opacity:0}
+:is(html,#_) body .ew-bud-delta.on{animation:ewBudDelta 3.8s ease forwards}
+@keyframes ewBudDelta{0%{opacity:0;transform:translateY(8px) scale(.9)}10%{opacity:1;transform:none}78%{opacity:1}100%{opacity:0}}
+:is(html,#_) body .ew-bud-bar{height:10px;margin-top:16px;border-radius:999px;background:var(--fill);overflow:hidden}
+:is(html,#_) body .ew-bud-bar i{display:block;height:100%;border-radius:999px;background:var(--green);transition:width .55s cubic-bezier(.2,.8,.2,1)}
+:is(html,#_) body .ew-bud-bar[data-tone="low"] i{background:var(--warn)}
+:is(html,#_) body .ew-bud-bar[data-tone="over"] i{background:var(--red)}
+:is(html,#_) body .ew-bud-foot{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-top:9px;font:500 13px var(--font);color:var(--label2)}
+:is(html,#_) body .ew-bud-foot b{color:var(--label);font-weight:700}
+:is(html,#_) body .ew-bud-sug{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:14px;padding:10px 12px;border-radius:14px;background:var(--ac-s1);font:500 13.5px/1.35 var(--font);color:var(--label)}
+:is(html,#_) body .ew-bud-sug b{font-weight:700}
+:is(html,#_) body .ew-bud-sug button{flex:none;height:34px;padding:0 14px;border:0;border-radius:999px;background:linear-gradient(180deg,var(--ac2),var(--ac));color:var(--on-ac);font:600 13px var(--font);cursor:pointer}
+:is(html,#_) body .ew-bud-form p{margin:0 0 12px;font:500 14.5px/1.4 var(--font);color:var(--label2)}
+:is(html,#_) body .ew-bud-form p b{color:var(--label)}
+:is(html,#_) body .ew-bud-form>label{display:block;margin-bottom:8px;font:600 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--label2)}
+:is(html,#_) body .ew-bud-row{display:flex;gap:10px;align-items:stretch}
+:is(html,#_) body .ew-bud-row input{flex:1 1 0;min-width:0;height:50px!important;padding:0 16px!important;font:600 22px var(--font-num)!important;font-variant-numeric:tabular-nums}
+:is(html,#_) body .ew-bud-save,:is(html,#_) body .ew-bud-ghost{flex:none;height:50px;padding:0 20px;border:0;border-radius:14px;font:600 15px var(--font);cursor:pointer}
+:is(html,#_) body .ew-bud-save{background:linear-gradient(180deg,var(--ac2),var(--ac));color:var(--on-ac)}
+:is(html,#_) body .ew-bud-ghost{background:var(--fill);color:var(--label)}
+:is(html,#_) body .ew-bud-scope{display:flex;gap:3px;margin-top:12px;padding:3px;border-radius:13px;background:var(--fill)}
+:is(html,#_) body .ew-bud-scope button{flex:1 1 0;min-width:0;height:36px;border:0;border-radius:10px;background:transparent;color:var(--label2);font:600 13px var(--font);cursor:pointer;padding:0 8px}
+:is(html,#_) body .ew-bud-scope button.on{background:var(--sheet);color:var(--label);box-shadow:0 1px 3px rgba(0,0,0,.18)}
+:is(html,#_) body .ew-bud-err{margin-top:10px;padding:8px 12px;border-radius:10px;background:var(--tint-r);color:var(--red);font:600 13px var(--font)}
+:is(html,#_) body .ew-bud-err[hidden]{display:none}
+:is(html,#_) body .ew-bud-rm{margin-top:12px;border:0;background:none;color:var(--red);font:600 13px var(--font);cursor:pointer;padding:6px 0}
+:is(html,#_) body .ew-day-bal{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:1px 6px;padding:6px 8px;border-top:1px solid var(--hair);font:500 11px/1.25 var(--font);color:var(--label2)}
+:is(html,#_) body .ew-day-bal small{flex-basis:100%;font:600 10.5px var(--font-num);color:var(--red);font-variant-numeric:tabular-nums}
+:is(html,#_) body .ew-day-bal span{font-size:10.5px}
+:is(html,#_) body .ew-day-bal b{font:700 13px var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.2px;color:var(--green);margin-left:auto}
+:is(html,#_) body .ew-day-bal.low b{color:var(--warn)}
+:is(html,#_) body .ew-day-bal.over b{color:var(--red)}
+:is(html,#_) body .ew-bud-live{grid-column:1/-1;margin:2px 0 10px;padding:9px 12px;border-radius:12px;background:var(--fill3);font:500 13px/1.4 var(--font);color:var(--label2)}
+:is(html,#_) body .ew-bud-live[hidden]{display:none}
+:is(html,#_) body .ew-bud-live b{color:var(--label);font-weight:700;font-variant-numeric:tabular-nums}
+:is(html,#_) body .ew-bud-live[data-tone="ok"]{background:var(--tint-g)}
+:is(html,#_) body .ew-bud-live[data-tone="ok"] b{color:var(--green)}
+:is(html,#_) body .ew-bud-live[data-tone="low"]{background:var(--tint-o)}
+:is(html,#_) body .ew-bud-live[data-tone="low"] b{color:var(--warn)}
+:is(html,#_) body .ew-bud-live[data-tone="over"]{background:var(--tint-r)}
+:is(html,#_) body .ew-bud-live[data-tone="over"] b{color:var(--red)}
+:is(html,#_) body #dash-rim-box[data-ew-tone="red"]{border-color:var(--bd-r)!important}
+:is(html,#_) body #dash-rim-box[data-ew-tone="amber"]{border-color:var(--bd-o)!important}
+:is(html,#_) body .ew-rim-edit{position:absolute;top:10px;right:10px;display:inline-flex;align-items:center;gap:6px;height:34px;min-width:34px;justify-content:center;padding:0 12px;border:0;border-radius:999px;background:var(--fill);color:var(--label);font:600 13px var(--font);cursor:pointer;z-index:2}
+:is(html,#_) body .ew-rim-edit span:first-child{font-size:14px}
+:is(html,#_) body .ew-rim-edit:active{background:var(--fill2)}
+@media (max-width:640px){:is(html,#_) body .ew-rim-edit{width:34px;padding:0;top:8px;right:8px}
+:is(html,#_) body .ew-rim-edit span:last-child{display:none}}
+:is(html,#_) body .ew-rim-chip{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:10px;padding:7px 13px;border:0;border-radius:999px;font:600 13px var(--font);cursor:pointer;text-align:left;background:var(--tint-g);color:var(--green)}
+:is(html,#_) body .ew-rim-chip[data-tone="amber"]{background:var(--tint-o);color:var(--warn)}
+:is(html,#_) body .ew-rim-chip[data-tone="red"]{background:var(--tint-r);color:var(--red)}
+:is(html,#_) body .ew-rim-chip i{font:500 12px var(--font);font-style:normal;color:var(--label2)}
+:is(html,#_) body #sum-balance{cursor:pointer}
+:is(html,#_) body .ew-pop-scrim{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);overscroll-behavior:contain;animation:ewPopFade .18s ease both}
+@keyframes ewPopFade{from{opacity:0}to{opacity:1}}
+:is(html,#_) body .ew-pop{width:min(440px,100%);max-height:100%;overflow:auto;border-radius:28px;background:var(--sheet);color:var(--label);box-shadow:0 24px 70px rgba(0,0,0,.45);border:1px solid var(--hair);font-family:var(--font);animation:ewPopIn .3s cubic-bezier(.2,.9,.3,1.15) both}
+@keyframes ewPopIn{from{opacity:0;transform:translateY(14px) scale(.94)}to{opacity:1;transform:none}}
+@keyframes ewPopShake{0%,100%{transform:none}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(3px)}}
+:is(html,#_) body .ew-pop.tone-red{animation:ewPopIn .3s cubic-bezier(.2,.9,.3,1.15) both,ewPopShake .42s .3s both}
+:is(html,#_) body .ew-pop-hd{display:flex;align-items:center;gap:14px;padding:20px 22px;background:var(--sheet2);color:var(--label)}
+:is(html,#_) body .ew-pop-ic{display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;border-radius:15px;background:rgba(255,255,255,.2);font-size:25px;flex:none}
+:is(html,#_) body .ew-pop.tone-sheet .ew-pop-ic{background:var(--ac-soft)}
+:is(html,#_) body .ew-pop-ttl{font:700 22px/1.2 var(--font-disp);letter-spacing:-.4px}
+:is(html,#_) body .ew-pop-sub{margin-top:3px;font:500 14px/1.3 var(--font);opacity:.92}
+:is(html,#_) body .ew-pop.tone-red .ew-pop-hd{background:#d1281d;color:#fff}
+:is(html,#_) body .ew-pop.tone-amber .ew-pop-hd{background:#b35c00;color:#fff}
+:is(html,#_) body .ew-pop.tone-green .ew-pop-hd{background:#14803a;color:#fff}
+:is(html,#_) body .ew-pop-bd{padding:18px 22px 6px;font:500 16px/1.45 var(--font);color:var(--label)}
+:is(html,#_) body .ew-pop-bd ul{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px}
+:is(html,#_) body .ew-pop-bd li{padding-left:18px;position:relative}
+:is(html,#_) body .ew-pop-bd li::before{content:"";position:absolute;left:2px;top:.62em;width:7px;height:7px;border-radius:50%;background:var(--label3)}
+:is(html,#_) body .ew-pop.tone-red li::before{background:#d1281d}
+:is(html,#_) body .ew-pop.tone-amber li::before{background:#b35c00}
+:is(html,#_) body .ew-pop.tone-green li::before{background:#14803a}
+:is(html,#_) body .ew-pop-bd b{font-weight:700;font-variant-numeric:tabular-nums}
+:is(html,#_) body .ew-pop-bd p{margin:0 0 14px;color:var(--label2);font-size:15px}
+:is(html,#_) body .ew-pop-bd label{display:block;margin:14px 0 6px;font:600 11.5px var(--font);letter-spacing:.07em;text-transform:uppercase;color:var(--label2)}
+:is(html,#_) body .ew-pop-bd input{width:100%;box-sizing:border-box;height:52px!important;padding:0 16px!important;font:600 24px var(--font-num)!important;font-variant-numeric:tabular-nums}
+:is(html,#_) body .ew-pop-bd input#ewThInp{height:44px!important;font-size:18px!important}
+:is(html,#_) body .ew-pop-ft{display:flex;flex-direction:column;gap:9px;padding:16px 0 22px}
+:is(html,#_) body .ew-pop>.ew-pop-ft{padding:16px 22px 22px}
+:is(html,#_) body .ew-pop-ft button{height:50px;border:0;border-radius:15px;font:600 16px var(--font);cursor:pointer;-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .ew-pop-b1{background:var(--ac);color:var(--on-ac);background:linear-gradient(180deg,var(--ac2),var(--ac))}
+:is(html,#_) body .ew-pop.tone-red .ew-pop-b1{background:#d1281d;color:#fff}
+:is(html,#_) body .ew-pop.tone-amber .ew-pop-b1{background:#b35c00;color:#fff}
+:is(html,#_) body .ew-pop.tone-green .ew-pop-b1{background:#14803a;color:#fff}
+:is(html,#_) body .ew-pop-b2{background:var(--fill);color:var(--label)}
+:is(html,#_) body .ew-pop-b3{background:transparent;color:var(--label2)}
+:is(html,#_) body .ew-pop-ft button:active{filter:brightness(.92)}
+@media (prefers-reduced-motion:reduce){:is(html,#_) body .ew-pop,:is(html,#_) body .ew-pop.tone-red,:is(html,#_) body .ew-pop-scrim,:is(html,#_) body .ew-bud-delta.on{animation:none!important}
+:is(html,#_) body .ew-bud-delta.on{opacity:1}
+:is(html,#_) body .ew-bud-bar i{transition:none}}
+@media (max-width:420px){:is(html,#_) body .ew-bud-num{font-size:40px}
+:is(html,#_) body .ew-bud-row{flex-wrap:wrap}
+:is(html,#_) body .ew-bud-save,:is(html,#_) body .ew-bud-ghost{flex:1 1 auto}}
+@media screen and (min-width:900px) and (min-height:560px){:is(html,#_) body.ew-focus{--gl:max(28px,env(safe-area-inset-left,0px));--gr:max(28px,env(safe-area-inset-right,0px));--wgap:18px}
+:is(html,#_) body.ew-focus .main-content{max-width:1480px!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;
+    display:grid!important;grid-template-columns:minmax(0,1fr);column-gap:var(--wgap);row-gap:var(--wgap);align-content:start}
+:is(html,#_) body.ew-focus .main-content>*{grid-column:1/-1;min-width:0}
+:is(html,#_) body.ew-focus .main-content>.topbar{margin-bottom:0!important}
+:is(html,#_) body.ew-focus .main-content>.month-selector{margin:0!important;justify-self:start;width:min(100%,540px)}
+:is(html,#_) body.ew-focus .main-content>#salvadanaiCard{order:90;margin:0!important;padding:22px 24px!important}
+:is(html,#_) body.ew-focus .section.active{display:grid!important;grid-template-columns:repeat(12,minmax(0,1fr));column-gap:var(--wgap);row-gap:0;
+    align-items:stretch;align-content:start;margin-bottom:calc(-1*var(--wgap))}
+:is(html,#_) body.ew-focus .section.active>*{grid-column:1/-1;min-width:0;margin:0 0 var(--wgap)!important}
+:is(html,#_) body.ew-focus .section.active>.card{padding:22px 24px!important}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(>#dash-rim-box),:is(html,#_) body.ew-focus #sec-dashboard>div:has(#sum-fixed){display:contents!important}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(>#dash-rim-box)>div,:is(html,#_) body.ew-focus #sec-dashboard>div:has(#sum-fixed)>div{margin:0 0 var(--wgap)!important;min-width:0}
+:is(html,#_) body.ew-focus #sec-dashboard #dash-rim-box{grid-column:1/span 6;grid-row:span 3;display:flex;flex-direction:column;justify-content:center;padding:26px 30px!important}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(>#dash-rim-box)>div:not(#dash-rim-box){grid-column:7/span 6}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(#sum-fixed)>div:nth-child(1){grid-column:7/span 3}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(#sum-fixed)>div:nth-child(2){grid-column:10/span 3}
+:is(html,#_) body.ew-focus #sec-dashboard>#dash-cc-banner{grid-column:7/span 6}
+:is(html,#_) body.ew-focus #sec-dashboard #plannerBudgetInput,:is(html,#_) body.ew-focus #sec-dashboard #satispayBudgetInput{width:124px!important}
+:is(html,#_) body.ew-focus #sec-dashboard #sum-balance{font-size:clamp(56px,6vw,84px)!important}
+:is(html,#_) body.ew-focus #sec-dashboard #dash-rim-box{justify-content:flex-start}
+:is(html,#_) body.ew-focus #sec-dashboard #dash-rim-box #sum-balance{margin-top:auto}
+:is(html,#_) body.ew-focus #sec-dashboard #dash-rim-box #ewRimChip{margin-top:auto}
+:is(html,#_) body.ew-focus #sec-dashboard #budgetPlannerCard,:is(html,#_) body.ew-focus #sec-dashboard #satispayPlannerCard{grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(#dashChart){grid-column:span 7}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(#dashCatChart){grid-column:span 5}
+:is(html,#_) body.ew-focus #sec-dashboard>div:has(#dashChart)>div[style*="height"],:is(html,#_) body.ew-focus #sec-dashboard>div:has(#dashCatChart)>div[style*="height"]{height:clamp(260px,32vh,340px)!important}
+:is(html,#_) body.ew-focus #sec-dashboard #latestExpenses{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:36px;align-items:start}
+:is(html,#_) body.ew-focus #sec-dashboard #latestExpenses>.empty-state{grid-column:1/-1}
+:is(html,#_) body.ew-focus #sec-settimanale #oggi-banner{order:1;grid-column:span 6;display:flex;flex-direction:column}
+:is(html,#_) body.ew-focus #sec-settimanale #oggi-banner #oggi-spese-list{flex:1 1 auto;margin-bottom:12px}
+:is(html,#_) body.ew-focus #sec-settimanale #oggi-banner #oggi-footer{margin-top:auto!important}
+:is(html,#_) body.ew-focus #sec-settimanale #ewBudCard{order:2;grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-settimanale>.card:has(#weekGrid){order:3}
+:is(html,#_) body.ew-focus #sec-settimanale #weekNotePanel{order:4}
+:is(html,#_) body.ew-focus #sec-settimanale #diarioCard{order:5;grid-column:span 5}
+:is(html,#_) body.ew-focus #sec-settimanale #salvadanaiCard{order:6;grid-column:span 7}
+:is(html,#_) body.ew-focus #sec-settimanale .week-collap-body{display:block!important}
+:is(html,#_) body.ew-focus #sec-settimanale>.card[data-collap]>button{display:none!important}
+:is(html,#_) body.ew-focus #sec-settimanale .week-grid{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:10px!important}
+:is(html,#_) body.ew-focus #sec-settimanale div:has(>div>#weekTotalAmount){display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px!important;flex:1 1 560px;max-width:680px;margin-left:auto}
+:is(html,#_) body.ew-focus #sec-settimanale div:has(>div>#weekTotalAmount)>div{min-width:0;padding-left:10px!important;padding-right:10px!important}
+:is(html,#_) body.ew-focus #sec-settimanale #diarioCard{display:flex;flex-direction:column}
+:is(html,#_) body.ew-focus #sec-settimanale #diarioCard #diarioEmpty{margin-top:auto;margin-bottom:auto}
+:is(html,#_) body.ew-focus #sec-speseFisse .fixed-expenses-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 18px!important}
+:is(html,#_) body.ew-focus #sec-speseFisse>.card:not(:has(#fixedGrid)):not(#customFixedCard):not(:has(#rataList)){grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-speseFisse>#customFixedCard{grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-speseFisse>.card:not(:has(#fixedGrid)):not(#customFixedCard):not(:has(#rataList)):has(+#customFixedCard:is([style*="display:none"],[style*="display: none"])){grid-column:1/-1}
+:is(html,#_) body.ew-focus #sec-speseFisse .new-fixed-form{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:14px 16px!important}
+:is(html,#_) body.ew-focus #sec-speseFisse .new-fixed-form>.fld:last-child{grid-column:1/-1}
+:is(html,#_) body.ew-focus #sec-speseFisse .new-fixed-form>.fld:last-child>label{display:none}
+:is(html,#_) body.ew-focus #sec-speseFisse>.card:has(+#customFixedCard:is([style*="display:none"],[style*="display: none"])) .new-fixed-form{grid-template-columns:minmax(0,2fr) repeat(3,minmax(0,1fr)) auto!important}
+:is(html,#_) body.ew-focus #sec-speseFisse>.card:has(+#customFixedCard:is([style*="display:none"],[style*="display: none"])) .new-fixed-form>.fld:last-child{grid-column:auto}
+:is(html,#_) body.ew-focus #sec-speseFisse>.card:has(+#customFixedCard:is([style*="display:none"],[style*="display: none"])) .new-fixed-form>.fld:last-child>label{display:block}
+:is(html,#_) body.ew-focus #sec-speseCasa #casaVociContainer{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--wgap);align-items:start}
+:is(html,#_) body.ew-focus #sec-speseCasa #casaVociContainer>*{margin:0!important;min-width:0}
+:is(html,#_) body.ew-focus #sec-entrate>.card:has(#incomeType){grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-entrate>.card:has(#incomeTable){grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-entrate>.card:has(#rim-spese-bar){display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr));column-gap:16px;align-items:stretch}
+:is(html,#_) body.ew-focus #sec-entrate>.card:has(#rim-spese-bar)>*{grid-column:1/-1;min-width:0}
+:is(html,#_) body.ew-focus #sec-entrate>.card:has(#rim-spese-bar)>div:has(#rim-stipendio),:is(html,#_) body.ew-focus #sec-entrate>.card:has(#rim-spese-bar)>div:has(#rim-tot-spese),:is(html,#_) body.ew-focus #sec-entrate>.card:has(#rim-spese-bar)>#rim-result-box{grid-column:auto;margin-bottom:0!important;display:flex;flex-direction:column;justify-content:center}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa.active{grid-template-rows:repeat(5,auto) 1fr}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>.card:has(#expAmount){grid-column:1/-1;grid-row:1}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>.card:has(#expAmount) .form-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>.card:has(#expAmount) .ew-bud-live{order:99;margin:0}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>#speseSuggeriteCard{grid-column:1/-1;grid-row:2}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>#importAccordionCard{grid-column:1/-1;grid-row:3}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>.card:has(#expenseTable){grid-column:1/span 7;grid-row:4/span 3}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>.card:has(#budget-main-bar){grid-column:8/span 5;grid-row:4}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>#budgetCard{grid-column:8/span 5;grid-row:5}
+:is(html,#_) body.ew-focus #sec-contocorrente>div:has(#cc-saldo-attuale){grid-column:span 5;grid-row:span 2;align-self:start}
+:is(html,#_) body.ew-focus #sec-contocorrente>div:has(#cc-filter-year){grid-column:span 7}
+:is(html,#_) body.ew-focus #sec-contocorrente>div:has(#cc-movimenti-list),:is(html,#_) body.ew-focus #sec-contocorrente>#cc-movimenti-list{grid-column:span 7}
+:is(html,#_) body.ew-focus #sec-emergenza>.card:has(#emgType){grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-emergenza>.card:has(table){grid-column:span 6}
+:is(html,#_) body.ew-focus #sec-documenti [id^="dtab-content-"]>.card{display:grid;grid-template-columns:minmax(260px,1fr) minmax(0,2fr);column-gap:28px;align-items:start}
+:is(html,#_) body.ew-focus #sec-documenti [id^="dtab-content-"]>.card>.card-title{grid-column:1/-1}
+:is(html,#_) body.ew-focus #sec-documenti [id^="dtab-content-"]>.card>.doc-upload-area{grid-column:1}
+:is(html,#_) body.ew-focus #sec-documenti [id^="dtab-content-"]>.card>.doc-list,:is(html,#_) body.ew-focus #sec-documenti [id^="dtab-content-"]>.card>.doc-empty{grid-column:2}
+:is(html,#_) body.ew-focus .main-content>#salvadanaiCard #salvadanaiList>div{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:28px;align-items:start}
+:is(html,#_) body.ew-focus .main-content>#salvadanaiCard #salvadanaiList>div>*{grid-column:1;min-width:0}
+:is(html,#_) body.ew-focus .main-content>#salvadanaiCard #salvadanaiList>div>:first-child,:is(html,#_) body.ew-focus .main-content>#salvadanaiCard #salvadanaiList>div>:last-child{grid-column:1/-1}
+:is(html,#_) body.ew-focus .main-content>#salvadanaiCard #salvadanaiList>div>:nth-child(5):not(:last-child){grid-column:2;grid-row:2/span 3}
+:is(html,#_) body.ew-focus .main-content>#salvadanaiCard #salvadanaiList{display:grid;grid-template-columns:minmax(0,1fr);gap:16px}}
+@media screen and (min-width:1100px) and (min-height:560px){:is(html,#_) body.ew-focus .main-content{grid-template-columns:minmax(0,1fr) minmax(300px,380px)}
+:is(html,#_) body.ew-focus .main-content>.topbar{grid-column:1;grid-row:1}
+:is(html,#_) body.ew-focus .main-content>.month-selector{grid-column:2;grid-row:1;justify-self:stretch;width:auto;align-self:center}
+:is(html,#_) body.ew-focus #sec-settimanale .week-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important}
+:is(html,#_) body.ew-focus #sec-aggiungiSpesa>.card:has(#expAmount) .form-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.8fr) minmax(0,1.3fr) minmax(0,1.15fr) minmax(0,1fr) auto}}
+@media screen and (min-width:1760px) and (min-height:560px){:is(html,#_) body.ew-focus .main-content{max-width:1680px!important}}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -33972,6 +34185,622 @@ body.light{
     if (global.EWSUB && global.EWSUB.attach) global.EWSUB.attach({ sel: SEL, desc: 'vacSpCausale', anchor: $('vacSpFormGrid') });
   } catch (e) { console.warn('EWVC azienda', e); }
 })(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script id="bud-js">
+/* ═══════════════════════════════════════════════════════════════
+   EWBUD — Budget settimanale con scalo automatico · Rimanenza reale modificabile
+   Motore puro (testabile in Node) + adattatore DOM. Si aggancia a renderWeek() e updateRimanenza().
+   Dati nuovi (si sincronizzano come tutto il resto): ewbud_cfg, rim_adj_<anno>_<mese>, ewrim_state.
+   ═══════════════════════════════════════════════════════════════ */
+var EWBUD = (function () {
+  'use strict';
+
+  /* ───────────────────────── motore puro ───────────────────────── */
+  var KEY_CFG = 'ewbud_cfg', KEY_ADJ = 'rim_adj_', KEY_ST = 'ewrim_state', KEY_TH = 'rim_alert_threshold';
+  var TH_DEFAULT = 300;
+  var RANK = { green: 0, amber: 1, red: 2 };
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function dstr(d) { return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function parseDs(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], +m[2] - 1, +m[3], 12, 0, 0) : null; }
+  function addDays(d, n) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); x.setDate(x.getDate() + n); return x; }
+  function mondayOf(d) { var x = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; }
+  function r2(v) { return Math.round(v * 100) / 100; }
+
+  // «130», «130,5», «130.50», «1.300,50», «€ 130» → numero (NaN se non valido)
+  function parseAmount(t) {
+    if (typeof t === 'number') return isFinite(t) ? t : NaN;
+    var s = String(t == null ? '' : t).replace(/−/g, '-').replace(/[€\s ]/g, '');
+    if (!s) return NaN;
+    if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+    else if (s.indexOf(',') >= 0) s = s.replace(',', '.');
+    if (!/^-?\d+(\.\d+)?$/.test(s)) return NaN;
+    return parseFloat(s);
+  }
+
+  // stesse settimane di getMonthWeeks() dell'app (lunedì → domenica, indice 1…6), ma per un mese qualsiasi
+  function weeksOfMonth(yr, mo0) {
+    var first = new Date(yr, mo0, 1, 12, 0, 0), d0 = first.getDay();
+    var start = new Date(first); start.setDate(first.getDate() - (d0 === 0 ? 6 : d0 - 1));
+    var out = [], idx = 1;
+    while (true) {
+      var end = new Date(start); end.setDate(start.getDate() + 6);
+      if (start.getMonth() > mo0 && start.getFullYear() >= yr) break;
+      out.push({ start: new Date(start), end: end, num: idx });
+      start.setDate(start.getDate() + 7); idx++;
+      if (idx > 6) break;
+    }
+    return out;
+  }
+
+  function normCfg(c) {
+    c = c && typeof c === 'object' ? c : {};
+    var recs = Array.isArray(c.recs) ? c.recs.filter(function (r) { return r && /^\d{4}-\d{2}-\d{2}$/.test(String(r.ws)) && +r.amount > 0; }).map(function (r) { return { ws: String(r.ws), amount: r2(+r.amount) }; }) : [];
+    recs.sort(function (a, b) { return a.ws < b.ws ? -1 : a.ws > b.ws ? 1 : 0; });
+    return { recs: recs };
+  }
+
+  // Quale importo vale per la settimana che inizia il lunedì `ws` ('YYYY-MM-DD')?
+  //  1) importo scritto per quella settimana (campo «Budget per settimana» o «Solo questa settimana»)
+  //  2) ultimo importo «da questa settimana in poi» impostato a quella data o prima (vale finché non lo cambi)
+  //  3) vecchio budget generale
+  function resolveBudget(cfg, ws, legacyWeek, legacyGlobal) {
+    if (+legacyWeek > 0) return { amount: r2(+legacyWeek), src: 'week' };
+    var best = null, i;
+    for (i = 0; i < cfg.recs.length; i++) { if (cfg.recs[i].ws <= ws) best = cfg.recs[i]; else break; }
+    if (best) return { amount: best.amount, src: best.ws === ws ? 'week' : 'carry', from: best.ws };
+    if (+legacyGlobal > 0) return { amount: r2(+legacyGlobal), src: 'global' };
+    return { amount: null, src: null };
+  }
+
+  // nuovo elenco importi: scope 'from' = da questa settimana in poi (toglie quelli successivi), 0/vuoto = rimuove quello di quel lunedì
+  function setBudgetRec(cfg, ws, amount, scope) {
+    var recs = cfg.recs.filter(function (r) { return scope === 'from' ? r.ws < ws : r.ws !== ws; });
+    if (scope === 'from' && amount > 0) recs.push({ ws: ws, amount: r2(amount) });
+    recs.sort(function (a, b) { return a.ws < b.ws ? -1 : a.ws > b.ws ? 1 : 0; });
+    return { recs: recs };
+  }
+
+  // days: [{ds, free}] (7 giorni lun→dom) · budget: numero o null · todayDs: 'YYYY-MM-DD'
+  function weekModel(o) {
+    var B = o.budget > 0 ? r2(o.budget) : null, spent = 0, run = [], i, days = o.days || [];
+    for (i = 0; i < days.length; i++) { spent += +days[i].free || 0; run.push(B == null ? null : r2(B - spent)); }
+    spent = r2(spent);
+    var first = days.length ? days[0].ds : '', last = days.length ? days[days.length - 1].ds : '';
+    var todayIdx = -1;
+    for (i = 0; i < days.length; i++) if (days[i].ds === o.todayDs) todayIdx = i;
+    var isPast = !!last && o.todayDs > last, isFuture = !!first && o.todayDs < first;
+    var daysLeft = isPast ? 0 : (isFuture ? days.length : (todayIdx >= 0 ? days.length - todayIdx : 0));
+    var remaining = B == null ? null : r2(B - spent);
+    var perDay = (remaining != null && remaining > 0 && daysLeft > 0) ? r2(remaining / daysLeft) : null;
+    var pctRaw = B ? Math.round(spent / B * 100) : 0;
+    var status = B == null ? 'none' : (remaining < 0 ? 'over' : (remaining <= B * 0.2 ? 'low' : 'ok'));
+    return { budget: B, spent: spent, remaining: remaining, pct: Math.max(0, Math.min(100, pctRaw)), pctRaw: pctRaw, status: status, daysLeft: daysLeft, perDay: perDay, run: run, days: days, todayIdx: todayIdx, isPast: isPast, isFuture: isFuture };
+  }
+
+  function floorSug(x) { if (!(x > 0)) return 0; return x >= 10 ? Math.floor(x / 5) * 5 : Math.floor(x); }
+
+  // R = rimanenza reale · B = budget settimanale (o null) · D = giorni da oggi a fine mese (oggi incluso; 0 se non è il mese corrente) · th = soglia «modera»
+  function verdict(o) {
+    var R = r2(+o.R || 0), B = o.B > 0 ? o.B : null, D = o.D > 0 ? o.D : 0, th = o.th >= 0 ? o.th : TH_DEFAULT;
+    var need = (B && D > 0) ? r2(B * D / 7) : null;
+    var sug = (D > 0 && R > 0) ? floorSug(R / D * 7) : 0;
+    var neg = R < 0, short = !neg && need != null && R < need, low = R < th;
+    var state = (neg || short) ? 'red' : (low ? 'amber' : 'green');
+    return { state: state, R: R, B: B, D: D, th: th, need: need, surplus: need != null ? r2(R - need) : null, suggested: sug, neg: neg, short: short, low: low, perDay: (D > 0 && R > 0) ? r2(R / D) : null };
+  }
+
+  function applyAdj(calc, adj) { return r2(calc + (adj && isFinite(+adj.delta) ? +adj.delta : 0)); }
+  function makeAdj(calc, typed, atIso) { return { delta: r2(typed - calc), value: r2(typed), at: atIso || '' }; }
+
+  var core = {
+    pad: pad, dstr: dstr, parseDs: parseDs, addDays: addDays, mondayOf: mondayOf, r2: r2, parseAmount: parseAmount,
+    weeksOfMonth: weeksOfMonth, normCfg: normCfg, resolveBudget: resolveBudget, setBudgetRec: setBudgetRec,
+    weekModel: weekModel, verdict: verdict, applyAdj: applyAdj, makeAdj: makeAdj, floorSug: floorSug, RANK: RANK, TH_DEFAULT: TH_DEFAULT
+  };
+
+  if (typeof document === 'undefined') return core;   // Node: solo il motore
+
+  /* ───────────────────────── adattatore (browser) ───────────────────────── */
+  var S = { editing: false, scope: 'from', model: null, rim: null, verdict: null, lastSpent: {}, armed: false, pop: null, delta: null, deltaT: 0 };
+  var $ = function (id) { return document.getElementById(id); };
+  var MESI_S = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+
+  function eur(v) { var s = Math.abs(v).toFixed(2).replace('.', ','); return (v < 0 && r2(v) !== 0 ? '−' : '') + '€' + s; }
+  function eur0(v) { return '€' + (Math.round(v) === v ? String(v) : v.toFixed(2).replace('.', ',')); }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function L(k, d) { try { var v = load(k, d); return v === undefined ? d : v; } catch (e) { return d; } }
+  function W(k, v) { try { save(k, v); } catch (e) { } }
+  function pushCloud() { try { bumpVersion(); } catch (e) { } try { fbPushToCloud(); } catch (e) { } }
+  function isExcl(e) { try { return typeof vsIsExcluded === 'function' && !!vsIsExcluded(e); } catch (x) { return false; } }
+  function isFree(e) { var bonRate = e.pay === 'bonifico' || e.cat === 'rata'; return !bonRate && !isExcl(e); }   // come «Spese libere» di renderWeek()
+  function today() { return new Date(); }
+  function thresholdVal() { var t = parseFloat(L(KEY_TH, TH_DEFAULT)); return isNaN(t) ? TH_DEFAULT : t; }
+  function getCfg() { return normCfg(L(KEY_CFG, null)); }
+
+  function weekDatesOf(monday) { var a = [], i; for (i = 0; i < 7; i++) a.push(addDays(monday, i)); return a; }
+  function expensesOf(dates) {
+    var ms = {}, exp = [];
+    dates.forEach(function (d) { ms[d.getFullYear() + '_' + (d.getMonth() + 1)] = 1; });
+    Object.keys(ms).forEach(function (k) { exp = exp.concat(L('expenses_' + k, []) || []); });
+    return exp;
+  }
+  function freePerDay(dates, exp) {
+    return dates.map(function (d) {
+      var s = dstr(d), s2 = pad(d.getDate()) + '/' + pad(d.getMonth() + 1) + '/' + d.getFullYear(), tot = 0;
+      exp.forEach(function (e) { if ((e.date === s || e.date === s2) && isFree(e)) tot += (+e.amount || 0); });
+      return { ds: s, free: r2(tot) };
+    });
+  }
+
+  // chiavi «budget_<anno>_<mese>_<n>» che l'app già usa per il budget di una settimana (le stesse che legge il grafico Budget)
+  function legacyKeys(monday) {
+    var cand = [], seen = {}, out = [], ms = dstr(monday), sun = addDays(monday, 6);
+    function add(y, m0) { var k = y + '_' + m0; if (!seen[k]) { seen[k] = 1; cand.push([y, m0]); } }
+    try { var gy = parseInt($('globalYear').value, 10), gm = parseInt($('globalMonth').value, 10); if (gy && gm) add(gy, gm - 1); } catch (e) { }
+    add(monday.getFullYear(), monday.getMonth()); add(sun.getFullYear(), sun.getMonth());
+    cand.forEach(function (c) { weeksOfMonth(c[0], c[1]).forEach(function (w) { if (dstr(w.start) === ms) out.push('budget_' + c[0] + '_' + (c[1] + 1) + '_' + w.num); }); });
+    return out;
+  }
+  function legacyWeekAmount(monday) {
+    var ks = legacyKeys(monday), i, v, a;
+    for (i = 0; i < ks.length; i++) { v = L(ks[i], null); a = (v && typeof v === 'object') ? +v.amount : +v; if (a > 0) return a; }
+    return 0;
+  }
+  function legacyGlobalAmount() { var s = L('budget_weekly', null); return s && +s.amount > 0 ? +s.amount : 0; }
+  function writeLegacyWeek(monday, amount) {
+    legacyKeys(monday).forEach(function (k) {
+      if (amount > 0) W(k, r2(amount)); else { try { localStorage.removeItem(getKey(k)); } catch (e) { } }
+    });
+  }
+
+  function budgetFor(monday) { return resolveBudget(getCfg(), dstr(monday), legacyWeekAmount(monday), legacyGlobalAmount()); }
+  function modelFor(monday, dates, exp) {
+    var b = budgetFor(monday), m = weekModel({ budget: b.amount, days: freePerDay(dates, exp), todayDs: dstr(today()) });
+    m.src = b.src; m.from = b.from || ''; m.monday = dstr(monday); m.dates = dates;
+    return m;
+  }
+  function modelForDs(anyDs) {
+    var d = parseDs(anyDs) || today(), mon = mondayOf(d), dates = weekDatesOf(mon);
+    return modelFor(mon, dates, expensesOf(dates));
+  }
+  function currentWeekModel() { return modelForDs(dstr(today())); }
+  function currentBudget() { try { var b = budgetFor(mondayOf(today())); return b.amount; } catch (e) { return null; } }
+
+  function weekNo(d) { try { if (typeof getWeekNum === 'function') return getWeekNum(d); } catch (e) { } return 0; }
+  function weekTitle(m) {
+    var a = m.dates[0], b = m.dates[6], n = weekNo(a);
+    var span = a.getMonth() === b.getMonth() ? (a.getDate() + '–' + b.getDate() + ' ' + MESI_S[b.getMonth()]) : (a.getDate() + ' ' + MESI_S[a.getMonth()] + ' – ' + b.getDate() + ' ' + MESI_S[b.getMonth()]);
+    return (n ? 'Sett. ' + n + ' · ' : '') + span;
+  }
+
+  /* ── salvataggio importo ── */
+  function saveBudget(mondayDs, amount, scope) {
+    var mon = parseDs(mondayDs);
+    if (!mon) return;
+    writeLegacyWeek(mon, amount);                                              // stessa chiave del campo «Budget per settimana» (compatibile col grafico Budget)
+    if (scope === 'from') W(KEY_CFG, setBudgetRec(getCfg(), mondayDs, amount, 'from'));
+    else if (!(amount > 0)) W(KEY_CFG, setBudgetRec(getCfg(), mondayDs, 0, 'only'));
+    pushCloud();
+  }
+  // per il vecchio campo «Budget Settimanale» (importo generale): vale da questa settimana in poi
+  function setFromHere(v) {
+    var amount = parseAmount(v);
+    if (!(amount > 0)) return;
+    var mon = mondayOf(today());
+    saveBudget(dstr(mon), amount, 'from');
+  }
+
+  /* ── scheda «Budget settimana» ── */
+  function ensureCard() {
+    var c = $('ewBudCard');
+    var oggi = $('oggi-banner'), sec = $('sec-settimanale');
+    if (!c) { c = document.createElement('div'); c.id = 'ewBudCard'; c.className = 'card ew-bud'; c.addEventListener('click', onCardClick); c.addEventListener('submit', onCardSubmit); c.addEventListener('input', onCardInput); }
+    if (oggi && oggi.parentNode) { if (oggi.nextElementSibling !== c) oggi.parentNode.insertBefore(c, oggi.nextSibling); }
+    else if (sec && c.parentNode !== sec) sec.insertBefore(c, sec.firstChild);
+    return c;
+  }
+
+  function sugLine(m) {
+    var v = S.verdict, cur = S.rim && S.rim.cur;
+    if (!cur || !v || m.budget == null || m.isPast || m.isFuture) return '';
+    if (!(v.suggested > 0) || Math.abs(v.suggested - m.budget) < 5) return '';
+    var higher = v.suggested > m.budget;
+    return '<div class="ew-bud-sug"><span>' + (higher ? 'Con la rimanenza di <b>' + eur(v.R) + '</b> potresti arrivare a <b>' + eur0(v.suggested) + '/sett.</b>' : 'Con la rimanenza di <b>' + eur(v.R) + '</b> il budget sostenibile fino a fine mese è <b>' + eur0(v.suggested) + '/sett.</b>') + '</span><button type="button" data-act="use-sug" data-v="' + v.suggested + '">Imposta ' + eur0(v.suggested) + '</button></div>';
+  }
+
+  function cardHtml(m) {
+    var title = '<div class="ew-bud-hd"><div class="ew-bud-ttl"><span class="ew-bud-ic" aria-hidden="true">🎯</span><span>Budget settimana</span><small>' + esc(weekTitle(m)) + '</small></div>';
+    if (S.editing) {
+      var val = m.budget != null ? String(m.budget).replace('.', ',') : '';
+      return title + '</div>' +
+        '<form class="ew-bud-form" novalidate>' +
+        '<label for="ewBudInp">Importo pieno del budget (€ a settimana)</label>' +
+        '<div class="ew-bud-row"><input id="ewBudInp" type="text" inputmode="decimal" autocomplete="off" placeholder="es. 130" value="' + esc(val) + '" aria-label="Importo del budget settimanale"><button type="submit" class="ew-bud-save">Salva</button><button type="button" data-act="cancel" class="ew-bud-ghost">Annulla</button></div>' +
+        '<div class="ew-bud-scope" role="group" aria-label="Da quando vale"><button type="button" data-scope="from" class="' + (S.scope === 'from' ? 'on' : '') + '">Da questa settimana in poi</button><button type="button" data-scope="only" class="' + (S.scope === 'only' ? 'on' : '') + '">Solo questa settimana</button></div>' +
+        '<div class="ew-bud-err" id="ewBudErr" role="alert" hidden></div>' +
+        (m.budget != null && m.src === 'week' ? '<button type="button" data-act="remove" class="ew-bud-rm">Rimuovi il budget di questa settimana</button>' : '') +
+        '</form>';
+    }
+    if (m.budget == null) {
+      return title + '</div>' +
+        '<form class="ew-bud-form ew-bud-setup" novalidate>' +
+        '<p>Inserisci l’importo pieno della settimana (es. <b>130</b>): ogni spesa che registri lo scala da solo, giorno per giorno.</p>' +
+        '<div class="ew-bud-row"><input id="ewBudInp" type="text" inputmode="decimal" autocomplete="off" placeholder="es. 130" aria-label="Importo del budget settimanale"><button type="submit" class="ew-bud-save">Imposta budget</button></div>' +
+        '<div class="ew-bud-err" id="ewBudErr" role="alert" hidden></div>' +
+        '</form>';
+    }
+    var tone = m.status, remLbl = m.remaining < 0 ? 'Sforato di' : (m.isPast ? 'Rimasti' : 'Restano');
+    var sub = m.isPast ? 'Settimana conclusa' : (m.perDay != null ? ('<b>' + eur(m.perDay) + '</b> al giorno per ' + m.daysLeft + (m.daysLeft === 1 ? ' giorno' : ' giorni')) : (m.remaining < 0 ? 'Meglio fermarsi con le spese libere' : 'Nessun margine rimasto'));
+    var srcNote = m.src === 'carry' ? 'come la settimana scorsa' : (m.src === 'global' ? 'budget generale' : '');
+    return title + '<button type="button" class="ew-bud-edit" data-act="edit" aria-label="Modifica il budget">Modifica</button></div>' +
+      '<div class="ew-bud-main" data-tone="' + tone + '">' +
+      '<div class="ew-bud-rem"><span class="ew-bud-lbl">' + remLbl + '</span><span class="ew-bud-num" id="ewBudRem">' + eur(Math.abs(m.remaining)) + '</span><span class="ew-bud-delta" id="ewBudDelta" aria-live="polite"></span></div>' +
+      '<div class="ew-bud-side"><div><span>Budget</span><b>' + eur(m.budget) + '</b>' + (srcNote ? '<small>' + srcNote + '</small>' : '') + '</div><div><span>Speso</span><b>' + eur(m.spent) + '</b><small>spese libere</small></div></div>' +
+      '</div>' +
+      '<div class="ew-bud-bar" data-tone="' + tone + '" role="img" aria-label="' + m.pctRaw + '% del budget usato"><i style="width:' + m.pct + '%"></i></div>' +
+      '<div class="ew-bud-foot"><span>' + m.pctRaw + '% usato</span><span>' + sub + '</span></div>' + sugLine(m);
+  }
+
+  function renderCard(m) {
+    var c = ensureCard();
+    if (!m) return;
+    if (S.editing && c.querySelector('.ew-bud-form')) return;       // non tolgo l'input da sotto le dita
+    c.setAttribute('data-state', m.budget == null ? 'none' : m.status);
+    c.innerHTML = cardHtml(m);
+    paintDelta();
+    if (S.editing) { var i = $('ewBudInp'); if (i) { try { i.focus(); i.select(); } catch (e) { } } }
+  }
+
+  function onCardClick(ev) {
+    var b = ev.target.closest ? ev.target.closest('[data-act],[data-scope]') : null;
+    if (!b) return;
+    var act = b.getAttribute('data-act'), sc = b.getAttribute('data-scope');
+    if (sc) { S.scope = sc; var g = b.parentNode.querySelectorAll('button'); for (var i = 0; i < g.length; i++) g[i].classList.toggle('on', g[i] === b); return; }
+    if (act === 'edit') { S.editing = true; var c = $('ewBudCard'); if (c) { c.innerHTML = cardHtml(S.model); var inp = $('ewBudInp'); if (inp) { inp.focus(); inp.select(); } } return; }
+    if (act === 'cancel') { S.editing = false; renderCard(S.model); return; }
+    if (act === 'remove') { doSave(0, 'only'); return; }
+    if (act === 'use-sug') { var v = parseFloat(b.getAttribute('data-v')); if (v > 0) doSave(v, 'from'); return; }
+  }
+  function onCardInput(ev) { var e = $('ewBudErr'); if (e && ev.target && ev.target.id === 'ewBudInp') e.hidden = true; }
+  function onCardSubmit(ev) {
+    ev.preventDefault();
+    var inp = $('ewBudInp'), v = parseAmount(inp ? inp.value : '');
+    if (!(v > 0) || v > 100000) { var e = $('ewBudErr'); if (e) { e.textContent = 'Scrivi un importo maggiore di zero, per esempio 130.'; e.hidden = false; } if (inp) inp.focus(); return; }
+    doSave(v, S.editing ? S.scope : 'from');
+  }
+  function doSave(amount, scope) {
+    var m = S.model; if (!m) return;
+    saveBudget(m.monday, amount, scope);
+    S.editing = false;
+    try { renderWeek(); } catch (e) { renderCard(modelForDs(m.monday)); }
+    try { renderOggiBanner(); } catch (e) { }
+    try { if (S.rim) afterRim(S.rim); } catch (e) { }
+    try { showToast(amount > 0 ? ('✅ Budget settimana: ' + eur(amount)) : 'Budget della settimana rimosso'); } catch (e) { }
+  }
+
+  /* ── cifra che scala: «−€12,50» accanto a «Restano» ── */
+  // la cifra vive nello stato (S.delta): se la scheda viene ridisegnata subito dopo (es. dal ricalcolo della
+  // rimanenza) il chip viene rimesso al suo posto e l'animazione prosegue da dove era, senza ripartire.
+  var DELTA_MS = 3800;
+  function paintDelta() {
+    var d = $('ewBudDelta'), x = S.delta;
+    if (!d || !x || !S.model || x.monday !== S.model.monday) return;
+    var age = Date.now() - x.at;
+    if (age >= DELTA_MS) { d.textContent = ''; d.classList.remove('on'); return; }
+    d.textContent = '−' + eur(x.amount);
+    d.style.animationDelay = (-age / 1000) + 's';
+    d.classList.add('on');
+    clearTimeout(S.deltaT);
+    S.deltaT = setTimeout(function () { var e = $('ewBudDelta'); if (e) { e.classList.remove('on'); e.textContent = ''; } S.delta = null; }, Math.max(60, DELTA_MS + 80 - age));
+  }
+  function flashDelta(m) {
+    var key = m.monday, prev = S.lastSpent[key];
+    S.lastSpent[key] = m.spent;
+    if (prev == null || m.budget == null || !(m.spent > prev + 0.004)) return;
+    S.delta = { monday: key, amount: r2(m.spent - prev), at: Date.now() };
+    paintDelta();
+  }
+
+  /* ── ogni cella-giorno mostra quanto resta a fine giornata ── */
+  function decorateCells(m) {
+    var grid = $('weekGrid'); if (!grid) return;
+    var cards = grid.querySelectorAll('.day-card'), i;
+    for (i = 0; i < cards.length; i++) {
+      var card = cards[i], old = card.querySelector('.ew-day-bal');
+      if (old) old.remove();
+      if (m.budget == null || i >= m.days.length) continue;
+      var day = m.days[i];
+      var futureEmpty = (m.isFuture || (m.todayIdx >= 0 && i > m.todayIdx)) && day.free === 0;
+      if (futureEmpty) continue;
+      var rem = m.run[i], tone = rem < 0 ? 'over' : (rem <= m.budget * 0.2 ? 'low' : 'ok');
+      var el = document.createElement('div');
+      el.className = 'ew-day-bal ' + tone;
+      el.innerHTML = (day.free > 0 ? '<small>−' + eur(day.free) + '</small>' : '') + '<span>restano</span><b>' + eur(rem) + '</b>';
+      card.insertBefore(el, card.lastElementChild);
+    }
+  }
+
+  function afterWeek(dates, exp) {
+    try {
+      var m = modelFor(mondayOf(dates[0]), dates, exp);
+      S.model = m;
+      renderCard(m);
+      decorateCells(m);
+      flashDelta(m);
+      updateLive('wd'); updateLive('exp');
+    } catch (e) { try { console.error('EWBUD.afterWeek', e); } catch (_) { } }
+  }
+
+  // riga «Budget sett.: … · Rimangono …» del banner OGGI: stessi numeri della scheda
+  function oggiLabel(el, fmt) {
+    try {
+      var m = currentWeekModel();
+      if (!el || m.budget == null) return false;
+      el.textContent = 'Budget sett.: ' + fmt(m.budget) + ' · ' + (m.remaining >= 0 ? '✅ Rimangono ' + fmt(m.remaining) : '⚠️ Sforato di ' + fmt(Math.abs(m.remaining)));
+      el.style.color = m.remaining < 0 ? 'var(--red)' : (m.status === 'low' ? '#ffb400' : 'var(--text-muted)');
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /* ── «dopo questa spesa» sotto i campi importo ── */
+  var LIVE = {
+    wd: { amt: 'wdAmount', cat: 'wdCat', pay: 'wdPay', desc: 'wdDesc', date: function () { try { return typeof _weekDetailCurrentDs !== 'undefined' ? _weekDetailCurrentDs : ''; } catch (e) { return ''; } } },
+    exp: { amt: 'expAmount', cat: 'expCat', pay: 'expPay', desc: 'expDesc', date: function () { var e = $('expDate'); return (e && e.value) || dstr(today()); } }
+  };
+  function liveEl(kind) {
+    var id = 'ewBudLive_' + kind, el = $(id);
+    if (el) return el;
+    var amt = $(LIVE[kind].amt); if (!amt) return null;
+    el = document.createElement('div'); el.id = id; el.className = 'ew-bud-live'; el.hidden = true;
+    if (kind === 'exp') { var fld = amt.closest('.fld'); if (!fld || !fld.parentNode) return null; fld.parentNode.insertBefore(el, fld.nextSibling); }
+    else { var row = amt.parentNode && amt.parentNode.parentNode; if (!row || !row.parentNode) return null; row.parentNode.insertBefore(el, row.nextSibling); }
+    return el;
+  }
+  function updateLive(kind) {
+    try {
+      var cfg = LIVE[kind], el = liveEl(kind), amtEl = $(cfg.amt);
+      if (!el || !amtEl) return;
+      var ds = cfg.date();
+      if (!ds || !parseDs(ds)) { el.hidden = true; return; }
+      var m = modelForDs(ds);
+      if (m.budget == null) { el.hidden = true; return; }
+      var amount = parseAmount(amtEl.value), cat = ($(cfg.cat) || {}).value, pay = ($(cfg.pay) || {}).value, desc = ($(cfg.desc) || {}).value || '';
+      var label = weekTitle(m).split(' · ')[0];
+      var pseudo = { cat: cat, pay: pay, desc: desc, amount: amount > 0 ? amount : 0, date: ds, source: 'manuale' };
+      var counts = isFree(pseudo), tone = m.status, html;
+      if (!(amount > 0)) {
+        html = '🎯 <span>' + esc(label) + ': restano <b>' + eur(m.remaining) + '</b> su ' + eur(m.budget) + '</span>';
+      } else if (!counts) {
+        html = '🎯 <span>Questa voce non scala dal budget (bonifico, rata o spesa fissa).</span>'; tone = 'none';
+      } else {
+        var after = r2(m.remaining - amount); tone = after < 0 ? 'over' : (after <= m.budget * 0.2 ? 'low' : 'ok');
+        html = '🎯 <span>' + esc(label) + ': restano ' + eur(m.remaining) + ' → dopo questa spesa <b>' + eur(after) + '</b>' + (after < 0 ? ' (sfori)' : '') + '</span>';
+      }
+      el.innerHTML = html; el.setAttribute('data-tone', tone); el.hidden = false;
+    } catch (e) { }
+  }
+  function onFormEvt(ev) {
+    var id = ev.target && ev.target.id;
+    if (id === 'wdAmount' || id === 'wdCat' || id === 'wdPay' || id === 'wdDesc') updateLive('wd');
+    else if (id === 'expAmount' || id === 'expCat' || id === 'expPay' || id === 'expDate' || id === 'expDesc') updateLive('exp');
+  }
+
+  /* ───────────────────────── Rimanenza reale modificabile ───────────────────────── */
+  function adjKey(yr, mo) { return KEY_ADJ + yr + '_' + mo; }
+  function adjFor(yr, mo) { return L(adjKey(yr, mo), null); }
+  function adjust(calc, yr, mo) { S.calc = calc; return applyAdj(calc, adjFor(yr, mo)); }
+  function isCurMonth(yr, mo) { var n = today(); return n.getFullYear() === yr && (n.getMonth() + 1) === mo; }
+  function daysLeftIncl(yr, mo) { var n = today(); return new Date(yr, mo, 0).getDate() - n.getDate() + 1; }
+
+  function chipText(v, c) {
+    if (v.state === 'red') return v.neg ? '⚠️ In rosso' : '⚠️ Budget da rivedere';
+    if (v.state === 'amber') return '✋ Modera le spese · sotto ' + eur0(v.th);
+    return v.B ? '✅ A posto · budget coperto' : '✅ A posto';
+  }
+  function paintRimChip(v, c) {
+    var box = $('dash-rim-box'); if (!box) return;
+    var btn = box.querySelector('.ew-rim-edit');
+    if (!btn) {
+      btn = document.createElement('button'); btn.type = 'button'; btn.className = 'ew-rim-edit'; btn.setAttribute('aria-label', 'Modifica la rimanenza reale');
+      btn.innerHTML = '<span aria-hidden="true">✏️</span><span>Modifica</span>'; btn.addEventListener('click', function (e) { e.stopPropagation(); openRimEdit(); });
+      box.appendChild(btn);
+    }
+    var big = $('sum-balance');
+    if (big && !big.getAttribute('data-ew')) { big.setAttribute('data-ew', '1'); big.style.cursor = 'pointer'; big.setAttribute('title', 'Tocca per modificare'); big.addEventListener('click', openRimEdit); }
+    var chip = $('ewRimChip');
+    if (!chip) {
+      chip = document.createElement('button'); chip.type = 'button'; chip.id = 'ewRimChip'; chip.className = 'ew-rim-chip';
+      chip.addEventListener('click', function () { if (S.verdict && S.rim) openVerdict(S.verdict, S.rim, {}); });
+      var anchor = $('dash-al-giorno-info'); if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(chip, anchor.nextSibling); else box.appendChild(chip);
+    }
+    var adj = adjFor(c.yr, c.mo), hasAdj = !!(adj && +adj.delta);
+    chip.setAttribute('data-tone', v.state);
+    chip.innerHTML = '<span>' + esc(chipText(v, c)) + '</span>' + (hasAdj ? '<i>✏️ corretta a mano</i>' : '');
+    box.setAttribute('data-ew-tone', v.state);
+  }
+
+  function afterRim(c) {
+    S.rim = c;
+    var cur = isCurMonth(c.yr, c.mo);
+    c.cur = cur;
+    var B = cur ? currentBudget() : null, D = cur ? daysLeftIncl(c.yr, c.mo) : 0;
+    var v = verdict({ R: c.value, B: B, D: D, th: thresholdVal() });
+    S.verdict = v;
+    paintRimChip(v, c);
+    if (S.model) renderCard(S.model);
+    // avviso automatico quando la situazione peggiora (es. una spesa ti porta sotto soglia), una volta sola
+    try {
+      var st = L(KEY_ST, {}) || {}, key = c.yr + '_' + c.mo, prev = st[key], ds = dstr(today());
+      if (!prev) { st[key] = { s: v.state, d: ds }; W(KEY_ST, st); return; }
+      if (prev.s !== v.state) {
+        st[key] = { s: v.state, d: ds }; W(KEY_ST, st);
+        if (S.armed && cur && RANK[v.state] > RANK[prev.s]) setTimeout(function () { if (!S.pop) openVerdict(S.verdict, S.rim, { auto: true }); }, 900);
+      }
+    } catch (e) { }
+  }
+
+  /* ── finestre (popup e foglio di modifica) ── */
+  function closePop() { var p = S.pop; if (p && p.parentNode) p.parentNode.removeChild(p); S.pop = null; document.removeEventListener('keydown', onKey, true); }
+  function onKey(e) { if (e.key === 'Escape' && S.pop) { e.stopPropagation(); closePop(); } }
+  function openPop(cls, html, wire) {
+    closePop();
+    var p = document.createElement('div'); p.className = 'ew-pop-scrim'; p.setAttribute('role', 'presentation');
+    p.innerHTML = '<div class="ew-pop ' + cls + '" role="alertdialog" aria-modal="true" aria-labelledby="ewPopT">' + html + '</div>';
+    p.addEventListener('click', function (e) { if (e.target === p) closePop(); });
+    document.body.appendChild(p); S.pop = p; document.addEventListener('keydown', onKey, true);
+    if (wire) wire(p);
+    var first = p.querySelector('[data-focus]') || p.querySelector('[data-primary]') || p.querySelector('input,button'); if (first) { try { first.focus({ preventScroll: true }); if (first.select && first.tagName === 'INPUT') first.select(); } catch (e) { } }
+    return p;
+  }
+
+  function verdictBody(v, c, o) {
+    var L2 = [];
+    var daysTxt = v.D + (v.D === 1 ? ' giorno' : ' giorni');
+    if (v.neg) {
+      L2.push('Rimanenza reale: <b>' + eur(v.R) + '</b>.');
+      if (v.B) L2.push('Il budget di <b>' + eur0(v.B) + '/sett.</b> non è sostenibile: con questa rimanenza non c’è margine per altre spese.');
+      L2.push('Evita ogni spesa non necessaria fino al prossimo stipendio.');
+    } else if (v.short) {
+      L2.push('Rimanenza reale: <b>' + eur(v.R) + '</b>. Per coprire gli ultimi ' + daysTxt + ' a <b>' + eur0(v.B) + '/sett.</b> servono circa <b>' + eur0(Math.ceil(v.need)) + '</b>.');
+      if (v.suggested > 0) L2.push('Con questa rimanenza il budget sostenibile è <b>' + eur0(v.suggested) + '/sett.</b>');
+      if (v.low) L2.push('Sei anche sotto i <b>' + eur0(v.th) + '</b>: modera le spese.');
+    } else if (v.low) {
+      L2.push('Restano <b>' + eur(v.R) + '</b>, sotto la soglia di <b>' + eur0(v.th) + '</b>.');
+      if (v.perDay != null) L2.push('Fino a fine mese sono <b>' + eur(v.perDay) + '</b> al giorno (' + daysTxt + ').');
+      if (v.B) L2.push('Il budget di ' + eur0(v.B) + '/sett. è coperto, ma il margine è sottile.');
+      L2.push('Evita gli acquisti non necessari.');
+    } else {
+      if (v.B && v.need != null) L2.push('Rimanenza reale: <b>' + eur(v.R) + '</b>. Il budget di <b>' + eur0(v.B) + '/sett.</b> è coperto fino a fine mese (servono circa ' + eur0(Math.ceil(v.need)) + '). Margine: <b>+' + eur(Math.max(0, v.surplus)) + '</b>.');
+      else { L2.push('Rimanenza reale: <b>' + eur(v.R) + '</b>, sopra la soglia di ' + eur0(v.th) + '.'); if (!v.B && v.D > 0) L2.push('Imposta il budget settimanale per un controllo preciso.'); }
+    }
+    return '<ul>' + L2.map(function (t) { return '<li>' + t + '</li>'; }).join('') + '</ul>';
+  }
+  function openVerdict(v, c, o) {
+    if (!v || !c) return;
+    o = o || {};
+    var tone = v.state, icon = tone === 'red' ? '⚠️' : (tone === 'amber' ? '✋' : '✅');
+    var title = tone === 'red' ? (v.neg ? 'Sei in rosso' : 'Budget non adeguato') : (tone === 'amber' ? 'Modera le spese' : 'Sei a posto');
+    var sub = o.edited ? 'Rimanenza aggiornata a ' + eur(v.R) : (o.auto ? 'Rimanenza reale ora: ' + eur(v.R) : (c.cur ? 'Rimanenza reale ad oggi' : 'Rimanenza del mese'));
+    var useSug = (tone === 'red' || (tone === 'green' && v.B && v.suggested > v.B + 4)) && v.suggested > 0 && v.B && Math.abs(v.suggested - v.B) >= 5;
+    var needBudget = !v.B && v.D > 0;
+    var html = '<div class="ew-pop-hd"><span class="ew-pop-ic" aria-hidden="true">' + icon + '</span><div><div class="ew-pop-ttl" id="ewPopT">' + title + '</div><div class="ew-pop-sub">' + esc(sub) + '</div></div></div>' +
+      '<div class="ew-pop-bd">' + verdictBody(v, c, o) + '</div>' +
+      '<div class="ew-pop-ft">' + (useSug ? '<button type="button" class="ew-pop-b2" data-do="sug">Imposta ' + eur0(v.suggested) + '/sett.</button>' : '') +
+      (needBudget ? '<button type="button" class="ew-pop-b2" data-do="budget">Imposta il budget</button>' : '') +
+      '<button type="button" class="ew-pop-b1" data-primary data-do="ok">' + (tone === 'green' ? 'Perfetto' : (tone === 'amber' ? 'Ok, modero' : 'Ho capito')) + '</button></div>';
+    openPop('tone-' + tone, html, function (p) {
+      p.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-do]') : null; if (!b) return;
+        var d = b.getAttribute('data-do');
+        if (d === 'sug') { closePop(); var mon = dstr(mondayOf(today())); saveBudget(mon, v.suggested, 'from'); try { renderWeek(); renderOggiBanner(); } catch (x) { } try { afterRim(S.rim); } catch (x) { } try { showToast('✅ Budget settimanale: ' + eur0(v.suggested)); } catch (x) { } }
+        else if (d === 'budget') { closePop(); try { showSection('settimanale', document.querySelector('.nav-item[onclick*="settimanale"]')); } catch (x) { } setTimeout(function () { var bb = document.querySelector('#ewBudCard [data-act=edit]'); if (bb) bb.click(); }, 200); }
+        else closePop();
+      });
+    });
+  }
+
+  function openRimEdit() {
+    var c = S.rim;
+    if (!c) { try { showToast('Apri prima la Dashboard per calcolare la rimanenza'); } catch (e) { } return; }
+    var adj = adjFor(c.yr, c.mo), hasAdj = !!(adj && +adj.delta), calc = S.calc != null ? S.calc : c.calc;
+    var cur = String(c.value.toFixed(2)).replace('.', ',');
+    var html = '<div class="ew-pop-hd"><span class="ew-pop-ic" aria-hidden="true">💰</span><div><div class="ew-pop-ttl" id="ewPopT">Rimanenza reale ad oggi</div><div class="ew-pop-sub">Scrivi quanto hai davvero adesso</div></div></div>' +
+      '<form class="ew-pop-bd ew-rim-form" novalidate>' +
+      '<p>L’app aggiorna subito budget e avvisi. Calcolata dai movimenti: <b>' + eur(calc) + '</b>.</p>' +
+      '<label for="ewRimInp">Rimanenza reale (€)</label>' +
+      '<input id="ewRimInp" data-focus type="text" inputmode="decimal" autocomplete="off" value="' + cur + '" aria-label="Rimanenza reale in euro">' +
+      '<label for="ewThInp">Avvisami («modera») sotto (€)</label>' +
+      '<input id="ewThInp" type="text" inputmode="decimal" autocomplete="off" value="' + String(thresholdVal()).replace('.', ',') + '" aria-label="Soglia di avviso in euro">' +
+      '<div class="ew-bud-err" id="ewRimErr" role="alert" hidden></div>' +
+      '<div class="ew-pop-ft"><button type="submit" class="ew-pop-b1" data-primary>Salva</button>' + (hasAdj ? '<button type="button" class="ew-pop-b2" data-do="reset">Torna al calcolo</button>' : '') + '<button type="button" class="ew-pop-b3" data-do="cancel">Annulla</button></div>' +
+      '</form>';
+    openPop('tone-sheet', html, function (p) {
+      var form = p.querySelector('form'), inp = p.querySelector('#ewRimInp');
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        var typed = parseAmount(inp.value), th = parseAmount(p.querySelector('#ewThInp').value), err = p.querySelector('#ewRimErr');
+        if (isNaN(typed) || Math.abs(typed) > 10000000) { err.textContent = 'Scrivi un importo valido, per esempio 540,10.'; err.hidden = false; inp.focus(); return; }
+        if (isNaN(th) || th < 0) { err.textContent = 'La soglia deve essere un importo da zero in su.'; err.hidden = false; return; }
+        if (th !== thresholdVal()) W(KEY_TH, th);
+        var d = r2(typed - calc);
+        if (d === 0) { try { localStorage.removeItem(getKey(adjKey(c.yr, c.mo))); } catch (x) { } }
+        else W(adjKey(c.yr, c.mo), makeAdj(calc, typed, new Date().toISOString()));
+        pushCloud(); closePop();
+        try { updateRimanenza(); } catch (x) { }
+        if (S.verdict && S.rim) openVerdict(S.verdict, S.rim, { edited: true });
+      });
+      p.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-do]') : null; if (!b) return;
+        var d = b.getAttribute('data-do');
+        if (d === 'reset') { try { localStorage.removeItem(getKey(adjKey(c.yr, c.mo))); } catch (x) { } pushCloud(); closePop(); try { updateRimanenza(); } catch (x) { } try { showToast('Rimanenza tornata al valore calcolato'); } catch (x) { } }
+        else if (d === 'cancel') closePop();
+      });
+    });
+  }
+
+  /* ───────────────────────── istantanea per l'Hub ───────────────────────── */
+  function snapshot() {
+    var out = { ok: true, at: new Date().toISOString() };
+    try {
+      var n = today(), yr = n.getFullYear(), mo = n.getMonth() + 1, dsT = dstr(n);
+      // rimanenza
+      var R = (typeof window._creditoRimanente === 'number' && isFinite(window._creditoRimanente)) ? window._creditoRimanente : (S.rim ? S.rim.value : null);
+      if (R != null) {
+        var B0 = currentBudget(), v = verdict({ R: R, B: B0, D: daysLeftIncl(yr, mo), th: thresholdVal() });
+        var adj = adjFor(yr, mo);
+        out.rim = { value: r2(R), state: v.state, perDay: v.perDay, daysLeft: daysLeftIncl(yr, mo), need: v.need, suggested: v.suggested, adjusted: !!(adj && +adj.delta), th: v.th };
+      }
+      // budget della settimana
+      var m = currentWeekModel();
+      out.budget = { amount: m.budget, spent: m.spent, remaining: m.remaining, pct: m.pct, pctRaw: m.pctRaw, status: m.status, perDay: m.perDay, daysLeft: m.daysLeft, label: weekTitle(m), days: m.days.map(function (d, i) { return { ds: d.ds, free: d.free, run: m.run[i] }; }), todayIdx: m.todayIdx };
+      // oggi
+      var all = L('expenses_' + yr + '_' + mo, []) || [], SPIC = /accredita\s*eur|savings\s*vault/i;
+      var td = all.filter(function (e) { return e.date === dsT && !SPIC.test(e.desc || ''); });
+      td.sort(function (a, b) { return String(b.createdAt || '').localeCompare(String(a.createdAt || '')); });
+      var clean = function (e) { try { if (typeof _cleanDescBySource === 'function') return _cleanDescBySource(e); } catch (x) { } return e.desc && e.desc !== '—' ? e.desc : e.cat; };
+      out.today = { total: r2(td.filter(isFree).reduce(function (s, e) { return s + (+e.amount || 0); }, 0)), count: td.length, items: td.slice(0, 4).map(function (e) { return { desc: String(clean(e) || e.cat || ''), amount: +e.amount || 0, cat: e.cat, free: isFree(e) }; }) };
+      // ultime spese del mese (le più recenti per data e ora di inserimento)
+      var rec = all.filter(function (e) { return !SPIC.test(e.desc || ''); });
+      rec.sort(function (a, b) { return (String(b.date || '').localeCompare(String(a.date || ''))) || String(b.createdAt || '').localeCompare(String(a.createdAt || '')); });
+      out.recent = rec.slice(0, 6).map(function (e) { return { desc: String(clean(e) || e.cat || ''), amount: +e.amount || 0, date: e.date || '', cat: e.cat || '' }; });
+      // mese
+      var allM = all.filter(function (e) { return e.pay !== 'bonifico' && e.cat !== 'rata'; });
+      out.month = { variable: r2(all.reduce(function (s, e) { return s + (+e.amount || 0); }, 0)), free: r2(allM.reduce(function (s, e) { return s + (+e.amount || 0); }, 0)) };
+      // prossime scadenze (spese fisse con giorno di scadenza + spese fisse personalizzate)
+      var items = [], pag = L('pagamenti_' + yr + '_' + mo, {}) || {}, due = L('dueDays', {}) || {}, fixed = L('fixedItems', []) || [], cust = L('customFixed', []) || [];
+      var last = new Date(yr, mo, 0).getDate();
+      fixed.forEach(function (f) { var d = due[f.id]; if (d === undefined || pag[f.id]) return; d = Math.min(+d, last); items.push({ name: f.name, amount: +f.amount || 0, icon: f.icon || '', ds: yr + '-' + pad(mo) + '-' + pad(d) }); });
+      cust.forEach(function (f) { if (f && !f.paid && f.date) items.push({ name: f.name, amount: +f.amount || 0, icon: '', ds: f.date }); });
+      var t0 = parseDs(dsT).getTime();
+      items.forEach(function (it) { it.days = Math.round((parseDs(it.ds).getTime() - t0) / 86400000); });
+      items = items.filter(function (it) { return it.days >= -3; }).sort(function (a, b) { return a.days - b.days; });
+      out.due = items.slice(0, 5);
+      // salvadanaio
+      var sv = L('salvadanai', []) || [];
+      if (sv.length) { var s0 = sv[0]; var tg = +s0.target || 0, sa = +s0.saved || 0; out.salv = { name: s0.name, saved: r2(sa), target: r2(tg), pct: tg > 0 ? Math.max(0, Math.min(100, Math.round(sa / tg * 100))) : 0, count: sv.length }; }
+    } catch (e) { out.ok = false; out.err = String(e && e.message || e); }
+    return out;
+  }
+
+  /* ───────────────────────── avvio ───────────────────────── */
+  function init() {
+    document.addEventListener('input', onFormEvt, true);
+    document.addEventListener('change', onFormEvt, true);
+    setTimeout(function () { S.armed = true; }, 5000);
+    try { updateLive('wd'); updateLive('exp'); } catch (e) { }
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
+
+  core.afterWeek = afterWeek; core.afterRim = afterRim; core.adjust = adjust; core.oggiLabel = oggiLabel;
+  core.currentBudget = currentBudget; core.setFromHere = setFromHere; core.snapshot = snapshot;
+  core.openRimEdit = openRimEdit; core.openVerdict = function () { if (S.verdict && S.rim) openVerdict(S.verdict, S.rim, {}); };
+  core._S = S;
+  return core;
+})();
+try { window.ewSnapshot = EWBUD.snapshot; } catch (e) { }
+if (typeof module !== 'undefined' && module.exports) module.exports = EWBUD;
 
 </script>
 <script>try{if(window.parent&&window.parent!==window)document.body.classList.add("ew-embed");}catch(e){}</script>
