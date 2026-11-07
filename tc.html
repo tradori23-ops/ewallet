@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261107-v316-budget-largo';
+  var BUILD = '20261107-v317-viaggi-rimanenza';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -4850,7 +4850,7 @@ setTimeout(_updateOfflineBanner, 500);
         <div style="background:var(--card);border-radius:18px;padding:20px 22px;border:1.5px solid rgba(224,92,92,0.15);">
           <div style="font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--text-muted);margin-bottom:6px;">🛒 Spese Variabili</div>
           <div style="font-size:28px;font-weight:900;font-family:'Playfair Display',serif;color:#e05c5c;" id="sum-var">€0,00</div>
-          <div style="margin-top:8px;font-size:10px;color:var(--text-muted);">Spese reali del mese</div>
+          <div id="sum-var-note" style="margin-top:8px;font-size:10px;color:var(--text-muted);">Spese reali del mese</div>
         </div>
       </div>
 
@@ -5363,7 +5363,12 @@ setTimeout(_updateOfflineBanner, 500);
               <div style="font-size:9px;color:var(--text-muted);">🛒 Libere</div>
               <div style="font-size:13px;font-weight:700;color:var(--red);" id="rim-var-libere">€0,00</div>
             </div>
+            <div style="flex:1;min-width:80px;background:rgba(255,255,255,0.04);border-radius:8px;padding:7px 10px;" id="rim-via-chip">
+              <div style="font-size:9px;color:var(--text-muted);">✈️ Viaggi</div>
+              <div style="font-size:13px;font-weight:700;color:#7ecfff;" id="rim-var-viaggi">€0,00</div>
+            </div>
           </div>
+          <div class="via-note" id="rim-via-note" hidden></div>
           <!-- Progress bar consumo -->
           <div style="margin-top:10px;">
             <div style="display:flex;justify-content:space-between;font-size:10px;color:var(--text-muted);margin-bottom:3px;">
@@ -6806,6 +6811,7 @@ setTimeout(_updateOfflineBanner, 500);
           <span style="font-size:12px;color:var(--text-muted);">Totale spese</span>
           <span style="font-size:18px;font-weight:800;color:var(--gold);" id="vacSpTotale">€0,00</span>
         </div>
+        <div id="vacSpVia" hidden></div>
         <div style="padding:16px 26px 20px;">
           <div id="vcCatBar" class="vc-bar" role="group" aria-label="Spese per categoria" style="display:none;"></div>
           <div id="vacSpeseList"></div>
@@ -10837,7 +10843,8 @@ function updateRimanenza() {
 
   // ── SPESE FINE MESE PRECEDENTE (dalla data stipendio) ──
   const { spese: spesePrevArr, arrivalDay: arrDay, prevMo: _pm, prevYr: _py } = getSpeseMesePrecedente(yr, mo);
-  const totSpesePrev = Math.round(spesePrevArr.reduce((s,e)=>s+e.amount,0)*100)/100;
+  const _via = (window.EWVIA && EWVIA.calc) ? EWVIA.calc(yr, mo, arrDay) : { month:0, n:0, dupN:0, dupTotal:0, tail:0, tailN:0 };
+  const totSpesePrev = Math.round((spesePrevArr.reduce((s,e)=>s+e.amount,0) + _via.tail)*100)/100;
 
   // ── Se non c'è stipendio questo mese, usa quello del mese precedente come saldo di partenza ──
   let riportoMesePrecedente = 0;
@@ -10855,7 +10862,7 @@ function updateRimanenza() {
   const speseLibere = allExp.filter(e=>e.pay!=='bonifico'&&e.cat!=='rata');
   const totBonif    = Math.round(speseBonif.reduce((s,e)=>s+e.amount,0)*100)/100;
   const totLibere   = Math.round(speseLibere.reduce((s,e)=>s+e.amount,0)*100)/100;
-  const totTutteSpese = Math.round((fixedTotal + totBonif + totLibere)*100)/100;
+  const totTutteSpese = Math.round((fixedTotal + totBonif + totLibere + _via.month)*100)/100;
 
   // ── LIQUIDITÀ = Stipendio − spese fine mese precedente ──
   const liquidita = Math.round((totEntrate - totSpesePrev)*100)/100;
@@ -10887,6 +10894,7 @@ function updateRimanenza() {
   if(el('rim-fixed'))       el('rim-fixed').textContent      = fmt(fixedTotal);
   if(el('rim-var-bonifici'))el('rim-var-bonifici').textContent= fmt(totBonif);
   if(el('rim-var-libere'))  el('rim-var-libere').textContent  = fmt(totLibere);
+  try{ if(window.EWVIA) EWVIA.paint(_via, fmt); }catch(_e){}
   if(el('rim-tot-spese'))   el('rim-tot-spese').textContent   = fmt(totTutteSpese);
 
   // Progress bar consumo
@@ -10926,7 +10934,7 @@ function updateRimanenza() {
   if(el('rim-prev-info')) {
     const mesiN = ['','Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
     const { spese: sp, arrivalDay: ad, prevMo: pm, prevYr: py } = getSpeseMesePrecedente(yr, mo);
-    const totPrev = Math.round(sp.reduce((s,e)=>s+e.amount,0)*100)/100;
+    const totPrev = Math.round((sp.reduce((s,e)=>s+e.amount,0) + _via.tail)*100)/100;
     const lastDayPrev = new Date(py, pm, 0).getDate();
     el('rim-prev-info').style.display = 'block';
     if(totPrev > 0) {
@@ -10982,7 +10990,7 @@ function updateRimanenza() {
   const sumBal = el('sum-balance');
   if(sumInc)   sumInc.textContent   = fmt(totEntrate);
   if(sumFixed) sumFixed.textContent = fmt(fixedTotal);
-  if(sumVar)   sumVar.textContent   = fmt(totLibere + totBonif);
+  if(sumVar)   sumVar.textContent   = fmt(totLibere + totBonif + _via.month);
   if(sumBal) { sumBal.textContent = fmt(rimanenza); sumBal.style.color = rimanenza>=0?'var(--green)':'var(--red)'; }
 
   // ── Nuovi elementi dashboard mensile ──
@@ -11017,7 +11025,7 @@ function updateRimanenza() {
       const prevStip = Math.round(prevInc.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
       const prevExtra = Math.round(prevInc.filter(i=>i.type!=='ferrino'&&i.type!=='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
       const prevTot = Math.round((prevStip+prevExtra)*100)/100;
-      const spesePrevTot = Math.round(spPrev.reduce((s,e)=>s+e.amount,0)*100)/100;
+      const spesePrevTot = Math.round((spPrev.reduce((s,e)=>s+e.amount,0) + _via.tail)*100)/100;
       sumDetail.style.display = 'block';
       sumDetail.innerHTML = 'Stip. '+mesiN[dpm]+' '+fmt(prevTot)+' − spese fine mese '+fmt(spesePrevTot);
     } else {
@@ -15020,6 +15028,7 @@ function _doVacanzaDelete(id) {
   if(!_ok) { showToast('❌ Eliminazione non salvata: spazio esaurito.'); return; }
   bumpVersion(); fbPushToCloud(true);
   renderVacanze();
+  try{ if(window.EWVIA) EWVIA.changed(); }catch(_e){}
   showToast('🗑 Vacanza eliminata');
 }
 
@@ -15275,6 +15284,7 @@ function _doVacSpesaDelete(id) {
   if(!_ok) { showToast('❌ Eliminazione non salvata: spazio esaurito.'); return; }
   bumpVersion(); fbPushToCloud(true);
   renderVacSpeseList();
+  try{ if(window.EWVIA) EWVIA.changed(); }catch(_e){}
   showToast('🗑 Spesa eliminata');
 }
 
@@ -32894,6 +32904,15 @@ body.light{
 @media (max-width:420px){:is(html,#_) body .ew-bud-num{font-size:40px}
 :is(html,#_) body .ew-bud-row{flex-wrap:wrap}
 :is(html,#_) body .ew-bud-save,:is(html,#_) body .ew-bud-ghost{flex:1 1 auto}}
+:is(html,#_) body .via-note{margin-top:8px;font:500 12px/1.4 var(--font);color:var(--label2);overflow-wrap:anywhere}
+:is(html,#_) body .via-note[hidden]{display:none!important}
+:is(html,#_) body #vacSpVia{display:flex;align-items:flex-start;gap:8px;padding:9px 26px;background:var(--tint-b);color:var(--label);font:500 12.5px/1.45 var(--font);overflow-wrap:anywhere}
+:is(html,#_) body #vacSpVia[hidden]{display:none!important}
+:is(html,#_) body #vacSpVia b{font-weight:700;font-variant-numeric:tabular-nums}
+:is(html,#_) body #vacSpVia .via-ic{flex:none}
+@media (max-width:480px){:is(html,#_) body #vacSpVia{padding:9px 16px}}
+:is(html,#_) body .via-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:1px 8px;border-radius:999px;background:var(--fill);color:var(--label2);
+  font-size:10px;font-weight:600;line-height:1.5;white-space:nowrap}
 @media screen and (min-width:900px) and (min-height:560px){:is(html,#_) body.ew-focus{--gl:max(28px,env(safe-area-inset-left,0px));--gr:max(28px,env(safe-area-inset-right,0px));--wgap:18px}
 :is(html,#_) body.ew-focus .main-content{max-width:1480px!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;
     display:grid!important;grid-template-columns:minmax(0,1fr);column-gap:var(--wgap);row-gap:var(--wgap);align-content:start}
@@ -33721,6 +33740,213 @@ body.light{
 })(typeof window !== 'undefined' ? window : globalThis);
 
 </script>
+<script id="via-js">
+/* ═══════════════════════════════════════════════════════════════
+   EWVIA — Le spese dei viaggi scalano SEMPRE dalla rimanenza
+   Motore puro (testabile in Node) + adattatore DOM. Nessun dato nuovo da salvare: tutto è calcolato al volo da `vacanze`
+   (Carta spese di viaggio) e dalle spese normali del mese (expenses_<anno>_<mese>).
+   Regola: ogni spesa di viaggio scala UNA volta, nel mese della sua data. Se la banca (o Satispay/Revolut) ha già importato lo
+   stesso pagamento — stesso importo, date vicine, spesa pagata con carta/banca — vale quella importata e la spesa del viaggio
+   non si conta una seconda volta. I contanti e i ticket non passano mai dalla banca: si contano sempre.
+   Si aggancia a updateRimanenza() (rimanenza, «Spese variabili», dettaglio ✈️ Viaggi) e alla Carta spese di viaggio.
+   ═══════════════════════════════════════════════════════════════ */
+var EWVIA = (function () {
+  'use strict';
+
+  /* ───────────────────────── motore puro ───────────────────────── */
+  var CASH = { contanti: 1, tickets: 1 };                    // non arrivano mai da un estratto conto
+  var BANK_SRC = { sella: 1, revolut: 1, satispay: 1 };      // «source» delle spese normali che vengono da banca / app di pagamento
+  var WIN_BEFORE = 3, WIN_AFTER = 8;                         // giorni ammessi tra il pagamento in viaggio e la data dell'addebito
+  var REL_FX = 0.05, MIN_FX = 1;                             // valuta estera: il cambio della banca non è quello dell'app (5 % o 1 €)
+  var SPIC = /accredita\s*eur|savings?\s*vault|spare\s*change|round[\s-]?up/i;   // giroconti su conti risparmio: non sono pagamenti
+
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function r2(v) { return Math.round((+v || 0) * 100) / 100; }
+  function ymd(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? { y: +m[1], m: +m[2], d: +m[3] } : null; }
+  function dayNum(s) { var p = ymd(s); return p ? Math.round(Date.UTC(p.y, p.m - 1, p.d) / 86400000) : NaN; }
+  function ymKey(y, m) { return y + '_' + m; }                // stesso formato di periodKey(): mese senza zero iniziale
+  function effDate(x) { return (x && (x.data || (x.createdAt ? String(x.createdAt).slice(0, 10) : ''))) || ''; }
+  function amountOf(x) { var v = (x && x.importoEUR != null) ? +x.importoEUR : +(x && x.importo || 0); return isFinite(v) ? v : 0; }
+
+  // tutte le spese di tutti i viaggi in un elenco piatto (solo quelle con data e importo validi)
+  function items(trips) {
+    var out = [];
+    (trips || []).forEach(function (t) {
+      ((t && t.spese) || []).forEach(function (x) {
+        var ds = effDate(x), a = r2(amountOf(x));
+        if (!ymd(ds) || !(a > 0)) return;
+        var raw = +x.importo || 0, cur = String(x.valuta || 'EUR').toUpperCase();
+        out.push({ key: String(t.id) + '/' + String(x.id), tid: String(t.id), id: String(x.id), ds: ds, amount: a, pay: String(x.pay || ''), cur: cur, raw: raw, label: x.causale || '', dup: false, match: null });
+      });
+    });
+    return out;
+  }
+
+  function amountOk(t, r) {
+    var b = +r.amount; if (!(b > 0)) return false;
+    var diff = Math.abs(t.amount - b);
+    if (t.cur === 'EUR') return diff <= 0.011;
+    return diff <= Math.max(MIN_FX, REL_FX * t.amount);
+  }
+
+  // abbina (uno a uno) le spese di viaggio pagate con carta/banca alle spese già importate: restituisce gli stessi oggetti con dup/match
+  function match(its, regsFor) {
+    var used = {};
+    var order = its.slice().sort(function (a, b) { return dayNum(a.ds) - dayNum(b.ds) || a.amount - b.amount || (a.key < b.key ? -1 : 1); });
+    order.forEach(function (t) {
+      t.dup = false; t.match = null;
+      if (CASH[t.pay]) return;
+      var tn = dayNum(t.ds), p = ymd(t.ds), best = null;
+      // mesi che la finestra [−3, +8] giorni può toccare
+      var months = {}; [-WIN_BEFORE, 0, WIN_AFTER].forEach(function (off) {
+        var d = new Date(Date.UTC(p.y, p.m - 1, p.d + off)); months[ymKey(d.getUTCFullYear(), d.getUTCMonth() + 1)] = 1;
+      });
+      Object.keys(months).forEach(function (ym) {
+        (regsFor(ym) || []).forEach(function (r, i) {
+          if (!r || !BANK_SRC[r.source] || r.fromFixed || SPIC.test(String(r.desc || ''))) return;
+          var rk = ym + '#' + (r.id != null ? r.id : 'i' + i) + '@' + r.date + '@' + r.amount;
+          if (used[rk]) return;
+          var dd = dayNum(r.date) - tn;
+          if (!isFinite(dd) || dd < -WIN_BEFORE || dd > WIN_AFTER) return;
+          if (!amountOk(t, r)) return;
+          var score = [Math.abs(dd), Math.abs(+r.amount - t.amount)];
+          if (!best || score[0] < best.score[0] || (score[0] === best.score[0] && score[1] < best.score[1])) best = { rk: rk, r: r, score: score };
+        });
+      });
+      if (best) { used[best.rk] = 1; t.dup = true; t.match = { id: best.r.id, date: best.r.date, amount: +best.r.amount, source: best.r.source }; }
+    });
+    return its;
+  }
+
+  function compute(trips, regsFor) { return match(items(trips), regsFor || function () { return []; }); }
+
+  // spese di viaggio del mese (yr, mo): quelle da scalare e quelle già presenti nelle importate
+  function sumMonth(its, yr, mo) {
+    var o = { total: 0, n: 0, dupN: 0, dupTotal: 0 };
+    its.forEach(function (t) {
+      var p = ymd(t.ds); if (!p || p.y !== yr || p.m !== mo) return;
+      if (t.dup) { o.dupN++; o.dupTotal += t.amount; } else { o.total += t.amount; o.n++; }
+    });
+    o.total = r2(o.total); o.dupTotal = r2(o.dupTotal);
+    return o;
+  }
+
+  // come per le spese normali: quelle del mese precedente dal giorno dello stipendio in poi riducono la liquidità del mese
+  function sumTail(its, yr, mo, arrivalDay) {
+    var py = mo === 1 ? yr - 1 : yr, pm = mo === 1 ? 12 : mo - 1, o = { total: 0, n: 0 };
+    its.forEach(function (t) {
+      var p = ymd(t.ds); if (!p || p.y !== py || p.m !== pm || t.dup || p.d < (+arrivalDay || 1)) return;
+      o.total += t.amount; o.n++;
+    });
+    o.total = r2(o.total);
+    return o;
+  }
+
+  function calcFrom(its, yr, mo, arrivalDay) {
+    var m = sumMonth(its, yr, mo), t = sumTail(its, yr, mo, arrivalDay);
+    return { month: m.total, n: m.n, dupN: m.dupN, dupTotal: m.dupTotal, tail: t.total, tailN: t.n };
+  }
+
+  function tripSummary(its, tid) {
+    var o = { n: 0, total: 0, dupN: 0, dupTotal: 0 };
+    its.forEach(function (t) { if (t.tid !== String(tid)) return; if (t.dup) { o.dupN++; o.dupTotal += t.amount; } else { o.n++; o.total += t.amount; } });
+    o.total = r2(o.total); o.dupTotal = r2(o.dupTotal);
+    return o;
+  }
+
+  var core = { items: items, match: match, compute: compute, sumMonth: sumMonth, sumTail: sumTail, calcFrom: calcFrom, tripSummary: tripSummary, effDate: effDate, amountOf: amountOf, CONST: { WIN_BEFORE: WIN_BEFORE, WIN_AFTER: WIN_AFTER, REL_FX: REL_FX, MIN_FX: MIN_FX } };
+
+  /* ───────────────────────── adattatore DOM ───────────────────────── */
+  var hasDom = typeof document !== 'undefined' && typeof window !== 'undefined';
+  if (!hasDom) return core;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function L(k, d) { try { var v = load(k, d); return v === undefined ? d : v; } catch (e) { return d; } }
+  function eur(v) { return '€' + Math.abs(r2(v)).toFixed(2).replace('.', ','); }
+
+  // modello completo: tutte le spese di viaggio con l'esito dell'abbinamento (le spese normali dei mesi vicini si leggono una volta sola)
+  function model() {
+    var cache = {};
+    return compute(L('vacanze', []) || [], function (ym) { return cache[ym] || (cache[ym] = L('expenses_' + ym, []) || []); });
+  }
+  function calc(yr, mo, arrivalDay) {
+    try { return calcFrom(model(), yr, mo, arrivalDay); } catch (e) { return { month: 0, n: 0, dupN: 0, dupTotal: 0, tail: 0, tailN: 0 }; }
+  }
+  function monthTotal(yr, mo) { try { return sumMonth(model(), yr, mo).total; } catch (e) { return 0; } }
+
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+
+  // riga «✈️ Viaggi» nel dettaglio della rimanenza (Entrate) e nota sotto «Spese variabili» della Dashboard
+  function paint(c, fmt) {
+    var f = fmt || eur;
+    var v = $('rim-var-viaggi'); if (v) v.textContent = f(c.month);
+    var note = $('rim-via-note');
+    if (note) {
+      var any = c.n + c.dupN > 0;
+      note.hidden = !any;
+      if (any) {
+        var t = '✈️ ' + plural(c.n + c.dupN, 'spesa di viaggio', 'spese di viaggio') + ' questo mese';
+        if (c.dupN) t += ' · ' + plural(c.dupN, 'già importata', 'già importate') + ', non contat' + (c.dupN === 1 ? 'a' : 'e') + ' due volte';
+        note.textContent = t;
+      }
+    }
+    var sn = $('sum-var-note');
+    if (sn) sn.textContent = c.month > 0 ? 'Spese reali del mese · di cui viaggi ' + f(c.month) : 'Spese reali del mese';
+  }
+
+  // spesa di viaggio salvata/eliminata: ricalcolo subito la rimanenza (scatta anche l'avviso rosso/«modera» se serve)
+  function changed() {
+    try { if (typeof updateRimanenza === 'function') updateRimanenza(); } catch (e) { }
+  }
+
+  // etichetta sulla riga della Carta spese: pagamento già presente tra quelli importati
+  function chip(its, tid, id) {
+    var k = String(tid) + '/' + String(id), t = null;
+    for (var i = 0; i < its.length; i++) if (its[i].key === k) { t = its[i]; break; }
+    if (!t || !t.dup) return '';
+    var m = t.match || {};
+    var where = { sella: ['🏦', 'già in banca', 'dalla banca'], revolut: ['💳', 'già su Revolut', 'da Revolut'], satispay: ['📱', 'già su Satispay', 'da Satispay'] }[m.source] || ['🏦', 'già importata', 'dall\'estratto conto'];
+    var tip = 'Questo pagamento è già tra le spese importate ' + where[2] + (m.date ? ' (' + m.date.split('-').reverse().join('/') + ', ' + eur(m.amount) + ')' : '') + ': vale quello, non viene contato due volte.';
+    return '<span class="via-chip" title="' + esc(tip) + '">' + where[0] + ' ' + where[1] + '</span>';
+  }
+
+  // frase da aggiungere all'avviso «Spesa aggiunta» : dove finisce la spesa appena salvata
+  function note(tid, id) {
+    try {
+      var its = model(), k = String(tid) + '/' + String(id), t = null;
+      for (var i = 0; i < its.length; i++) if (its[i].key === k) { t = its[i]; break; }
+      if (!t) return '';
+      if (t.dup) return ' · già importata, non conta due volte';
+      var p = ymd(t.ds), gy = parseInt(($('globalYear') || {}).value, 10), gm = parseInt(($('globalMonth') || {}).value, 10);
+      if (!p || !gy || !gm) return ' · scalata dalla rimanenza';
+      if (p.y === gy && p.m === gm) return ' · scalata dalla rimanenza';
+      // le spese dal giorno dello stipendio in poi del mese prima riducono anche la liquidità del mese mostrato
+      var ad = 1; try { ad = +getSpeseMesePrecedente(gy, gm).arrivalDay || 1; } catch (e) { ad = 1; }
+      var py = gm === 1 ? gy - 1 : gy, pm = gm === 1 ? 12 : gm - 1;
+      if (p.y === py && p.m === pm && p.d >= ad) return ' · scalata dalla rimanenza';
+      var nome = ''; try { nome = String(MESI[p.m - 1] || '').toLowerCase(); } catch (e) { nome = ''; }
+      return nome ? ' · scalata dalla rimanenza di ' + nome : ' · scalata dalla rimanenza del suo mese';
+    } catch (e) { return ''; }
+  }
+
+  // riga sotto il totale della Carta spese
+  function paintTrip(el, trip, its0) {
+    if (!el) return;
+    var its = its0 || model(), s = tripSummary(its, trip && trip.id);
+    if (!s.n && !s.dupN) { el.hidden = true; el.textContent = ''; return; }
+    el.hidden = false;
+    var h = '<span class="via-ic" aria-hidden="true">💸</span><span>Scalate dalla rimanenza: <b>' + esc(eur(s.total)) + '</b>';
+    if (s.dupN) h += ' · ' + esc(plural(s.dupN, 'spesa', 'spese')) + ' (' + esc(eur(s.dupTotal)) + ') già ' + (s.dupN === 1 ? 'importata' : 'importate') + ', non contat' + (s.dupN === 1 ? 'a' : 'e') + ' due volte';
+    el.innerHTML = h + '</span>';
+  }
+
+  core.model = model; core.calc = calc; core.monthTotal = monthTotal; core.paint = paint; core.changed = changed; core.chip = chip; core.paintTrip = paintTrip; core.note = note;
+  return core;
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = EWVIA;
+
+</script>
 <script id="vcat-js">
 /* ═══════════════════════════════════════════════════════════════
    EWVC — «Categorie» nella Carta Spese di Viaggio (GoBank → Vacanze)
@@ -34047,10 +34273,14 @@ body.light{
     if (!ok) { showToast('❌ Salvataggio fallito: spazio esaurito. Riprova dopo aver liberato spazio.'); return; }
     bumpVersion(); fbPushToCloud(true);
     var wasEdit = !!editId;
+    var savedId = editId || (item && item.id) || '';
     FILTER = '';
     cancelEdit();
     renderList();
-    showToast(wasEdit ? '✏️ Spesa aggiornata' : '🧾 Spesa aggiunta!');
+    // la spesa di viaggio scala subito dalla rimanenza (e scatta l'avviso se serve)
+    var via = '';
+    try { if (global.EWVIA) { global.EWVIA.changed(); via = global.EWVIA.note(vacId, savedId); } } catch (e) { via = ''; }
+    showToast((wasEdit ? '✏️ Spesa aggiornata' : '🧾 Spesa aggiunta!') + via);
   }
 
   function editSpesa(id) {
@@ -34089,6 +34319,10 @@ body.light{
     }).join('');
   }
 
+  function viaChip(vm, tid, id) {
+    try { return vm && global.EWVIA && global.EWVIA.chip ? global.EWVIA.chip(vm, tid, id) : ''; } catch (e) { return ''; }
+  }
+
   function renderList() {
     var v = currentTrip(); if (!v) return;
     var spese = v.spese || [];
@@ -34101,6 +34335,9 @@ body.light{
     };
     var total = _vacSpTotal(v);
     if (totEl) totEl.textContent = '€' + total.toFixed(2).replace('.', ',');
+    // le spese di viaggio scalano dalla rimanenza: riga di riepilogo + etichetta sui pagamenti già importati dalla banca
+    var vm = null;
+    try { vm = global.EWVIA && global.EWVIA.model ? global.EWVIA.model() : null; if (vm) global.EWVIA.paintTrip($('vacSpVia'), v, vm); } catch (e) { vm = null; }
     var cx = ctx(), st = stats(spese, cx);
     if (FILTER && !st.cats.some(function (c) { return c.k === FILTER; })) FILTER = '';
     renderBar(v, st);
@@ -34124,7 +34361,7 @@ body.light{
         "<div style='display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:3px;'>" +
         "<span style='font-size:13px;font-weight:700;color:var(--text);overflow-wrap:anywhere;'>" + esc(s.causale) + '</span>' +
         "<span style='font-size:10px;color:var(--text-muted);background:rgba(255,255,255,0.06);padding:1px 7px;border-radius:20px;'>" + info.icon + ' ' + esc(info.label) + '</span>' +
-        '<span class="vc-chip">' + ci.ic + ' ' + esc(ci.n) + '</span>' + chip +
+        '<span class="vc-chip">' + ci.ic + ' ' + esc(ci.n) + '</span>' + chip + viaChip(vm, v.id, s.id) +
         '</div>' +
         "<div style='font-size:11px;color:var(--text-muted);overflow-wrap:anywhere;'>" + line + '</div>' +
         '</div>' +
@@ -34767,7 +35004,9 @@ var EWBUD = (function () {
       out.recent = rec.slice(0, 6).map(function (e) { return { desc: String(clean(e) || e.cat || ''), amount: +e.amount || 0, date: e.date || '', cat: e.cat || '' }; });
       // mese
       var allM = all.filter(function (e) { return e.pay !== 'bonifico' && e.cat !== 'rata'; });
-      out.month = { variable: r2(all.reduce(function (s, e) { return s + (+e.amount || 0); }, 0)), free: r2(allM.reduce(function (s, e) { return s + (+e.amount || 0); }, 0)) };
+      // le spese dei viaggi (Carta spese) scalano sempre dalla rimanenza: contano anche qui (senza quelle già importate dalla banca)
+      var via = 0; try { via = (typeof EWVIA !== 'undefined' && EWVIA.monthTotal) ? (+EWVIA.monthTotal(yr, mo) || 0) : 0; } catch (x) { via = 0; }
+      out.month = { variable: r2(all.reduce(function (s, e) { return s + (+e.amount || 0); }, 0) + via), free: r2(allM.reduce(function (s, e) { return s + (+e.amount || 0); }, 0) + via), via: r2(via) };
       // prossime scadenze (spese fisse con giorno di scadenza + spese fisse personalizzate)
       var items = [], pag = L('pagamenti_' + yr + '_' + mo, {}) || {}, due = L('dueDays', {}) || {}, fixed = L('fixedItems', []) || [], cust = L('customFixed', []) || [];
       var last = new Date(yr, mo, 0).getDate();
