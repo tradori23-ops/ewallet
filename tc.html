@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261108-v319-impostazioni';
+  var BUILD = '20261108-v320-giorno-ipad';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -33791,7 +33791,7 @@ body.light{
 :is(html,#_) body .pw-rb[data-k="pay"] .pw-rb-bar i{background:linear-gradient(90deg,var(--indigo),var(--t-purple))}
 :is(html,#_) body .pw-rb[data-k="year"] .pw-rb-bar i{background:linear-gradient(90deg,var(--green),var(--teal))}
 :is(html,#_) body .profile-bg-preset[data-on="1"]{border-color:var(--act)!important;box-shadow:0 0 0 3px var(--ac-soft)}
-@media screen and (min-width:900px) and (min-height:560px){:is(html,#_) body #profileModal{--pw-rail:300px;--pw-gap:16px;padding:28px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+@media screen and (min-width:700px) and (min-height:560px){:is(html,#_) body #profileModal{--pw-rail:300px;--pw-gap:16px;padding:28px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
 :is(html,#_) body #profileModal>div{display:grid!important;grid-template-columns:var(--pw-rail) minmax(0,1fr);width:min(1180px,100%)!important;max-width:none!important;
     height:min(800px,100%)!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;border-radius:28px!important}
 :is(html,#_) body .pw-rail{display:flex!important;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--sheet);border-right:1px solid var(--hair);
@@ -33863,6 +33863,8 @@ body.light{
 :is(html,#_) body #redditoPreview>div:nth-child(4){grid-column:2;grid-row:2}
 :is(html,#_) body #redditoPreview>div:nth-child(5){grid-column:2;grid-row:3;margin-top:20px!important;margin-bottom:8px!important}
 :is(html,#_) body #redditoPreview>div:nth-child(6){grid-column:2;grid-row:4}
+:is(html,#_) body .pw-contacts>div:nth-child(2){grid-template-columns:repeat(2,minmax(0,1fr))!important}
+:is(html,#_) body #redditoPreview>div:nth-child(2){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
 :is(html,#_) body .pw-reddito>.fld:has(#redditoPreview[style*="display: none"])::after,:is(html,#_) body .pw-reddito>.fld:has(#redditoPreview[style*="display:none"])::after{content:"Scrivi il reddito mensile netto per vedere la stima del budget (regola 50/30/20).";grid-column:2;grid-row:1/span 2;align-self:center;font-size:13px;line-height:1.5;color:var(--label2);padding:0 4px}
 :is(html,#_) body .pw-space>div{margin:0!important;padding:0!important;border:0!important;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
 :is(html,#_) body .pw-space>div>label{margin:0!important}
@@ -33913,11 +33915,11 @@ body.light{
 :is(html,#_) body .pw-bars{height:200px;gap:8px}
 :is(html,#_) body .pw-bar .pw-bv{display:block}
 :is(html,#_) body .pw-bar em{font-size:11px}}
-@media screen and (min-width:900px) and (min-height:560px) and (max-width:1099px){:is(html,#_) body #profileModal{--pw-rail:264px}
+@media screen and (min-width:700px) and (min-height:560px) and (max-width:1099px){:is(html,#_) body #profileModal{--pw-rail:264px}
 :is(html,#_) body .pw-main .pw-foot>button:last-child{min-width:160px}
 :is(html,#_) body .pw-kpi b{font-size:20px}
 :is(html,#_) body .pw-kpi{padding:16px 8px}}
-@media screen and (min-width:900px) and (min-height:560px) and (max-width:1023px){:is(html,#_) body #profileModal{--pw-rail:244px;padding:20px!important}
+@media screen and (min-width:700px) and (min-height:560px) and (max-width:1023px){:is(html,#_) body #profileModal{--pw-rail:244px;padding:20px!important}
 :is(html,#_) body .pw-tab:not([style*="display: none"]):not([style*="display:none"]){grid-template-columns:minmax(0,1fr)}
 :is(html,#_) body #profileTabContent-backup>.bk,:is(html,#_) body .pw-stats{grid-template-columns:minmax(0,1fr)}
 :is(html,#_) body .pw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -33937,13 +33939,33 @@ body.light{
 :is(html,#_) body #pwCsvCard{grid-template-columns:minmax(0,1fr)}
 :is(html,#_) body #pwCsvCard>*{grid-column:1!important;grid-row:auto!important}
 :is(html,#_) body #pwCsvCard>.pw-csvrow{margin-top:12px}}
-@media screen and (min-width:900px) and (min-height:560px) and (max-height:859px){:is(html,#_) body #profileStats{flex-direction:row!important;gap:6px!important;margin-top:10px!important}
+@media screen and (min-width:700px) and (max-width:899px) and (min-height:560px){:is(html,#_) body #profileModal{--pw-rail:232px;--pw-gap:14px;padding:14px!important}
+:is(html,#_) body #profileModal>div{width:100%!important;height:min(1100px,100%)!important;border-radius:26px!important}
+:is(html,#_) body .pw-id{padding-left:16px!important;padding-right:16px!important}
+:is(html,#_) body #profileModalAvatar{width:76px!important;height:76px!important}
+:is(html,#_) body #profileModalName{font-size:20px!important}
+:is(html,#_) body #profileTabsBar{margin-left:12px!important;margin-right:12px!important}
+:is(html,#_) body .pw-side-foot{padding-left:12px;padding-right:12px}
+:is(html,#_) body .pw-head{padding:22px 64px 12px 24px}
+:is(html,#_) body .pw-head h2{font-size:24px}
+:is(html,#_) body #profileModal .pw-main>div[style*="padding:20px 24px 24px"]{padding:6px 24px 0!important}
+:is(html,#_) body .pw-main .pw-foot{margin-left:-24px!important;margin-right:-24px!important;padding-left:24px;padding-right:24px}
+:is(html,#_) body .pw-main .pw-foot>button{min-width:130px}
+:is(html,#_) body .pw-main .pw-foot>button:last-child{min-width:150px}
+:is(html,#_) body .pw-card,:is(html,#_) body .pw-box,:is(html,#_) body .pw-main .bk-card:not(.bk-status),:is(html,#_) body .pw-main .bk-status{padding:16px 16px}
+:is(html,#_) body .pw-bars{gap:5px}
+:is(html,#_) body .pw-bar .pw-bv{font-size:9px}}
+@media screen and (min-width:700px) and (min-height:560px) and (max-height:859px){:is(html,#_) body #profileStats{flex-direction:row!important;gap:6px!important;margin-top:10px!important}
 :is(html,#_) body #profileStats>div{flex:1 1 0!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important;padding:6px 4px!important;text-align:center!important}
 :is(html,#_) body #profileStats>div>div:first-child{font-size:13px!important;max-width:100%}
 :is(html,#_) body #profileStats>div>div:last-child{font-size:10.5px!important}
 :is(html,#_) body #profileTabsBar{margin-top:6px!important}
 :is(html,#_) body .pw-side-foot{padding-top:12px;padding-bottom:12px;gap:8px}}
-@media screen and (min-width:900px) and (min-height:560px) and (max-height:715px){:is(html,#_) body #profileHero{height:76px!important}
+@media screen and (min-width:700px) and (max-width:899px) and (min-height:560px) and (max-height:859px){:is(html,#_) body .pw-id{padding-left:12px!important;padding-right:12px!important}
+:is(html,#_) body #profileStats{gap:4px!important}
+:is(html,#_) body #profileStats>div{padding:6px 2px!important}
+:is(html,#_) body #profileStats>div>div:first-child{font-size:12px!important}}
+@media screen and (min-width:700px) and (min-height:560px) and (max-height:715px){:is(html,#_) body #profileHero{height:76px!important}
 :is(html,#_) body #profileHero>div[style*="margin-bottom:-40px"]{margin-bottom:-32px!important}
 :is(html,#_) body .pw-id{padding-top:38px!important;padding-bottom:4px!important}
 :is(html,#_) body #profileModalAvatar{width:64px!important;height:64px!important}
@@ -33957,11 +33979,24 @@ body.light{
 :is(html,#_) body .pw-head{padding-left:34px}
 :is(html,#_) body #profileModal .pw-main>div[style*="padding:20px 24px 24px"]{padding:6px 34px 0!important}
 :is(html,#_) body .pw-main .pw-foot{margin-left:-34px!important;margin-right:-34px!important;padding-left:34px;padding-right:34px}}
-@media screen and (max-width:899px){:is(html,#_) body .pw-bar .pw-bv{display:none}}
+@media screen and (max-width:699px){:is(html,#_) body .pw-bar .pw-bv{display:none}}
 @media (max-width:420px){:is(html,#_) body .pw-kpi b{font-size:min(22px,4.9vw)}
 :is(html,#_) body .pw-rb-t span{white-space:normal;overflow:visible;text-overflow:clip}}
 @media (max-width:767px){:is(html,#_) body #profileTabContent-dati .pw-contacts>div:nth-child(2){grid-template-columns:1fr!important}}
 @media (prefers-reduced-motion:reduce){:is(html,#_) body .pw-head{transition:none}}
+:is(html,#_) body #weekDetailModal>div{overflow-y:auto!important;overscroll-behavior:contain;max-height:min(88vh,calc(100dvh - 24px))!important;padding-bottom:0!important}
+:is(html,#_) body #weekDetailModal>div>*{flex-shrink:0}
+:is(html,#_) body #weekDetailList{flex:1 1 auto;min-height:112px;flex-shrink:1!important;overscroll-behavior:contain}
+:is(html,#_) body #weekDetailAddPanel{flex:0 0 auto}
+:is(html,#_) body #weekDetailAddForm>div:last-child{position:sticky;bottom:0;z-index:5;margin:0 -22px -14px!important;padding:10px 22px 14px;background:var(--dark2);border-top:1px solid var(--border)}
+:is(html,#_) body #weekDetailAddForm>#wdMsg:empty{display:none}
+:is(html,#_) body #weekDetailAddForm>#wdMsg:not(:empty){position:sticky;bottom:68px;z-index:5;margin:0 -22px!important;padding:8px 22px 6px;background:var(--dark2)}
+@media (max-width:600px){:is(html,#_) body.ew-embed #weekDetailModal{padding:max(16px,var(--sat,16px)) 10px max(16px,env(safe-area-inset-bottom,0px))!important}
+:is(html,#_) body.ew-embed #weekDetailModal>div{max-height:calc(100dvh - max(16px,var(--sat,16px)) - max(16px,env(safe-area-inset-bottom,0px)))!important}
+:is(html,#_) body #weekDetailStats{grid-template-columns:repeat(4,minmax(0,1fr))!important}
+:is(html,#_) body #weekDetailStats>div{padding:10px 4px!important;min-width:0}
+:is(html,#_) body #weekDetailStats>div>div:first-child{font-size:16px!important;overflow-wrap:anywhere}
+:is(html,#_) body #weekDetailStats>div>div:last-child{letter-spacing:.3px!important;font-size:9.5px!important}}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -36624,10 +36659,10 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v320', d: '8 nov 2026', t: 'Spese dal telefono e iPad', x: 'Nel dettaglio del giorno il modulo «Aggiungi spesa» ha sempre Annulla e Salva raggiungibili sul telefono. Impostazioni a tutto schermo anche su iPad in verticale.' },
     { v: 'v319', d: '8 nov 2026', t: 'Impostazioni su schermo largo', x: 'Barra laterale con le schede, pannelli dai bordi tondi, stato dei dati sempre in vista, scorciatoie da tastiera (Esc, 1–6, Ctrl+S), statistiche con grafici, esportazione CSV delle spese e tema Notte/Giorno.' },
     { v: 'v318', d: '8 nov 2026', t: 'Controllo contabile', x: 'Import Revolut quadrato sui saldi, «Controllo dati», rimanenza senza doppi conteggi, rate e salvadanaio corretti, GoWork v55 con festivi e ore previste.' },
-    { v: 'v317', d: '7 nov 2026', t: 'Viaggi e rimanenza', x: 'Le spese dei viaggi scalano sempre dalla rimanenza, senza doppioni con la banca.' },
-    { v: 'v316', d: '7 nov 2026', t: 'Budget e schermi grandi', x: 'Budget settimanale con scalo automatico, rimanenza modificabile, Hub e GoBank a colonne su iPad e computer.' }
+    { v: 'v317', d: '7 nov 2026', t: 'Viaggi e rimanenza', x: 'Le spese dei viaggi scalano sempre dalla rimanenza, senza doppioni con la banca.' }
   ];
 
   var cur = 'info', timer = 0, bound = false;
@@ -36646,7 +36681,7 @@ var EWPW = (function () {
   function payName(p) { return PAY[p] || cap(p) || 'Altro'; }
   function payIcon(p) { return PAY_IC[p] || '💳'; }
   function visible() { var m = $('profileModal'); if (!m) return false; try { return getComputedStyle(m).display !== 'none'; } catch (e) { return m.style.display === 'flex'; } }
-  function wide() { try { return window.matchMedia('(min-width:900px) and (min-height:560px)').matches; } catch (e) { return false; } }
+  function wide() { try { return window.matchMedia('(min-width:700px) and (min-height:560px)').matches; } catch (e) { return false; } }
 
   /* ───────── spese registrate (stessa lettura del Totale in alto) ───────── */
   function eachMonth(fn) {
