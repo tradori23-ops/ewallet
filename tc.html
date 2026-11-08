@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261108-v318-contabilita';
+  var BUILD = '20261108-v319-impostazioni';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -29748,6 +29748,7 @@ function bkOnOpen() {
 <div id="profileModal" style="display:none;position:fixed;inset:0;z-index:9700;background:rgba(0,0,0,0.75);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);align-items:flex-start;justify-content:center;padding:20px;overflow-y:auto;">
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:24px;width:100%;max-width:520px;box-shadow:0 24px 80px rgba(0,0,0,0.5);position:relative;overflow:hidden;margin:auto;">
 
+    <div class="pw-rail">
     <!-- HERO SFONDO PERSONALIZZABILE -->
     <div id="profileHero" style="position:relative;height:160px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);display:flex;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:0;">
       <!-- Pulsante cambia sfondo -->
@@ -29763,7 +29764,7 @@ function bkOnOpen() {
     </div>
 
     <!-- NOME + EMAIL sotto avatar -->
-    <div style="text-align:center;padding:50px 24px 16px;">
+    <div class="pw-id" style="text-align:center;padding:50px 24px 16px;">
       <div style="font-size:20px;font-weight:800;letter-spacing:-0.3px;" id="profileModalName"></div>
       <div style="font-size:12px;color:var(--text-muted);margin-top:2px;" id="profileModalEmail"></div>
       <!-- Statistiche rapide -->
@@ -29780,12 +29781,23 @@ function bkOnOpen() {
       <button onclick="switchProfileTab('backup')" id="profileTab-backup" style="flex:1;padding:10px;font-size:13px;font-weight:700;background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);cursor:pointer;font-family:var(--font);">💾 Backup</button>
     </div>
 
+    <div class="pw-side-foot">
+      <button type="button" class="pw-status" id="pwStatus" data-st="wait" onclick="switchProfileTab('backup')" title="Apri Backup">
+        <span class="pw-st-ic" id="pwStIc" aria-hidden="true">⏳</span>
+        <span class="pw-st-tx"><b id="pwStHead">Controllo i dati…</b><small id="pwStSub"></small></span>
+        <span class="pw-st-go" aria-hidden="true">›</span>
+      </button>
+      <div class="pw-keys" aria-hidden="true"><span><kbd>Esc</kbd> chiude</span><span><kbd>1</kbd>–<kbd>6</kbd> schede</span><span><kbd id="pwModK">Ctrl</kbd>+<kbd>S</kbd> salva</span></div>
+    </div>
+    </div>
+    <div class="pw-main" id="pwMain">
+    <div class="pw-head"><h2 id="pwTitle">Profilo</h2><p id="pwSub">Lavoro, reddito e accesso</p></div>
     <div style="padding:20px 24px 24px;">
 
       <!-- TAB: PROFILO (lavoro + reddito) -->
-      <div id="profileTabContent-info">
+      <div id="profileTabContent-info" class="pw-tab">
         <!-- Cambia Password -->
-        <div class="fld" style="margin-bottom:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:14px;">
+        <section class="pw-card pw-acc"><div class="fld" style="margin-bottom:14px;background:rgba(201,168,76,0.06);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px;">🔑 Password di accesso</label>
           <div style="display:flex;gap:8px;">
             <input type="password" id="profileNewPass" placeholder="Nuova password (min 6 caratteri)" autocomplete="new-password"
@@ -29793,9 +29805,9 @@ function bkOnOpen() {
             <button type="button" onclick="changeLocalPassword()" class="btn btn-gold" style="padding:10px 16px;white-space:nowrap;">Cambia</button>
           </div>
           <div id="profilePassMsg" style="font-size:12px;margin-top:6px;min-height:16px;"></div>
-        </div>
+        </div></section>
         <!-- Professione -->
-        <div class="fld" style="margin-bottom:14px;">
+        <section class="pw-card pw-job"><div class="fld" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">💼 Professione</label>
           <select id="profileProfCategory" onchange="updateProfessionFields()"
             style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:11px 14px;color:var(--text);font-family:var(--font);font-size:14px;outline:none;margin-bottom:8px;">
@@ -29829,9 +29841,9 @@ function bkOnOpen() {
             <option value="part_time">Part-time</option>
             <option value="stage">Stage / Tirocinio</option>
           </select>
-        </div>
+        </div></section>
         <!-- Reddito -->
-        <div class="fld" style="margin-bottom:14px;">
+        <section class="pw-card pw-span2 pw-reddito"><div class="fld" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">💶 Reddito Mensile Netto</label>
           <div style="display:flex;align-items:center;gap:8px;">
             <span style="font-size:14px;color:var(--text-muted);">€</span>
@@ -29841,20 +29853,20 @@ function bkOnOpen() {
             <span style="font-size:12px;color:var(--text-muted);">/mese</span>
           </div>
           <div id="redditoPreview" style="display:none;background:var(--dark3);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:14px;margin-top:10px;"></div>
-        </div>
+        </div></section>
 
-        <div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(201,168,76,0.15);">
+        <section class="pw-card pw-span2 pw-space"><div style="margin-top:18px;padding-top:16px;border-top:1px solid rgba(201,168,76,0.15);">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:8px;">💾 Spazio Utilizzato</label>
           <div style="background:var(--dark3);border:1px solid rgba(201,168,76,0.2);border-radius:12px;padding:12px 14px;">
             <div id="profileStorageUsage" style="font-size:14px;font-weight:700;color:var(--text);">—</div>
             <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">Dati salvati su questo dispositivo</div>
           </div>
-        </div>
+        </div></section>
       </div>
 
       <!-- TAB: DATI PERSONALI -->
-      <div id="profileTabContent-dati" style="display:none;">
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+      <div id="profileTabContent-dati" class="pw-tab" style="display:none;">
+        <section class="pw-card pw-contacts"><div class="pw-ch">📇 Contatti</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
           <div class="fld" style="margin:0;">
             <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">📅 Data di nascita</label>
             <input type="date" id="profileDataNascita" style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box;" oninput="saveProfileData()">
@@ -29867,8 +29879,8 @@ function bkOnOpen() {
         <div class="fld" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">🏠 Città / Indirizzo</label>
           <input type="text" id="profileCitta" placeholder="Es: Milano, Via Roma 1..." style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box;" oninput="saveProfileData()">
-        </div>
-        <div class="fld" style="margin-bottom:14px;">
+        </div></section>
+        <section class="pw-card pw-goal"><div class="fld" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">🎯 Obiettivo finanziario</label>
           <select id="profileObiettivoFin" style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;margin-bottom:8px;" oninput="saveProfileData()">
             <option value="">— Seleziona obiettivo —</option>
@@ -29882,23 +29894,32 @@ function bkOnOpen() {
             <option value="debiti">📉 Estinguere debiti</option>
           </select>
           <input type="text" id="profileObiettivoCustom" placeholder="Descrivi il tuo obiettivo..." style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;box-sizing:border-box;" oninput="saveProfileData()">
-        </div>
-        <div class="fld" style="margin-bottom:14px;">
+        </div></section>
+        <section class="pw-card pw-span2 pw-bio"><div class="fld" style="margin-bottom:14px;">
           <label style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;display:block;margin-bottom:6px;">📝 Bio / Note personali</label>
           <textarea id="profileBio" placeholder="Qualcosa su di te..." rows="3" style="width:100%;background:var(--dark3);border:1.5px solid rgba(201,168,76,0.4);border-radius:12px;padding:10px 12px;color:var(--text);font-family:var(--font);font-size:13px;outline:none;resize:vertical;box-sizing:border-box;" oninput="saveProfileData()"></textarea>
-        </div>
+        </div></section>
       </div>
 
       <!-- TAB: STATISTICHE -->
-      <div id="profileTabContent-stats" style="display:none;">
+      <div id="profileTabContent-stats" class="pw-tab" style="display:none;">
         <div id="profileStatsDetail" style="display:flex;flex-direction:column;gap:10px;"></div>
       </div>
 
       <!-- TAB: SFONDO -->
-      <div id="profileTabContent-sfondo" style="display:none;">
-        <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Personalizza lo sfondo del tuo profilo</div>
+      <div id="profileTabContent-sfondo" class="pw-tab" style="display:none;">
+        <div class="pw-desc" style="font-size:12px;color:var(--text-muted);margin-bottom:14px;">Personalizza lo sfondo del tuo profilo</div>
+        <section class="pw-box pw-theme" id="pwThemeBox">
+          <div class="pw-ch">🌓 Tema dell'app</div>
+          <div class="pw-seg" role="radiogroup" aria-label="Tema dell'app">
+            <button type="button" role="radio" id="pwThDark" aria-checked="true" onclick="EWPW.setTheme('dark')"><span aria-hidden="true">🌙</span> Notte</button>
+            <button type="button" role="radio" id="pwThLight" aria-checked="false" onclick="EWPW.setTheme('light')"><span aria-hidden="true">☀️</span> Giorno</button>
+          </div>
+          <p class="pw-hint">Cambia l'aspetto di tutta l'app su questo dispositivo.</p>
+        </section>
+
         <!-- Gradienti predefiniti -->
-        <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🌈 Gradienti</div>
+        <section class="pw-card pw-grad"><div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🌈 Gradienti</div>
         <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;" id="profileBgPresets">
           <div onclick="setProfileBg('linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1a1a2e,#16213e,#0f3460);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Notte"></div>
           <div onclick="setProfileBg('linear-gradient(135deg,#0f2027,#203a43,#2c5364)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#0f2027,#203a43,#2c5364);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Oceano"></div>
@@ -29908,33 +29929,34 @@ function bkOnOpen() {
           <div onclick="setProfileBg('linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#833ab4,#fd1d1d,#fcb045);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Instagram"></div>
           <div onclick="setProfileBg('linear-gradient(135deg,#000428,#004e92)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#000428,#004e92);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Deep Blue"></div>
           <div onclick="setProfileBg('linear-gradient(135deg,#1f1c2c,#928dab)')" style="width:48px;height:32px;border-radius:8px;background:linear-gradient(135deg,#1f1c2c,#928dab);cursor:pointer;border:2px solid transparent;" class="profile-bg-preset" title="Lavanda"></div>
-        </div>
+        </div></section>
         <!-- Colore solido -->
-        <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🎨 Colore solido</div>
+        <section class="pw-card pw-solid"><div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🎨 Colore solido</div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
           <input type="color" id="profileBgColorPicker" value="#1a1a2e" style="width:44px;height:36px;border:none;border-radius:8px;cursor:pointer;background:none;" oninput="setProfileBg(this.value)">
           <span style="font-size:12px;color:var(--text-muted);">Scegli un colore personalizzato</span>
-        </div>
+        </div></section>
         <!-- Immagine -->
-        <div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🖼️ Immagine</div>
+        <section class="pw-card pw-img"><div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px;">🖼️ Immagine</div>
         <input type="file" id="profileBgImageInput" accept="image/*" style="display:none;" onchange="setProfileBgImage(event)">
         <button onclick="document.getElementById('profileBgImageInput').click()" style="padding:10px 16px;border-radius:12px;background:rgba(201,168,76,0.1);border:1.5px solid rgba(201,168,76,0.3);color:var(--gold);font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-bottom:8px;">📁 Carica immagine</button>
-        <button onclick="setProfileBg('linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)')" style="padding:8px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:12px;cursor:pointer;width:100%;">↩️ Ripristina predefinito</button>
+        <button onclick="setProfileBg('linear-gradient(135deg,#1a1a2e,#16213e,#0f3460)')" style="padding:8px 16px;border-radius:12px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);color:var(--text-muted);font-size:12px;cursor:pointer;width:100%;">↩️ Ripristina predefinito</button></section>
       </div>
 
       <!-- TAB: AGGIORNA DISPOSITIVO -->
-      <div id="profileTabContent-aggiorna" style="display:none;">
+      <div id="profileTabContent-aggiorna" class="pw-tab" style="display:none;">
         <!-- Aggiorna QUESTO dispositivo -->
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+        <section class="pw-card pw-dev"><div class="pw-ch">📲 Questo dispositivo</div><div style="display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(201,168,76,0.08);border:1px solid rgba(201,168,76,0.25);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
           <div style="min-width:0;">
             <div style="font-size:10.5px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:3px;">Versione installata qui</div>
             <div id="currentDeviceBuild" style="font-size:12.5px;font-weight:700;color:var(--gold);font-family:monospace;word-break:break-all;">—</div>
+            <div id="pwBuildHub" class="pw-sub2"></div>
           </div>
           <button onclick="aggiornaApp()" class="btn btn-gold" style="white-space:nowrap;padding:10px 16px;flex-shrink:0;">🔄 Aggiorna ora</button>
-        </div>
-        <div style="height:1px;background:var(--border);margin-bottom:20px;"></div>
+        </div></section>
+        <div class="pw-sep" style="height:1px;background:var(--border);margin-bottom:20px;"></div>
 
-        <div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">
+        <section class="pw-card pw-qr"><div class="pw-ch">📱 Aggiorna un altro dispositivo</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">
           Genera un QR da <strong>questo dispositivo</strong> e scansionalo con il dispositivo da aggiornare.<br>
           L'app sull'altro dispositivo si aggiornerà automaticamente alla versione più recente.
         </div>
@@ -29962,11 +29984,16 @@ function bkOnOpen() {
         <!-- Avviso -->
         <div style="margin-top:16px;padding:10px 14px;background:rgba(255,200,0,0.05);border:1px solid rgba(255,200,0,0.15);border-radius:10px;font-size:11px;color:var(--text-muted);line-height:1.5;">
           ⚠️ Il QR è valido per <strong>10 minuti</strong>. Dopo la scansione l'altro dispositivo si ricarica automaticamente.
-        </div>
+        </div></section>
+        <section class="pw-box pw-span2 pw-newsbox" id="pwNewsBox">
+          <div class="pw-ch">✨ Novità</div>
+          <ol class="pw-news" id="pwNews"></ol>
+        </section>
+
       </div>
 
       <!-- TAB: BACKUP -->
-      <div id="profileTabContent-backup" style="display:none;">
+      <div id="profileTabContent-backup" class="pw-tab" style="display:none;">
         <div class="bk" id="bkRoot">
 
           <!-- STATO -->
@@ -29988,18 +30015,33 @@ function bkOnOpen() {
             <h3>Controllo dati</h3>
             <p>Cerca nei dati registrati ciò che non torna: <b>saldi salvati al posto dei movimenti</b>, importi con più di due decimali, righe identiche ripetute. Non cambia nulla senza il tuo tocco e, prima di ogni correzione, salva una copia di sicurezza.</p>
             <button type="button" class="bk-ghost bk-full" id="chkBtnOpen" onclick="EWCHK.open()">🔍 Controlla ora</button>
+            <div class="bk-switch" id="pwChkSwitch">
+              <div><label for="pwChkAuto">Avviso all'avvio</label><small>Ti segnalo da solo se trovo qualcosa che non torna</small></div>
+              <span class="bk-sw"><input type="checkbox" id="pwChkAuto" checked onchange="EWPW.setChkAuto(this.checked)"><i></i></span>
+            </div>
           </div>
 
           <!-- SCARICA -->
-          <div class="bk-card">
+          <div class="bk-card pw-bk-dl">
             <h3>Scarica un backup</h3>
             <p>Un solo file con <b>GoBank, GoWork e impostazioni</b>. Salvalo in iCloud Drive o altrove, fuori dal telefono: se i dati del browser vengono cancellati, il file resta.</p>
             <button type="button" class="bk-act bk-full" id="bkBtnDownload" onclick="bkDownload()">⬇️ Scarica backup</button>
             <div class="bk-result" id="bkDlResult" hidden></div>
           </div>
 
+          <!-- ESPORTA CSV -->
+          <div class="bk-card pw-csv" id="pwCsvCard">
+            <h3>Esporta le spese</h3>
+            <p>Un file <b>CSV</b> con le spese registrate, da aprire in Excel, Numbers o Fogli Google.</p>
+            <div class="pw-csvrow">
+              <select id="pwCsvYear" class="pw-sel" aria-label="Anno da esportare"></select>
+              <button type="button" class="bk-act" id="pwCsvBtn" onclick="EWPW.exportCsv()">⬇️ Esporta CSV</button>
+            </div>
+            <div class="bk-result" id="pwCsvMsg" hidden></div>
+          </div>
+
           <!-- RIPRISTINA -->
-          <div class="bk-card">
+          <div class="bk-card pw-bk-rs">
             <h3>Ripristina da file</h3>
             <p>Scegli un backup scaricato in precedenza. Prima di sostituire i dati, l'app salva una copia di quelli attuali.</p>
             <input type="file" id="bkFileInput" style="display:none" onchange="bkFilePicked(this)">
@@ -30009,17 +30051,17 @@ function bkOnOpen() {
           </div>
 
           <!-- COPIE -->
-          <div class="bk-card">
+          <div class="bk-card pw-span2 pw-copies">
             <h3>Copie di sicurezza</h3>
             <p>Le crea l'app da sola: <b>ogni 12 ore nel cloud</b>, e <b>su questo dispositivo</b> prima di ogni cancellazione o ripristino. Quelle su questo dispositivo spariscono se cancelli i dati del sito: per quel caso c'è il backup su file.</p>
-            <div class="bk-group">Nel cloud</div>
-            <div id="bkListCloud"></div>
-            <div class="bk-group">Su questo dispositivo</div>
-            <div id="bkListLocal"></div>
+            <div class="pw-lists"><div class="pw-listcol"><div class="bk-group">Nel cloud</div>
+            <div id="bkListCloud"></div></div>
+            <div class="pw-listcol"><div class="bk-group">Su questo dispositivo</div>
+            <div id="bkListLocal"></div></div></div>
           </div>
 
           <!-- PROMEMORIA -->
-          <div class="bk-card">
+          <div class="bk-card pw-bk-rm">
             <div class="bk-switch">
               <div><label for="bkRemind">Promemoria backup su file</label><small>Ti avviso se passano più di 30 giorni</small></div>
               <span class="bk-sw"><input type="checkbox" id="bkRemind" checked onchange="bkSetRemind(this.checked)"><i></i></span>
@@ -30030,10 +30072,11 @@ function bkOnOpen() {
       </div>
 
       <!-- BOTTONI -->
-      <div style="display:flex;gap:10px;margin-top:20px;">
+      <div class="pw-foot" style="display:flex;gap:10px;margin-top:20px;">
         <button onclick="closeProfileModal()" class="btn btn-outline" style="flex:1;">Chiudi</button>
         <button onclick="saveProfileData(true)" class="btn btn-gold" style="flex:2;">💾 Salva Profilo</button>
       </div>
+    </div>
     </div>
   </div>
 </div>
@@ -33692,6 +33735,233 @@ body.light{
 :is(html,#_) body.ew-focus #sec-settimanale .week-grid{grid-template-columns:repeat(7,minmax(0,1fr))!important}
 :is(html,#_) body.ew-focus #sec-aggiungiSpesa>.card:has(#expAmount) .form-grid{grid-template-columns:minmax(0,1.15fr) minmax(0,.8fr) minmax(0,1.3fr) minmax(0,1.15fr) minmax(0,1fr) auto}}
 @media screen and (min-width:1760px) and (min-height:560px){:is(html,#_) body.ew-focus .main-content{max-width:1680px!important}}
+:is(html,#_) body{--pw-pane:var(--sheet);--pw-card:var(--sheet2);--pw-seg-on:#636366;--pw-seg-tx:#fff}
+:is(html,#_) body.light{--pw-pane:var(--sheet2);--pw-card:var(--sheet);--pw-seg-on:#ffffff;--pw-seg-tx:#000}
+:is(html,#_) body .pw-rail,:is(html,#_) body .pw-main,:is(html,#_) body .pw-card,:is(html,#_) body .pw-lists,:is(html,#_) body .pw-listcol{display:contents}
+:is(html,#_) body .pw-head,:is(html,#_) body .pw-side-foot,:is(html,#_) body .pw-card>.pw-ch{display:none}
+:is(html,#_) body .pw-box{background:var(--surface2,#1c1c1e);border:1px solid var(--border);border-radius:14px;padding:14px;margin:0 0 14px;min-width:0}
+:is(html,#_) body .pw-box>.pw-ch{display:block;margin:0 0 10px;font-size:11px;font-weight:800;letter-spacing:.9px;text-transform:uppercase;color:var(--gold)}
+:is(html,#_) body .pw-hint{margin:10px 0 0;font-size:12px;line-height:1.45;color:var(--text-muted)}
+:is(html,#_) body .pw-sub2{font-size:11.5px;color:var(--text-muted);margin-top:3px}
+:is(html,#_) body .pw-empty{font-size:12.5px;color:var(--text-muted);padding:6px 0}
+:is(html,#_) body .pw-seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;border-radius:13px;background:var(--fill)}
+:is(html,#_) body .pw-seg button{border:0;border-radius:10px;min-height:42px;padding:8px 12px;font:600 14px var(--font);color:var(--label2);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}
+:is(html,#_) body .pw-seg button[aria-checked="true"]{background:var(--pw-seg-on);color:var(--pw-seg-tx);box-shadow:0 1px 3px rgba(0,0,0,.25)}
+:is(html,#_) body .bk-sw i{pointer-events:none}
+:is(html,#_) body .pw-csvrow{display:flex;gap:8px;align-items:stretch}
+:is(html,#_) body .pw-sel{flex:1 1 auto;min-width:0;height:42px;border-radius:10px;border:1px solid var(--border);background:var(--dark3,#1c1c1e);color:var(--text);padding:0 12px;font:600 13px var(--font)}
+:is(html,#_) body .pw-csvrow .bk-act{flex:0 0 auto}
+:is(html,#_) body .pw-news{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:14px}
+:is(html,#_) body .pw-news li{display:grid;grid-template-columns:auto minmax(0,1fr);column-gap:12px;align-items:start}
+:is(html,#_) body .pw-news .v{font:700 12px var(--font-mono);padding:3px 9px;border-radius:999px;background:var(--ac-s2);color:var(--act);white-space:nowrap;margin-top:1px}
+:is(html,#_) body .pw-news b{display:block;font-size:14px;color:var(--text)}
+:is(html,#_) body .pw-news b small{font-weight:500;font-size:11.5px;color:var(--text-muted);margin-left:6px}
+:is(html,#_) body .pw-news p{margin:3px 0 0;font-size:12.5px;line-height:1.5;color:var(--text-muted)}
+:is(html,#_) body .pw-stats{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
+:is(html,#_) body .pw-stats>.pw-box{margin:0}
+:is(html,#_) body .pw-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+:is(html,#_) body .pw-kpi{border-radius:14px;padding:14px 10px;text-align:center;background:var(--sf2);min-width:0}
+:is(html,#_) body .pw-kpi b{display:block;font:800 22px/1.1 var(--font-num);letter-spacing:-.4px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+:is(html,#_) body .pw-kpi span{display:block;margin-top:5px;font-size:11px;color:var(--text-muted)}
+:is(html,#_) body .pw-kpi[data-c="gold"]{background:var(--ac-s1)}
+:is(html,#_) body .pw-kpi[data-c="gold"] b{color:var(--act)}
+:is(html,#_) body .pw-kpi[data-c="green"]{background:var(--tint-g)}
+:is(html,#_) body .pw-kpi[data-c="green"] b{color:var(--green)}
+:is(html,#_) body .pw-kpi[data-c="indigo"]{background:var(--tint-p)}
+:is(html,#_) body .pw-kpi[data-c="indigo"] b{color:var(--t-purple)}
+:is(html,#_) body .pw-bars{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:5px;height:176px}
+:is(html,#_) body .pw-bar{display:flex;flex-direction:column;align-items:center;min-width:0;height:100%}
+:is(html,#_) body .pw-bar .pw-bv{display:none;font-size:10px;color:var(--text-muted);margin-bottom:3px;white-space:nowrap}
+:is(html,#_) body .pw-bar .pw-bt{position:relative;flex:1 1 auto;width:100%;min-height:0}
+:is(html,#_) body .pw-bar .pw-bt i{position:absolute;left:50%;bottom:0;transform:translateX(-50%);width:72%;max-width:40px;min-height:3px;border-radius:8px 8px 4px 4px;background:linear-gradient(180deg,var(--ac2),var(--ac))}
+:is(html,#_) body .pw-bar.z .pw-bt i{background:var(--fill);height:3px!important}
+:is(html,#_) body .pw-bar.cur .pw-bt i{box-shadow:0 0 0 2px var(--ac-ring)}
+:is(html,#_) body .pw-bar em{font-style:normal;font-size:10px;color:var(--text-muted);margin-top:6px;white-space:nowrap}
+:is(html,#_) body .pw-bar.cur em{color:var(--act);font-weight:700}
+:is(html,#_) body .pw-note{margin:10px 0 0;font-size:11.5px;color:var(--text-muted)}
+:is(html,#_) body .pw-rb{padding:9px 0}
+:is(html,#_) body .pw-rb+.pw-rb{border-top:1px solid var(--hair)}
+:is(html,#_) body .pw-rb:first-of-type{padding-top:2px}
+:is(html,#_) body .pw-rb-t{display:flex;align-items:baseline;justify-content:space-between;gap:10px;font-size:13.5px;color:var(--text)}
+:is(html,#_) body .pw-rb-t span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(html,#_) body .pw-rb-t b{font-weight:700;white-space:nowrap}
+:is(html,#_) body .pw-rb-t em{font-style:normal;color:var(--text-muted);font-size:12px;margin-left:6px;font-weight:500}
+:is(html,#_) body .pw-rb-bar{height:6px;border-radius:999px;background:var(--fill3);margin-top:7px;overflow:hidden}
+:is(html,#_) body .pw-rb-bar i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--ac),var(--ac2))}
+:is(html,#_) body .pw-rb[data-k="pay"] .pw-rb-bar i{background:linear-gradient(90deg,var(--indigo),var(--t-purple))}
+:is(html,#_) body .pw-rb[data-k="year"] .pw-rb-bar i{background:linear-gradient(90deg,var(--green),var(--teal))}
+:is(html,#_) body .profile-bg-preset[data-on="1"]{border-color:var(--act)!important;box-shadow:0 0 0 3px var(--ac-soft)}
+@media screen and (min-width:900px) and (min-height:560px){:is(html,#_) body #profileModal{--pw-rail:300px;--pw-gap:16px;padding:28px!important;align-items:center!important;justify-content:center!important;overflow:hidden!important}
+:is(html,#_) body #profileModal>div{display:grid!important;grid-template-columns:var(--pw-rail) minmax(0,1fr);width:min(1180px,100%)!important;max-width:none!important;
+    height:min(800px,100%)!important;max-height:none!important;margin:0!important;padding:0!important;overflow:hidden!important;border-radius:28px!important}
+:is(html,#_) body .pw-rail{display:flex!important;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;overflow-x:hidden;background:var(--sheet);border-right:1px solid var(--hair);
+    overscroll-behavior:contain;scrollbar-width:thin;position:static}
+:is(html,#_) body #profileHero{flex:0 0 auto;height:112px!important;position:static!important}
+:is(html,#_) body #profileHero>button:first-of-type{display:none!important}
+:is(html,#_) body #profileHero>button:last-of-type{position:absolute!important;top:16px!important;right:16px!important;z-index:8!important;background:var(--fill)!important;color:var(--label)!important;
+    -webkit-backdrop-filter:none!important;backdrop-filter:none!important}
+:is(html,#_) body #profileHero>button:last-of-type:hover{background:var(--fill2)!important}
+:is(html,#_) body .pw-id{flex:0 0 auto;padding:46px 20px 10px!important}
+:is(html,#_) body #profileModalAvatar{width:84px!important;height:84px!important}
+:is(html,#_) body #profileModalName{font-size:21px!important;overflow-wrap:anywhere}
+:is(html,#_) body #profileModalEmail{overflow-wrap:anywhere}
+:is(html,#_) body #profileStats{display:flex!important;flex-direction:column;gap:6px!important;margin-top:14px!important;flex-wrap:nowrap!important;align-items:stretch;justify-content:flex-start!important}
+:is(html,#_) body #profileStats>div{display:flex!important;flex-direction:row-reverse;justify-content:space-between;align-items:baseline;gap:12px;min-width:0!important;padding:8px 12px!important;text-align:left!important;border-radius:12px!important}
+:is(html,#_) body #profileStats>div>div:first-child{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(html,#_) body #profileStats>div>div:last-child{flex:0 0 auto;margin-top:0!important;font-size:12px!important}
+:is(html,#_) body #profileTabsBar{display:flex!important;flex-direction:column;gap:3px!important;flex:0 0 auto;margin:8px 14px 0!important;padding:0!important;overflow:visible!important;border:0!important}
+:is(html,#_) body #profileModal #profileTabsBar [id^="profileTab-"]{width:100%!important;flex:0 0 auto!important;display:flex!important;align-items:center;justify-content:flex-start!important;gap:10px;text-align:left;
+    min-height:42px!important;padding:9px 12px!important;border-radius:12px!important;background:transparent!important;color:var(--label)!important;font:500 14.5px var(--font)!important;
+    border:0!important;box-shadow:none}
+:is(html,#_) body #profileModal #profileTabsBar [id^="profileTab-"]:hover{background:var(--fill3)!important}
+:is(html,#_) body #profileModal #profileTabsBar [id^="profileTab-"][style*="color: var(--gold)"],:is(html,#_) body #profileModal #profileTabsBar [id^="profileTab-"][style*="color:var(--gold)"]{background:var(--ac-s2)!important;color:var(--act)!important;font-weight:650!important;box-shadow:inset 0 0 0 1px var(--ac-b1)}
+:is(html,#_) body #profileModal #profileTabsBar [id^="profileTab-"]:focus-visible,:is(html,#_) body .pw-status:focus-visible,:is(html,#_) body .pw-seg button:focus-visible{outline:2px solid var(--ac-ring);outline-offset:2px}
+:is(html,#_) body .pw-side-foot{display:flex!important;flex-direction:column;gap:10px;margin-top:auto;padding:16px 14px 16px;flex:0 0 auto}
+:is(html,#_) body .pw-status{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border-radius:14px;border:1px solid var(--hair);background:var(--sf2);color:var(--label);text-align:left;cursor:pointer;font:inherit;min-width:0}
+:is(html,#_) body .pw-status:hover{filter:brightness(1.06)}
+:is(html,#_) body .pw-status[data-st="ok"]{background:var(--tint-g);border-color:var(--bd-g)}
+:is(html,#_) body .pw-status[data-st="warn"]{background:var(--tint-o);border-color:var(--bd-o)}
+:is(html,#_) body .pw-status[data-st="bad"]{background:var(--tint-r);border-color:var(--bd-r)}
+:is(html,#_) body .pw-st-ic{font-size:19px;line-height:1;flex:0 0 auto}
+:is(html,#_) body .pw-st-tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+:is(html,#_) body .pw-st-tx b{font-size:13.5px;font-weight:700;line-height:1.25;color:var(--label)}
+:is(html,#_) body .pw-st-tx small{font-size:11.5px;line-height:1.3;color:var(--label2)}
+:is(html,#_) body .pw-st-tx small.w{color:var(--warn);font-weight:600}
+:is(html,#_) body .pw-st-go{flex:0 0 auto;color:var(--label3);font-size:20px;line-height:1}
+:is(html,#_) body .pw-keys{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:11.5px;color:var(--label3);padding:0 4px}
+:is(html,#_) body .pw-keys kbd{font:600 10.5px var(--font-mono);padding:2px 6px;border-radius:6px;border:1px solid var(--hair2);background:var(--fill3);color:var(--label2)}
+:is(html,#_) body .pw-main{display:flex!important;flex-direction:column;min-width:0;min-height:0;overflow-y:auto;background:var(--pw-pane);overscroll-behavior:contain;scrollbar-width:thin;position:relative}
+:is(html,#_) body .pw-head{display:block!important;flex:0 0 auto;position:sticky;top:0;z-index:5;padding:26px 72px 14px 30px;background:var(--pw-pane);border-bottom:1px solid transparent;transition:border-color .15s}
+:is(html,#_) body .pw-main.pw-scrolled .pw-head{border-bottom-color:var(--hair)}
+:is(html,#_) body .pw-head h2{margin:0;font:700 26px/1.15 var(--font-disp);letter-spacing:-.5px;color:var(--label)}
+:is(html,#_) body .pw-head p{margin:5px 0 0;font-size:13.5px;line-height:1.35;color:var(--label2)}
+:is(html,#_) body #profileModal .pw-main>div[style*="padding:20px 24px 24px"]{padding:6px 30px 0!important;flex:1 0 auto;display:flex;flex-direction:column}
+:is(html,#_) body .pw-main .pw-foot{position:sticky;bottom:0;z-index:5;flex:0 0 auto;margin:auto -30px 0!important;padding:14px 30px 18px;background:var(--pw-pane);border-top:1px solid var(--hair);justify-content:flex-end}
+:is(html,#_) body .pw-main .pw-foot>button{flex:0 0 auto!important;min-width:150px;padding-left:22px;padding-right:22px}
+:is(html,#_) body .pw-main .pw-foot>button:last-child{min-width:190px}
+:is(html,#_) body .pw-tab:not([style*="display: none"]):not([style*="display:none"]){display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--pw-gap);align-items:stretch;align-content:start;flex:0 0 auto;margin:0 0 22px!important}
+:is(html,#_) body .pw-tab>*{min-width:0;margin:0!important}
+:is(html,#_) body .pw-span2{grid-column:1/-1}
+:is(html,#_) body .pw-card,:is(html,#_) body .pw-box{display:block!important;background:var(--pw-card);border:1px solid var(--hair);border-radius:20px;padding:18px 20px;box-shadow:0 1px 2px rgba(0,0,0,.05);margin:0}
+:is(html,#_) body .pw-card>.pw-ch,:is(html,#_) body .pw-box>.pw-ch{display:flex!important;align-items:center;gap:8px;margin:0 0 14px;font:700 11.5px/1.2 var(--font);letter-spacing:.9px;text-transform:uppercase;color:var(--act)}
+:is(html,#_) body .pw-card>.fld,:is(html,#_) body .pw-card>.fld:last-child{margin-bottom:0!important}
+:is(html,#_) body .pw-card>.fld+.fld{margin-top:14px!important}
+:is(html,#_) body .pw-card .fld input,:is(html,#_) body .pw-card .fld select,:is(html,#_) body .pw-card .fld textarea{max-width:100%}
+:is(html,#_) body .pw-main .bk-card:not(.bk-status){background:var(--pw-card);border-color:var(--hair);border-radius:20px;padding:18px 20px}
+:is(html,#_) body .pw-main .bk-status{border-radius:20px;padding:18px 20px}
+:is(html,#_) body #profileModal .pw-acc{background:var(--ac-s1);border-color:var(--ac-b1)}
+:is(html,#_) body #profileModal .pw-acc>.fld[style*="background:rgba(201,168,76"]{background:transparent!important;border:0!important;padding:0!important}
+:is(html,#_) body .pw-acc>.fld::after{content:"Minimo 6 caratteri. La password protegge l'accesso a questo profilo.";display:block;margin-top:10px;font-size:12px;line-height:1.45;color:var(--label2)}
+:is(html,#_) body .pw-reddito>.fld{display:grid!important;grid-template-columns:minmax(0,340px) minmax(0,1fr);column-gap:30px;row-gap:0;align-items:start;margin:0!important}
+:is(html,#_) body .pw-reddito>.fld>label{grid-column:1;grid-row:1}
+:is(html,#_) body .pw-reddito>.fld>div:first-of-type{grid-column:1;grid-row:2}
+:is(html,#_) body #redditoPreview:not([style*="display: none"]):not([style*="display:none"]){display:contents!important}
+:is(html,#_) body #redditoPreview>div{margin-bottom:0!important}
+:is(html,#_) body #redditoPreview>div:nth-child(1){grid-column:1;grid-row:3;margin-top:20px!important}
+:is(html,#_) body #redditoPreview>div:nth-child(2){grid-column:1;grid-row:4}
+:is(html,#_) body #redditoPreview>div:nth-child(3){grid-column:2;grid-row:1;margin-bottom:6px!important}
+:is(html,#_) body #redditoPreview>div:nth-child(4){grid-column:2;grid-row:2}
+:is(html,#_) body #redditoPreview>div:nth-child(5){grid-column:2;grid-row:3;margin-top:20px!important;margin-bottom:8px!important}
+:is(html,#_) body #redditoPreview>div:nth-child(6){grid-column:2;grid-row:4}
+:is(html,#_) body .pw-reddito>.fld:has(#redditoPreview[style*="display: none"])::after,:is(html,#_) body .pw-reddito>.fld:has(#redditoPreview[style*="display:none"])::after{content:"Scrivi il reddito mensile netto per vedere la stima del budget (regola 50/30/20).";grid-column:2;grid-row:1/span 2;align-self:center;font-size:13px;line-height:1.5;color:var(--label2);padding:0 4px}
+:is(html,#_) body .pw-space>div{margin:0!important;padding:0!important;border:0!important;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+:is(html,#_) body .pw-space>div>label{margin:0!important}
+:is(html,#_) body .pw-space>div>div{flex:1 1 280px;margin:0!important}
+:is(html,#_) body .pw-contacts>div:nth-child(2){margin-bottom:14px!important}
+:is(html,#_) body .pw-bio textarea{min-height:96px}
+:is(html,#_) body #profileTabContent-sfondo .pw-desc{display:none}
+:is(html,#_) body #profileTabContent-sfondo .pw-theme{grid-column:1;grid-row:1}
+:is(html,#_) body #profileTabContent-sfondo .pw-solid{grid-column:2;grid-row:1}
+:is(html,#_) body #profileTabContent-sfondo .pw-grad{grid-column:1/-1;grid-row:2}
+:is(html,#_) body #profileTabContent-sfondo .pw-img{grid-column:1/-1;grid-row:3;display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+:is(html,#_) body #profileTabContent-sfondo .pw-img>div:first-child{grid-column:1/-1;margin-bottom:4px!important}
+:is(html,#_) body #profileTabContent-sfondo .pw-img>button{margin:0!important;min-height:46px}
+:is(html,#_) body #profileBgPresets{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px!important;margin:0!important}
+:is(html,#_) body .profile-bg-preset{position:relative;width:auto!important;height:66px!important;border-radius:14px!important}
+:is(html,#_) body .profile-bg-preset::after{content:attr(title);position:absolute;left:10px;bottom:7px;font:600 11.5px var(--font);color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.6)}
+:is(html,#_) body .pw-solid>div:last-child{margin:0!important}
+:is(html,#_) body #profileTabContent-aggiorna:not([style*="display: none"]):not([style*="display:none"]){grid-template-rows:auto minmax(0,1fr)}
+:is(html,#_) body .pw-sep{display:none!important}
+:is(html,#_) body .pw-dev{grid-column:1;grid-row:1}
+:is(html,#_) body .pw-qr{grid-column:2;grid-row:1/span 2}
+:is(html,#_) body #profileTabContent-aggiorna #pwNewsBox{grid-column:1;grid-row:2}
+:is(html,#_) body .pw-dev>.pw-ch+div{background:transparent!important;border:0!important;padding:0!important;margin:0!important}
+:is(html,#_) body .pw-qr>.pw-ch+div{margin-bottom:16px!important}
+:is(html,#_) body .pw-qr>div[style*="text-align:center"]{margin-bottom:14px!important}
+:is(html,#_) body #profileTabContent-backup>.bk{grid-column:1/-1;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--pw-gap);grid-auto-flow:dense;align-items:stretch}
+:is(html,#_) body #profileTabContent-backup>.bk>.bk-card{margin:0}
+:is(html,#_) body #bkStatusCard{grid-column:1;grid-row:1/span 2}
+:is(html,#_) body #chkCard{grid-column:2;grid-row:1}
+:is(html,#_) body .pw-bk-rm{grid-column:2;grid-row:2}
+:is(html,#_) body .pw-bk-dl{grid-column:1;grid-row:3}
+:is(html,#_) body .pw-bk-rs{grid-column:2;grid-row:3}
+:is(html,#_) body #pwCsvCard{grid-column:1/-1;grid-row:4;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);column-gap:28px;align-items:center}
+:is(html,#_) body #pwCsvCard>h3{grid-column:1;grid-row:1;margin:0 0 4px}
+:is(html,#_) body #pwCsvCard>p{grid-column:1;grid-row:2;margin:0}
+:is(html,#_) body #pwCsvCard>.pw-csvrow{grid-column:2;grid-row:1/span 2}
+:is(html,#_) body #pwCsvCard>.bk-result{grid-column:1/-1;grid-row:3}
+:is(html,#_) body .pw-copies{grid-column:1/-1;grid-row:5}
+:is(html,#_) body .pw-lists{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px}
+:is(html,#_) body .pw-listcol{display:block!important;min-width:0}
+:is(html,#_) body #chkCard .bk-switch{margin-top:2px;padding-top:12px;border-top:1px solid var(--hair)}
+:is(html,#_) body #profileStatsDetail{display:block!important;grid-column:1/-1}
+:is(html,#_) body .pw-stats{grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--pw-gap)}
+:is(html,#_) body .pw-kpis{grid-column:1/-1;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+:is(html,#_) body .pw-kpi{padding:18px 12px;border-radius:18px}
+:is(html,#_) body .pw-kpi b{font-size:26px}
+:is(html,#_) body .pw-stats>.pw-box{border-radius:20px}
+:is(html,#_) body .pw-bars{height:200px;gap:8px}
+:is(html,#_) body .pw-bar .pw-bv{display:block}
+:is(html,#_) body .pw-bar em{font-size:11px}}
+@media screen and (min-width:900px) and (min-height:560px) and (max-width:1099px){:is(html,#_) body #profileModal{--pw-rail:264px}
+:is(html,#_) body .pw-main .pw-foot>button:last-child{min-width:160px}
+:is(html,#_) body .pw-kpi b{font-size:20px}
+:is(html,#_) body .pw-kpi{padding:16px 8px}}
+@media screen and (min-width:900px) and (min-height:560px) and (max-width:1023px){:is(html,#_) body #profileModal{--pw-rail:244px;padding:20px!important}
+:is(html,#_) body .pw-tab:not([style*="display: none"]):not([style*="display:none"]){grid-template-columns:minmax(0,1fr)}
+:is(html,#_) body #profileTabContent-backup>.bk,:is(html,#_) body .pw-stats{grid-template-columns:minmax(0,1fr)}
+:is(html,#_) body .pw-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+:is(html,#_) body .pw-kpi b{font-size:24px}
+:is(html,#_) body #profileTabContent-sfondo .pw-solid,:is(html,#_) body #profileTabContent-sfondo .pw-theme{grid-column:1/-1;grid-row:auto}
+:is(html,#_) body #profileTabContent-sfondo .pw-grad,:is(html,#_) body #profileTabContent-sfondo .pw-img{grid-row:auto}
+:is(html,#_) body .pw-reddito>.fld{grid-template-columns:minmax(0,1fr)}
+:is(html,#_) body .pw-reddito>.fld>label,:is(html,#_) body .pw-reddito>.fld>div:first-of-type{grid-column:1;grid-row:auto}
+:is(html,#_) body #redditoPreview>div:nth-child(n){grid-column:1;grid-row:auto}
+:is(html,#_) body #redditoPreview>div:nth-child(1){margin-top:18px!important}
+:is(html,#_) body #redditoPreview>div:nth-child(3){margin-top:16px!important}
+:is(html,#_) body #redditoPreview>div:nth-child(5){margin-top:16px!important}
+:is(html,#_) body .pw-reddito>.fld::after{display:none!important}
+:is(html,#_) body #profileTabContent-aggiorna:not([style*="display: none"]):not([style*="display:none"]){grid-template-rows:none}
+:is(html,#_) body .pw-dev,:is(html,#_) body .pw-qr,:is(html,#_) body #profileTabContent-aggiorna #pwNewsBox{grid-column:1;grid-row:auto}
+:is(html,#_) body #profileTabContent-backup>.bk>*{grid-column:1;grid-row:auto}
+:is(html,#_) body #pwCsvCard{grid-template-columns:minmax(0,1fr)}
+:is(html,#_) body #pwCsvCard>*{grid-column:1!important;grid-row:auto!important}
+:is(html,#_) body #pwCsvCard>.pw-csvrow{margin-top:12px}}
+@media screen and (min-width:900px) and (min-height:560px) and (max-height:859px){:is(html,#_) body #profileStats{flex-direction:row!important;gap:6px!important;margin-top:10px!important}
+:is(html,#_) body #profileStats>div{flex:1 1 0!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:0!important;padding:6px 4px!important;text-align:center!important}
+:is(html,#_) body #profileStats>div>div:first-child{font-size:13px!important;max-width:100%}
+:is(html,#_) body #profileStats>div>div:last-child{font-size:10.5px!important}
+:is(html,#_) body #profileTabsBar{margin-top:6px!important}
+:is(html,#_) body .pw-side-foot{padding-top:12px;padding-bottom:12px;gap:8px}}
+@media screen and (min-width:900px) and (min-height:560px) and (max-height:715px){:is(html,#_) body #profileHero{height:76px!important}
+:is(html,#_) body #profileHero>div[style*="margin-bottom:-40px"]{margin-bottom:-32px!important}
+:is(html,#_) body .pw-id{padding-top:38px!important;padding-bottom:4px!important}
+:is(html,#_) body #profileModalAvatar{width:64px!important;height:64px!important}
+:is(html,#_) body #profileModalName{font-size:18px!important}
+:is(html,#_) body #profileStats{display:none!important}
+:is(html,#_) body #profileTabsBar{gap:2px!important}
+:is(html,#_) body #profileModal #profileTabsBar [id^="profileTab-"]{min-height:38px!important;padding:6px 12px!important}
+:is(html,#_) body .pw-keys{display:none}}
+@media screen and (min-width:1600px) and (min-height:980px){:is(html,#_) body #profileModal>div{width:min(1320px,100%)!important;height:min(880px,100%)!important}
+:is(html,#_) body #profileModal{--pw-rail:320px}
+:is(html,#_) body .pw-head{padding-left:34px}
+:is(html,#_) body #profileModal .pw-main>div[style*="padding:20px 24px 24px"]{padding:6px 34px 0!important}
+:is(html,#_) body .pw-main .pw-foot{margin-left:-34px!important;margin-right:-34px!important;padding-left:34px;padding-right:34px}}
+@media screen and (max-width:899px){:is(html,#_) body .pw-bar .pw-bv{display:none}}
+@media (max-width:420px){:is(html,#_) body .pw-kpi b{font-size:min(22px,4.9vw)}
+:is(html,#_) body .pw-rb-t span{white-space:normal;overflow:visible;text-overflow:clip}}
+@media (max-width:767px){:is(html,#_) body #profileTabContent-dati .pw-contacts>div:nth-child(2){grid-template-columns:1fr!important}}
+@media (prefers-reduced-motion:reduce){:is(html,#_) body .pw-head{transition:none}}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -36321,6 +36591,342 @@ var EWCHK = (function () {
   setTimeout(startup, 5000);
 
   return { scan: scan, open: open, close: close, render: render, _state: function () { return { found: found, backedUp: backedUp, auto: auto }; } };
+})();
+
+</script>
+<script id="pw-js">
+/* ═══════════════════════════════════════════════════════════════
+   EWPW — v319 · Impostazioni (finestra del profilo): comportamento dei pezzi nuovi.
+   Il markup sta in tc_pw.py, lo stile in tc_pw.css. Qui:
+   · titolo della scheda e stato dei dati sempre in vista nella barra laterale (si aggiorna da solo mentre la finestra è aperta)
+   · scorciatoie: Esc chiude · 1–6 cambiano scheda · Ctrl/⌘+S salva · frecce su/giù tra le schede
+   · Statistiche: ultimi 12 mesi, categorie, anni, metodi di pagamento (stessi dati del Totale in alto)
+   · Sfondo: tema Notte/Giorno, scelta attuale evidenziata · Aggiorna: versione vera (prima restava «—») e novità
+   · Backup: esporta le spese in CSV, interruttore dell'avviso «Controllo dati» all'avvio
+   Non cambia nessun dato dell'app; legge solo ciò che c'è già nel dispositivo.
+   ═══════════════════════════════════════════════════════════════ */
+var EWPW = (function () {
+  'use strict';
+
+  var TABS = ['info', 'dati', 'stats', 'sfondo', 'aggiorna', 'backup'];
+  var HEAD = {
+    info: ['Profilo', 'Lavoro, reddito e accesso'],
+    dati: ['Dati personali', 'Contatti e obiettivo finanziario'],
+    stats: ['Statistiche', 'Quello che hai registrato finora'],
+    sfondo: ['Aspetto', 'Tema dell’app e sfondo del profilo'],
+    aggiorna: ['Aggiornamenti', 'Versione installata, altri dispositivi e novità'],
+    backup: ['Backup e dati', 'Cloud, copie di sicurezza ed esportazione']
+  };
+  var MESI = ['gen', 'feb', 'mar', 'apr', 'mag', 'giu', 'lug', 'ago', 'set', 'ott', 'nov', 'dic'];
+  var CAT = { ristorante: 'Ristorante', bar: 'Bar', viaggi: 'Viaggi', hotel: 'Hotel', svago: 'Svago', musei: 'Musei', extra: 'Extra', supermercato: 'Supermercato', rata: 'Rata', altro: 'Altro' };
+  var CAT_IC = { ristorante: '🍽️', bar: '☕', viaggi: '✈️', hotel: '🏨', svago: '🎭', musei: '🏛️', extra: '💡', supermercato: '🛒', rata: '📦' };
+  var PAY = { bancomat: 'Bancomat', contanti: 'Contanti', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket', bonifico: 'Bonifico', carta: 'Carta', sella: 'Banca Sella', klarna: 'Klarna', scalapay: 'Scalapay', altro: 'Altro' };
+  var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
+  var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
+  var NEWS = [
+    { v: 'v319', d: '8 nov 2026', t: 'Impostazioni su schermo largo', x: 'Barra laterale con le schede, pannelli dai bordi tondi, stato dei dati sempre in vista, scorciatoie da tastiera (Esc, 1–6, Ctrl+S), statistiche con grafici, esportazione CSV delle spese e tema Notte/Giorno.' },
+    { v: 'v318', d: '8 nov 2026', t: 'Controllo contabile', x: 'Import Revolut quadrato sui saldi, «Controllo dati», rimanenza senza doppi conteggi, rate e salvadanaio corretti, GoWork v55 con festivi e ore previste.' },
+    { v: 'v317', d: '7 nov 2026', t: 'Viaggi e rimanenza', x: 'Le spese dei viaggi scalano sempre dalla rimanenza, senza doppioni con la banca.' },
+    { v: 'v316', d: '7 nov 2026', t: 'Budget e schermi grandi', x: 'Budget settimanale con scalo automatico, rimanenza modificabile, Hub e GoBank a colonne su iPad e computer.' }
+  ];
+
+  var cur = 'info', timer = 0, bound = false;
+
+  function $(id) { return document.getElementById(id); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function setText(id, t) { var e = $(id); if (e) e.textContent = t; }
+  function user() { try { return (typeof currentUser !== 'undefined' && currentUser && currentUser.email) ? currentUser : null; } catch (e) { return null; } }
+  function eur(v) { v = +v || 0; return (v < 0 ? '-' : '') + '€' + Math.abs(v).toLocaleString('it-IT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+  function eurShort(v) { v = +v || 0; if (v >= 1000) return '€' + (v / 1000).toFixed(1).replace('.', ',') + 'k'; return '€' + Math.round(v); }
+  function cap(s) { s = String(s || ''); return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
+  function catName(c) { return CAT[c] || cap(c) || 'Altro'; }
+  function catIcon(c) { var i = CAT_IC[c]; try { if (!i && typeof CAT_ICONS !== 'undefined') i = CAT_ICONS[c]; } catch (e) { } return i || '🏷️'; }
+  function payName(p) { return PAY[p] || cap(p) || 'Altro'; }
+  function payIcon(p) { return PAY_IC[p] || '💳'; }
+  function visible() { var m = $('profileModal'); if (!m) return false; try { return getComputedStyle(m).display !== 'none'; } catch (e) { return m.style.display === 'flex'; } }
+  function wide() { try { return window.matchMedia('(min-width:900px) and (min-height:560px)').matches; } catch (e) { return false; } }
+
+  /* ───────── spese registrate (stessa lettura del Totale in alto) ───────── */
+  function eachMonth(fn) {
+    var u = user(); if (!u) return;
+    var pre = 'tc_' + u.email + '_expenses_';
+    for (var i = 0; i < localStorage.length; i++) {
+      var k = localStorage.key(i);
+      if (!k || k.indexOf(pre) !== 0) continue;
+      var m = /^(\d{4})_(\d{1,2})$/.exec(k.slice(pre.length));
+      if (!m) continue;
+      var arr; try { arr = JSON.parse(localStorage.getItem(k) || '[]'); } catch (e) { continue; }
+      if (Array.isArray(arr)) fn(+m[1], +m[2], arr);
+    }
+  }
+  function collect() {
+    var out = { n: 0, tot: 0, active: 0, months: {}, mcount: {}, years: {}, ycount: {}, cats: {}, pays: {} };
+    eachMonth(function (y, mo, arr) {
+      if (arr.length) out.active++;
+      var mk = y * 100 + mo;
+      arr.forEach(function (e) {
+        if (!e || typeof e !== 'object') return;
+        var a = +e.amount || 0, c = e.cat || 'altro', p = e.pay || 'altro';
+        out.n++; out.tot += a;
+        out.months[mk] = (out.months[mk] || 0) + a; out.mcount[mk] = (out.mcount[mk] || 0) + 1;
+        out.years[y] = (out.years[y] || 0) + a; out.ycount[y] = (out.ycount[y] || 0) + 1;
+        out.cats[c] = (out.cats[c] || 0) + a;
+        out.pays[p] = (out.pays[p] || 0) + 1;
+      });
+    });
+    return out;
+  }
+  function sortedDesc(o) { return Object.keys(o).map(function (k) { return [k, o[k]]; }).sort(function (a, b) { return b[1] - a[1]; }); }
+  function pct(v, t) { return t > 0 ? Math.round(v * 100 / t) : 0; }
+
+  function kpi(c, v, l) { return '<div class="pw-kpi"' + (c ? ' data-c="' + c + '"' : '') + '><b>' + esc(v) + '</b><span>' + esc(l) + '</span></div>'; }
+  function rb(kind, label, val, extra, p) {
+    return '<div class="pw-rb" data-k="' + kind + '"><div class="pw-rb-t"><span>' + label + '</span><b>' + esc(val) + (extra ? '<em>' + esc(extra) + '</em>' : '') + '</b></div><div class="pw-rb-bar"><i style="width:' + Math.max(2, Math.min(100, p)) + '%"></i></div></div>';
+  }
+
+  function renderStats() {
+    var el = $('profileStatsDetail'); if (!el || !user()) return;
+    var d = collect(), h = '<div class="pw-stats">';
+    h += '<div class="pw-kpis">' + kpi('gold', String(d.n), 'Spese totali registrate') + kpi('green', eur(d.tot), 'Importo totale') + kpi('indigo', String(d.active), 'Mesi con dati') + kpi('', d.n ? eur(d.tot / d.n) : '€0,00', 'Media per spesa') + '</div>';
+    if (!d.n) {
+      h += '<section class="pw-box pw-span2"><div class="pw-ch">📈 Ultimi 12 mesi</div><div class="pw-empty">Non hai ancora registrato spese: appena ne aggiungi, qui compaiono grafici e classifiche.</div></section></div>';
+      el.innerHTML = h; return;
+    }
+    // ultimi 12 mesi (fino al mese corrente)
+    var now = new Date(), y = now.getFullYear(), m = now.getMonth() + 1, cols = [], mx = 0, sum = 0, i;
+    for (i = 11; i >= 0; i--) {
+      var yy = y, mm = m - i; while (mm < 1) { mm += 12; yy--; }
+      var key = yy * 100 + mm, v = d.months[key] || 0;
+      cols.push({ y: yy, m: mm, v: v, n: d.mcount[key] || 0, cur: i === 0 }); sum += v; if (v > mx) mx = v;
+    }
+    h += '<section class="pw-box pw-span2"><div class="pw-ch">📈 Ultimi 12 mesi</div><div class="pw-bars" role="img" aria-label="Spese per mese negli ultimi 12 mesi">';
+    cols.forEach(function (c) {
+      var p = mx > 0 ? Math.max(4, Math.round(c.v * 100 / mx)) : 0, t = MESI[c.m - 1] + ' ' + c.y + ' · ' + eur(c.v) + ' · ' + c.n + (c.n === 1 ? ' spesa' : ' spese');
+      h += '<div class="pw-bar' + (c.v > 0 ? '' : ' z') + (c.cur ? ' cur' : '') + '" title="' + esc(t) + '"><span class="pw-bv">' + (c.v > 0 ? eurShort(c.v) : '') + '</span><div class="pw-bt"><i style="height:' + p + '%"></i></div><em>' + MESI[c.m - 1] + '</em></div>';
+    });
+    h += '</div><p class="pw-note">Totale degli ultimi 12 mesi: <b>' + esc(eur(sum)) + '</b> · in media ' + esc(eur(sum / 12)) + ' al mese.</p></section>';
+    // categorie
+    var cats = sortedDesc(d.cats);
+    h += '<section class="pw-box"><div class="pw-ch">🏆 Categorie</div>';
+    cats.forEach(function (c, idx) { h += rb('cat', catIcon(c[0]) + ' ' + esc(catName(c[0])), eur(c[1]), pct(c[1], d.tot) + '%', cats[0][1] > 0 ? c[1] * 100 / cats[0][1] : 0); });
+    h += '</section>';
+    // anni
+    var ys = Object.keys(d.years).map(Number).sort(function (a, b) { return b - a; }), ymax = 0;
+    ys.forEach(function (k) { if (d.years[k] > ymax) ymax = d.years[k]; });
+    h += '<section class="pw-box"><div class="pw-ch">🗓️ Per anno</div>';
+    ys.forEach(function (k) { h += rb('year', String(k), eur(d.years[k]), d.ycount[k] + (d.ycount[k] === 1 ? ' spesa' : ' spese'), ymax > 0 ? d.years[k] * 100 / ymax : 0); });
+    h += '</section>';
+    // metodi di pagamento
+    var pays = sortedDesc(d.pays);
+    h += '<section class="pw-box pw-span2"><div class="pw-ch">💳 Metodi di pagamento</div>';
+    pays.forEach(function (p) { h += rb('pay', payIcon(p[0]) + ' ' + esc(payName(p[0])), p[1] + (p[1] === 1 ? ' volta' : ' volte'), pct(p[1], d.n) + '%', pays[0][1] > 0 ? p[1] * 100 / pays[0][1] : 0); });
+    h += '</section></div>';
+    el.innerHTML = h;
+  }
+
+  /* ───────── stato dei dati nella barra laterale ───────── */
+  function syncChip() {
+    var b = $('pwStatus'), card = $('bkStatusCard'), hd = $('bkStHead');
+    if (!b || !card || !hd) return;
+    var head = (hd.textContent || '').trim(), cls = card.className || '';
+    var st = /bk-bad/.test(cls) ? 'bad' : /bk-warn/.test(cls) ? 'warn' : 'ok';
+    var ic = $('bkStIcon'), icon = (ic && ic.textContent) || '⏳';
+    if (!head || icon === '⏳') st = 'wait';
+    b.setAttribute('data-st', st);
+    setText('pwStIc', icon);
+    setText('pwStHead', head || 'Controllo i dati…');
+    var fl = $('bkRowFile'), sub = $('pwStSub');
+    if (sub) {
+      var ft = fl ? (fl.textContent || '').trim() : '';
+      sub.textContent = ft ? 'Backup su file: ' + ft : '';
+      sub.className = (fl && fl.querySelector('.bk-warnc')) ? 'w' : '';
+    }
+  }
+  function refresh() { try { if (typeof bkRenderStatus === 'function') bkRenderStatus(); } catch (e) { } syncChip(); }
+
+  /* ───────── schede ───────── */
+  function onTab(tab) {
+    cur = tab;
+    var h = HEAD[tab];
+    if (h) { setText('pwTitle', h[0]); setText('pwSub', h[1]); }
+    TABS.forEach(function (t) { var b = $('profileTab-' + t); if (b) { b.setAttribute('role', 'tab'); b.setAttribute('aria-selected', t === tab ? 'true' : 'false'); } });
+    var mn = $('pwMain'); if (mn) { mn.scrollTop = 0; mn.classList.remove('pw-scrolled'); }
+    if (tab === 'aggiorna') fillVersions();
+    if (tab === 'backup') { fillYears(); fillChk(); }
+    if (tab === 'sfondo') { markTheme(); markBg(); }
+  }
+  function onOpen() {
+    var k = $('pwModK'); if (k && /Mac|iPhone|iPad/i.test((navigator.platform || '') + ' ' + (navigator.userAgent || ''))) k.textContent = '⌘';
+    refresh(); fillYears(); fillChk(); markTheme(); markBg();
+    if (!timer) timer = setInterval(function () { if (visible()) refresh(); else onClose(); }, 5000);
+  }
+  function onClose() { if (timer) { clearInterval(timer); timer = 0; } }
+
+  /* ───────── tastiera ───────── */
+  function otherOpen() {
+    try {
+      var c = $('tcConfirmModal'); if (c && getComputedStyle(c).display !== 'none') return true;
+      if (document.querySelector('.ew-pop-scrim,.ew-fx-scrim,#ewChkPop')) return true;
+    } catch (e) { }
+    return false;
+  }
+  function onKey(e) {
+    if (!visible() || e.defaultPrevented) return;
+    var t = e.target, tag = t && t.tagName, typing = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || (t && t.isContentEditable);
+    if (e.key === 'Escape') { if (otherOpen()) return; e.preventDefault(); closeProfileModal(); return; }
+    if ((e.ctrlKey || e.metaKey) && !e.altKey && (e.key === 's' || e.key === 'S')) { e.preventDefault(); saveProfileData(true); return; }
+    if (typing || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (/^[1-6]$/.test(e.key)) { e.preventDefault(); switchProfileTab(TABS[+e.key - 1]); return; }
+    if (wide() && (e.key === 'ArrowDown' || e.key === 'ArrowUp') && t && t.id && t.id.indexOf('profileTab-') === 0) {
+      e.preventDefault();
+      var i = TABS.indexOf(cur), n = TABS[(i + (e.key === 'ArrowDown' ? 1 : TABS.length - 1)) % TABS.length];
+      switchProfileTab(n); var nb = $('profileTab-' + n); if (nb) nb.focus();
+    }
+  }
+
+  /* ───────── tema e sfondo ───────── */
+  function markTheme() {
+    var light = document.body.classList.contains('light');
+    var a = $('pwThDark'), b = $('pwThLight');
+    if (a) a.setAttribute('aria-checked', light ? 'false' : 'true');
+    if (b) b.setAttribute('aria-checked', light ? 'true' : 'false');
+  }
+  function setTheme(t) {
+    try { var wantLight = t === 'light'; if (typeof isDark !== 'undefined' && (isDark === wantLight)) toggleTheme(); } catch (e) { }
+    markTheme();
+  }
+  function markBg() {
+    var u = user(), c = u ? lsGet('tc_' + u.email + '_profile_bg') : null;
+    var list = document.querySelectorAll('#profileBgPresets .profile-bg-preset');
+    for (var i = 0; i < list.length; i++) {
+      var m = /setProfileBg\('([^']*)'\)/.exec(list[i].getAttribute('onclick') || '');
+      var on = !!(m && ((c && m[1] === c) || (!c && i === 0)));
+      if (on) list[i].setAttribute('data-on', '1'); else list[i].removeAttribute('data-on');
+    }
+  }
+
+  /* ───────── aggiornamenti ───────── */
+  function tcBuild() {
+    try {
+      var sc = document.scripts;
+      for (var i = 0; i < sc.length; i++) { var m = /var BUILD = '([^']+)'/.exec(sc[i].textContent || ''); if (m) return m[1]; }
+    } catch (e) { }
+    return '';
+  }
+  function hubBuild() {
+    try { if (typeof bkHub === 'function') { var h = bkHub('EW_BUILD'); return (h && h.EW_BUILD) || ''; } } catch (e) { }
+    try { return (window.top && window.top !== window && window.top.EW_BUILD) || ''; } catch (e) { return ''; }
+  }
+  function fillVersions() {
+    var b = tcBuild();
+    setText('currentDeviceBuild', b || '—'); setText('qrCurrentBuild', b);
+    var h = hubBuild(); setText('pwBuildHub', h ? 'Hub ' + h : '');
+  }
+  function fillNews() {
+    var ol = $('pwNews'); if (!ol) return;
+    ol.innerHTML = NEWS.map(function (n) { return '<li><span class="v">' + esc(n.v) + '</span><div><b>' + esc(n.t) + '<small>' + esc(n.d) + '</small></b><p>' + esc(n.x) + '</p></div></li>'; }).join('');
+  }
+
+  /* ───────── backup: avviso del Controllo dati ed esportazione CSV ───────── */
+  function fillChk() { var c = $('pwChkAuto'); if (c) c.checked = lsGet('ew_chk_off') !== '1'; }
+  function setChkAuto(on) { lsSet('ew_chk_off', on ? '0' : '1'); }
+
+  function fillYears() {
+    var sel = $('pwCsvYear'); if (!sel) return;
+    var ys = {}; eachMonth(function (y, mo, arr) { if (arr.length) ys[y] = 1; });
+    var list = Object.keys(ys).map(Number).sort(function (a, b) { return b - a; }), keep = sel.value;
+    sel.innerHTML = '<option value="all">Tutti gli anni</option>' + list.map(function (y) { return '<option value="' + y + '">' + y + '</option>'; }).join('');
+    if (keep && (keep === 'all' || ys[+keep])) sel.value = keep;
+  }
+  function csvCell(v) {
+    var s = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s) && !/^-?\d+([.,]\d+)?$/.test(s)) s = "'" + s;
+    if (/[;"\n\r]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+  function dmy(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso || '')); return m ? m[3] + '/' + m[2] + '/' + m[1] : String(iso || ''); }
+  function buildCsv(year) {
+    var rows = [];
+    eachMonth(function (y, mo, arr) {
+      if (year && year !== 'all' && +year !== y) return;
+      arr.forEach(function (e) { if (e && typeof e === 'object') rows.push({ e: e, k: String(e.date || (y + '-' + (mo < 10 ? '0' : '') + mo + '-01')), id: +e.id || 0 }); });
+    });
+    rows.sort(function (a, b) { return a.k < b.k ? -1 : a.k > b.k ? 1 : a.id - b.id; });
+    var CR = String.fromCharCode(13, 10), out = [['Data', 'Descrizione', 'Categoria', 'Importo (€)', 'Metodo', 'Origine', 'Azienda'].join(';')];
+    rows.forEach(function (r) {
+      var e = r.e;
+      out.push([dmy(e.date), e.desc || '', catName(e.cat || 'altro'), (+e.amount || 0).toFixed(2).replace('.', ','), payName(e.pay || 'altro'), SRC[e.source] || (e.source ? cap(e.source) : ''), typeof e.sub === 'string' ? e.sub : ''].map(csvCell).join(';'));
+    });
+    return { n: rows.length, text: String.fromCharCode(0xFEFF) + out.join(CR) + CR };
+  }
+  function anchorDownload(text, name) {
+    var blob = new Blob([text], { type: 'text/csv;charset=utf-8' }), url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; a.style.display = 'none'; document.body.appendChild(a); a.click();
+    setTimeout(function () { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) { } }, 1500);
+  }
+  function deliver(text, name) {
+    return new Promise(function (resolve, reject) {
+      var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1), shared = null;
+      try {
+        if (mobile && navigator.share && navigator.canShare && typeof File !== 'undefined') {
+          var cands = [new File([text], name, { type: 'text/csv' }), new File([text], name, { type: 'text/plain' }), new File([text], name + '.txt', { type: 'text/plain' })];
+          for (var i = 0; i < cands.length && !shared; i++) {
+            var ok = false; try { ok = navigator.canShare({ files: [cands[i]] }); } catch (e) { }
+            if (ok) shared = navigator.share({ files: [cands[i]], title: 'Spese E-Wallet' });
+          }
+        }
+      } catch (e) { shared = null; }
+      if (shared) {
+        shared.then(function () { resolve('shared'); }, function (err) {
+          if (err && err.name === 'AbortError') return resolve('cancelled');
+          try { anchorDownload(text, name); resolve('downloaded'); } catch (e2) { reject(e2); }
+        });
+        return;
+      }
+      try { anchorDownload(text, name); resolve('downloaded'); } catch (e) { reject(e); }
+    });
+  }
+  function exportCsv() {
+    var msg = $('pwCsvMsg'), sel = $('pwCsvYear'), btn = $('pwCsvBtn'), year = sel ? sel.value : 'all';
+    if (!user() || !msg) return;
+    var r = buildCsv(year);
+    msg.hidden = false;
+    if (!r.n) { msg.className = 'bk-result bk-note'; msg.textContent = 'Non ci sono spese da esportare' + (year === 'all' ? '.' : ' nel ' + year + '.'); return; }
+    var d = new Date(), pad = function (n) { return (n < 10 ? '0' : '') + n; };
+    var name = 'ewallet-spese-' + (year === 'all' ? 'tutte-' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) : year) + '.csv';
+    if (btn) btn.disabled = true;
+    deliver(r.text, name).then(function (how) {
+      if (btn) btn.disabled = false;
+      if (how === 'cancelled') { msg.className = 'bk-result bk-note'; msg.textContent = 'Esportazione annullata: il file non è stato salvato.'; return; }
+      msg.className = 'bk-result';
+      msg.innerHTML = '✅ ' + r.n + (r.n === 1 ? ' spesa esportata' : ' spese esportate') + '<br><code>' + esc(name) + '</code><small>' + (how === 'shared' ? 'Scegli «Salva su File» per tenerlo.' : 'Lo trovi tra i download del dispositivo.') + ' Si apre con Excel, Numbers o Fogli Google.</small>';
+    }, function () {
+      if (btn) btn.disabled = false;
+      msg.className = 'bk-result bk-err'; msg.textContent = 'Non sono riuscito a salvare il file su questo dispositivo. Riprova.';
+    });
+  }
+
+  /* ───────── aggancio alle funzioni esistenti ───────── */
+  function wrap(name, fn) {
+    var o = window[name]; if (typeof o !== 'function') return;
+    window[name] = function () { var r = o.apply(this, arguments); try { fn.apply(null, arguments); } catch (e) { } return r; };
+  }
+  function init() {
+    wrap('openProfileModal', onOpen); wrap('closeProfileModal', onClose); wrap('switchProfileTab', onTab); wrap('setProfileBg', markBg); wrap('bkRenderStatus', syncChip);
+    window.renderProfileStatsDetail = renderStats;
+    fillNews(); markTheme();
+    var bar = $('profileTabsBar'); if (bar) { bar.setAttribute('role', 'tablist'); bar.setAttribute('aria-label', 'Schede delle impostazioni'); }
+    try { new MutationObserver(markTheme).observe(document.body, { attributes: true, attributeFilter: ['class'] }); } catch (e) { }
+    if (!bound) {
+      bound = true; document.addEventListener('keydown', onKey);
+      var mn = $('pwMain'); if (mn) mn.addEventListener('scroll', function () { mn.classList.toggle('pw-scrolled', mn.scrollTop > 4); }, { passive: true });
+    }
+  }
+  init();
+
+  return { setTheme: setTheme, setChkAuto: setChkAuto, exportCsv: exportCsv, renderStats: renderStats, collect: collect, buildCsv: buildCsv, build: tcBuild, onTab: onTab, onOpen: onOpen, refresh: refresh, markBg: markBg };
 })();
 
 </script>
