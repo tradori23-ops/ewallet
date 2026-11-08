@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261107-v317-viaggi-rimanenza';
+  var BUILD = '20261108-v318-contabilita';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -6789,7 +6789,7 @@ setTimeout(_updateOfflineBanner, 500);
           <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px;align-items:end;margin-bottom:10px;">
             <div class="fld" style="margin:0;">
               <label>Data</label>
-              <input type="date" id="vacSpData">
+              <input type="date" id="vacSpData" onchange="_vacUpdateConvertPreview()">
             </div>
             <div class="fld" style="margin:0;">
               <label>Ora</label>
@@ -10630,6 +10630,373 @@ function getTotalFixedPaid() {
 //  se il profilo ha redditoNetto e non c'è ancora uno stipendio
 //  per questo mese, lo inserisce automaticamente
 // ══════════════════════════════════════════════════════════════
+// ══════════ v318 · funzioni di contabilità (stesso testo dei collaudi) ══════════
+/* ═══════════════════════════════════════════════════════════════
+   v318 · Contabilità — funzioni PURE (nessun accesso a DOM o storage).
+   Questo stesso testo viene inserito nello script principale di GoBank (diventano funzioni globali ew*)
+   e viene caricato dai collaudi in Node (node test/fix_unit.js). Non usare qui nulla che non sia JavaScript puro.
+   ═══════════════════════════════════════════════════════════════ */
+
+function ewR2(v) { return Math.round((+v || 0) * 100) / 100; }
+
+/* ───────── Importi scritti a mano o letti da un estratto ─────────
+   "1.272,96" · "1,272.96" · "1272,96" · "1272.96" · "€ 12,5" · "−3,40" → numero (NaN se non è un importo).
+   Due tipi di separatore insieme: l'ultimo è il decimale. Un solo tipo ripetuto ("1.234.567"): sono migliaia.
+   Un solo separatore: decimale ("12,50", "1.805" come fa il campo numerico del telefono);
+   per i casi come "1.805" usare ewMoneyAmbiguous() e chiedere. */
+function ewParseMoney(raw) {
+  if (typeof raw === 'number') return isFinite(raw) ? raw : NaN;
+  var s = String(raw == null ? '' : raw).replace(/[\s €$£]/g, '').replace(/[−–—]/g, '-');
+  if (!s || !/^[+-]?[\d.,]+$/.test(s) || !/\d/.test(s)) return NaN;
+  var sign = 1;
+  if (s.charAt(0) === '-') { sign = -1; s = s.slice(1); } else if (s.charAt(0) === '+') { s = s.slice(1); }
+  if (!/^\d/.test(s) && !/^[.,]\d/.test(s)) return NaN;
+  var lastDot = s.lastIndexOf('.'), lastCom = s.lastIndexOf(','), dec = Math.max(lastDot, lastCom);
+  if (dec < 0) return sign * parseFloat(s);
+  var both = lastDot >= 0 && lastCom >= 0;
+  var nSep = (s.match(/[.,]/g) || []).length;
+  if (!both && nSep > 1) return sign * parseFloat(s.replace(/[.,]/g, ''));      // "1.234.567"
+  var ip = s.slice(0, dec).replace(/[.,]/g, ''), fp = s.slice(dec + 1);
+  if (!/^\d*$/.test(fp) || !/^\d*$/.test(ip)) return NaN;
+  return sign * parseFloat((ip || '0') + '.' + (fp || '0'));
+}
+
+// «1.805» / «1,805»: un solo separatore seguito da esattamente tre cifre → potrebbe essere 1805 (migliaia) oppure 1,805
+function ewMoneyAmbiguous(raw) {
+  var s = String(raw == null ? '' : raw).replace(/[\s €]/g, '');
+  return /^\d{1,3}[.,]\d{3}$/.test(s) && !/^0/.test(s);
+}
+
+/* Controllo di un importo già letto (numero). Più di due decimali = quasi sempre un separatore delle migliaia sbagliato.
+   → { kind:'ok', amount }                                  (centesimi a posto)
+     { kind:'round', amount }                               (più di tre decimali: arrotondo ai centesimi)
+     { kind:'ask', rounded, thousand, typed }               (tre decimali: 1,805 → 1,81 oppure 1.805,00?) */
+function ewAmountCheck(v) {
+  var n = +v;
+  if (!isFinite(n)) return { kind: 'bad' };
+  var c = n * 100;
+  if (Math.abs(c - Math.round(c)) < 1e-6) return { kind: 'ok', amount: ewR2(n) };
+  var m = n * 1000;
+  if (Math.abs(m - Math.round(m)) < 1e-6 && n >= 1) return { kind: 'ask', typed: n, rounded: ewR2(n), thousand: Math.round(m) };
+  return { kind: 'round', amount: ewR2(n) };
+}
+
+/* ───────── Stipendio: una sola regola per tutta l'app ─────────
+   Se nel mese c'è almeno una riga di stipendio reale («ferrino», importata o scritta a mano) vale quella;
+   altrimenti vale la stima del profilo («stipendio_profile», inserita in automatico). Mai tutte e due insieme. */
+function ewIsSalaryRow(i) { return !!i && (i.type === 'ferrino' || i.type === 'stipendio_profile'); }
+function ewSalaryRows(rows) {
+  rows = rows || [];
+  var real = rows.filter(function (i) { return i && i.type === 'ferrino'; });
+  return real.length ? real : rows.filter(function (i) { return i && i.type === 'stipendio_profile'; });
+}
+function ewSalary(rows) { return ewR2(ewSalaryRows(rows).reduce(function (s, i) { return s + (+i.amount || 0); }, 0)); }
+function ewExtra(rows) { return ewR2((rows || []).filter(function (i) { return i && !ewIsSalaryRow(i); }).reduce(function (s, i) { return s + (+i.amount || 0); }, 0)); }
+function ewHasSalary(rows) { return (rows || []).some(ewIsSalaryRow); }
+// la riga di profilo che NON conta perché c'è lo stipendio reale
+function ewSalarySuperseded(row, rows) { return !!row && row.type === 'stipendio_profile' && (rows || []).some(function (i) { return i && i.type === 'ferrino'; }); }
+
+/* ───────── Rimanenza: correzione a mano e cambio di formula ─────────
+   La correzione salvata è uno scarto («delta») rispetto al calcolo. Quando il calcolo cambia (v318) lo scarto va ritoccato
+   perché il valore che vedevi tu resti lo stesso: delta' = delta + (calcolo vecchio − calcolo nuovo). */
+function ewAdjMigrate(adj, calcOld, calcNew, fv) {
+  if (!adj || typeof adj !== 'object' || adj.fv >= fv) return null;       // niente da fare (già migrata o assente)
+  var d = isFinite(+adj.delta) ? +adj.delta : 0;
+  var out = {}; for (var k in adj) out[k] = adj[k];
+  out.delta = ewR2(d + (+calcOld || 0) - (+calcNew || 0));
+  out.fv = fv;
+  return out;
+}
+
+// Il calcolo della rimanenza com'era fino alla v317 (serve solo a riportare la correzione a mano sullo stesso valore che vedevi).
+// p = { stipOld, prevStipOld, extra, tail, inizio, viaTail, fixedTotal, varAll, viaMonth }
+function ewRimLegacyCalc(p) {
+  var prevAll = ewR2((+p.tail || 0) + (+p.inizio || 0) + (+p.viaTail || 0));
+  var ent = (+p.stipOld === 0)
+    ? ewR2(ewR2((+p.prevStipOld || 0) - prevAll) + (+p.extra || 0))
+    : ewR2((+p.stipOld || 0) + (+p.extra || 0));
+  var liq = ewR2(ent - prevAll);
+  return ewR2(liq - ewR2((+p.fixedTotal || 0) + (+p.varAll || 0) + (+p.viaMonth || 0)));
+}
+
+/* ───────── Giorno dello stipendio e tratto di fine mese ─────────
+   Spese del mese precedente dal giorno dello stipendio in poi (una volta sola: i giorni 1–3 del mese corrente
+   fanno già parte delle spese del mese e non vanno contati un'altra volta). */
+function ewTailExpenses(prevMonthExpenses, arrivalDay) {
+  return (prevMonthExpenses || []).filter(function (e) {
+    var d = parseInt(String(e && e.date || '').slice(8, 10), 10);
+    return d >= arrivalDay;
+  });
+}
+// una spesa «fromFixed» è già nell'elenco delle spese fisse (che la rimanenza sottrae per intero): non va sommata di nuovo
+function ewIsFixedDup(e, fixedItems) {
+  if (!e || !e.fromFixed) return false;
+  var id = String(e.fromFixed);
+  return (fixedItems || []).some(function (f) { return f && String(f.id) === id; });
+}
+
+/* ───────── Settimane di un mese (lunedì → domenica) ───────── */
+function ewWeeksOfMonth(yr, mo0) {
+  var first = new Date(yr, mo0, 1, 12, 0, 0), d0 = first.getDay();
+  var start = new Date(first); start.setDate(first.getDate() - (d0 === 0 ? 6 : d0 - 1));
+  var last = new Date(yr, mo0 + 1, 0, 23, 59, 59);
+  var out = [], idx = 1;
+  while (start <= last && idx <= 6) {
+    var end = new Date(start); end.setDate(start.getDate() + 6);
+    out.push({ start: new Date(start), end: end, num: idx });
+    start.setDate(start.getDate() + 7); idx++;
+  }
+  return out;
+}
+
+/* ───────── Stima del conto corrente (una sola formula per Dashboard e Conto corrente) ─────────
+   Parte dall'ULTIMO saldo certo (quello confermato a mano o il saldo iniziale, vale il più recente) e somma i
+   movimenti successivi: entrate reali, uscite (senza giri tra i tuoi conti, contanti e ticket), movimenti del libretto.
+   p = { init:{amount,date}|null, manual:{amount,date}|null, income:[…], expenses:[…], libretto:[…], today:'YYYY-MM-DD' } */
+var EW_CC_TRASF = [
+  /satispay\s*europe/i, /revolut\*+\d+\*/i, /revolut.*dublin/i, /giro\s*al[l]?\s/i, /giroconto/i,
+  /libretto\s*di\s*risparmio/i, /accredita\s*eur/i, /savings?\s*vault/i, /spare\s*change/i,
+  /to\s*eur\s*personal/i, /from\s*eur\s*personal/i, /top[\s-]*up/i, /instant\s*top/i,
+  /ricarica.*revolut/i, /ricarica.*satispay/i, /risparmio/i, /tradori/i
+];
+function ewIsoDay(s) {
+  s = String(s || '');
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s);
+  return m ? (m[3] + '-' + (m[2].length < 2 ? '0' : '') + m[2] + '-' + (m[1].length < 2 ? '0' : '') + m[1]) : '';
+}
+function ewIsInternalTransfer(m) {
+  var d = String(m && m.desc || '');
+  if (EW_CC_TRASF.some(function (r) { return r.test(d); })) return true;
+  return !!(m && m.pay === 'bonifico' && /revolut|satispay/i.test(d));
+}
+// movimenti «normalizzati» (stessa forma di ccGetAllMovimenti): { date:'YYYY-MM-DD', amount, tipo:'entrata'|'uscita'|'bonifico', cat, pay, source, desc }
+function ewCCNormalize(p) {
+  var out = [];
+  (p.income || []).forEach(function (i) {
+    if (i) out.push({ date: ewIsoDay(i.date), amount: +i.amount || 0, tipo: 'entrata', cat: i.type || 'entrata', desc: i.causale || '', pay: '', source: 'income' });
+  });
+  (p.expenses || []).forEach(function (e) {
+    if (e) out.push({ date: ewIsoDay(e.date), amount: +e.amount || 0, tipo: (e.pay === 'bonifico' || e.cat === 'rata') ? 'bonifico' : 'uscita',
+      cat: e.cat || '', desc: e.desc || '', pay: e.pay || '', source: e.source || 'manual' });
+  });
+  (p.libretto || []).forEach(function (l) {
+    if (l) out.push({ date: ewIsoDay(l.date), amount: +l.amount || 0, tipo: l.direction === 'deposito' ? 'uscita' : 'entrata', cat: 'libretto', desc: l.desc || 'Libretto', pay: '', source: 'libretto' });
+  });
+  return out;
+}
+// Calcola la stima e segna ogni movimento: m.eff = effetto sul conto (+entrata, −uscita, 0 = non conta), m.pre = già dentro il saldo certo
+function ewCCEstimateList(list, p) {
+  p = p || {};
+  var init = p.init && isFinite(+p.init.amount) && ewIsoDay(p.init.date) ? { amount: +p.init.amount, date: ewIsoDay(p.init.date), kind: 'iniziale', strict: false } : null;
+  var man = p.manual && isFinite(+p.manual.amount) && ewIsoDay(p.manual.date) ? { amount: +p.manual.amount, date: ewIsoDay(p.manual.date), kind: 'manuale', strict: true } : null;
+  var anchor = (man && init) ? (man.date >= init.date ? man : init) : (man || init);
+  list = list || [];
+  if (!anchor) { list.forEach(function (m) { m.eff = 0; m.pre = false; }); return { anchor: null, estimate: null, entrate: 0, uscite: 0, trasf: 0, nMov: 0, libDep: 0, libPre: 0, nTrasf: 0, stimeEscluse: 0, stimeEscluseTot: 0 }; }
+  var today = ewIsoDay(p.today) || '9999-12-31';
+  var entrate = 0, uscite = 0, trasf = 0, nMov = 0, nTrasf = 0, libDep = 0, libPre = 0, nSkip = 0, skipTot = 0;
+  var realMonths = {};
+  list.forEach(function (m) { if (m && m.tipo === 'entrata' && m.cat === 'ferrino') { var d = ewIsoDay(m.date); if (d) realMonths[d.slice(0, 7)] = 1; } });
+  var prevYm = function (ym) { var y = +ym.slice(0, 4), mm = +ym.slice(5, 7); mm--; if (mm < 1) { mm = 12; y--; } return y + '-' + (mm < 10 ? '0' : '') + mm; };
+  list.forEach(function (m) {
+    m.eff = 0; m.pre = false;
+    if (!m) return;
+    var ds = ewIsoDay(m.date), a = +m.amount || 0;
+    if (!ds) return;
+    if (anchor.strict ? ds <= anchor.date : ds < anchor.date) { m.pre = true; return; }
+    if (ds > today || !(a > 0)) return;
+    if (m.tipo === 'entrata') {
+      if (m.cat === 'stipendio_profile') {                                        // la stima del profilo non si somma allo stipendio reale
+        var ym = ds.slice(0, 7);
+        if (realMonths[ym] || realMonths[prevYm(ym)]) { nSkip++; skipTot += a; return; }
+      }
+      m.eff = a; nMov++;
+      if (m.cat === 'libretto') libPre += a; else entrate += a;
+      return;
+    }
+    if (m.cat === 'libretto') { m.eff = -a; nMov++; libDep += a; return; }
+    if (m.pay === 'contanti' || m.pay === 'tickets' || m.source === 'tickets') return;       // non passano dalla banca
+    if (ewIsInternalTransfer(m)) { trasf += a; nTrasf++; return; }
+    m.eff = -a; uscite += a; nMov++;
+  });
+  var est = anchor.amount + entrate - uscite - libDep + libPre;
+  return {
+    anchor: { kind: anchor.kind, amount: anchor.amount, date: anchor.date },
+    estimate: ewR2(est), entrate: ewR2(entrate), uscite: ewR2(uscite), trasf: ewR2(trasf), nTrasf: nTrasf,
+    libDep: ewR2(libDep), libPre: ewR2(libPre), nMov: nMov, stimeEscluse: nSkip, stimeEscluseTot: ewR2(skipTot)
+  };
+}
+function ewCCEstimate(p) { p = p || {}; return ewCCEstimateList(ewCCNormalize(p), p); }
+
+/* ───────── Rate (finanziamenti) ───────── */
+// «Rata 6/12», «rata n. 6 di 12» → { n:6, tot:12 }
+function ewRateNumFromDesc(desc) {
+  var m = /\brata\b[^0-9]{0,12}(\d{1,3})\s*(?:\/|di|su)\s*(\d{1,3})/i.exec(String(desc || ''));
+  if (m) { var n = +m[1], t = +m[2]; if (n >= 1 && t >= n && t <= 480) return { n: n, tot: t }; }
+  return null;
+}
+// numero di rate pagate in base alle date registrate (una per mese)
+function ewRatePaidFromDates(paidDates) {
+  var seen = {};
+  (paidDates || []).forEach(function (d) { var k = ewIsoDay(d).slice(0, 7); if (k) seen[k] = 1; });
+  return Object.keys(seen).length;
+}
+
+/* Abbinare un pagamento a un piano di rate, applicarlo, annullarlo, controllare i numeri.
+   `plans` = [{ yr, plan }] (tutte le liste d'anno insieme). Niente più «la prima rata non completata» a caso:
+   se non si capisce di quale rata si tratta, non si tocca nulla e si avvisa. */
+var EW_RATE_GENERIC = /^(prestito|prestiti|rata|rate|finanziamento|pagamento|bonifico|mensile|banca|addebito|sepa|sdd|diretto|domiciliazione|rateizzato|rateizzata)$/;
+function ewRateWords(s) {
+  return String(s || '').toLowerCase().split(/[^a-z0-9àèéìòù]+/).filter(function (w) { return w.length >= 4 && !EW_RATE_GENERIC.test(w); });
+}
+// nome del piano ↔ testo (descrizione della spesa o nome letto dall'estratto): uguale, uno dentro l'altro, o una parola distintiva in comune
+function ewRateNameLike(planName, text) {
+  var a = String(planName || '').toLowerCase().trim(), b = String(text || '').toLowerCase().trim();
+  if (!a || !b) return false;
+  if (a === b || b.indexOf(a) >= 0 || (b.length >= 4 && a.indexOf(b) >= 0)) return true;
+  var wa = ewRateWords(a), wb = ewRateWords(b);
+  return wa.some(function (w) { return wb.indexOf(w) >= 0; });
+}
+// l'importo è quello della rata mensile (con un po' di margine per l'ultima rata o gli arrotondamenti)
+function ewRateAmountOk(plan, amount) {
+  var m = +plan.mensile || 0, a = +amount || 0;
+  return Math.abs(m - a) <= Math.max(0.05, 0.02 * m);
+}
+function ewRateDone(p) { return +p.totale > 0 && +p.pagato >= +p.totale; }
+function ewRateMatch(plans, q) {
+  q = q || {};
+  var amount = +q.amount, desc = String(q.desc || ''), yr = +q.yr || 0;
+  var all = (plans || []).filter(function (x) { return x && x.plan; });
+  var none = { hit: null, how: '', ambiguous: false };
+  if (q.ref) {
+    var r = all.filter(function (x) { return String(x.plan.id) === String(q.ref.id) && (!q.ref.yr || +x.yr === +q.ref.yr); })[0];
+    return r ? { hit: r, how: 'rif', ambiguous: false } : none;
+  }
+  var pool = all.filter(function (x) { return q.includeDone || !ewRateDone(x.plan); });
+  function pick(c) {
+    if (c.length === 1) return c[0];
+    if (yr) {
+      var best = Math.min.apply(null, c.map(function (x) { return Math.abs(x.yr - yr); }));
+      c = c.filter(function (x) { return Math.abs(x.yr - yr) === best; });
+      if (c.length === 1) return c[0];
+    }
+    var ex = c.filter(function (x) { return Math.abs(+x.plan.mensile - amount) < 0.02; });
+    return ex.length === 1 ? ex[0] : null;
+  }
+  var byName = pool.filter(function (x) { return ewRateNameLike(x.plan.name, desc); });
+  if (byName.length) { var h = pick(byName); return h ? { hit: h, how: 'nome', ambiguous: false } : { hit: null, how: '', ambiguous: true }; }
+  var byAmt = pool.filter(function (x) { return Math.abs(+x.plan.mensile - amount) < 0.02; });
+  if (byAmt.length === 1) return { hit: byAmt[0], how: 'importo', ambiguous: false };
+  return { hit: null, how: '', ambiguous: byAmt.length > 1 };
+}
+// un pagamento in più: pagato (mai oltre il totale), rate pagate (mai oltre le rate previste), data ricordata.
+// «Rata 6/12» nella descrizione: la rata è la sesta; in un piano stimato dall'estratto si corregge anche il numero di rate.
+function ewRateApply(plan, pay) {
+  var p = {}, k; for (k in plan) p[k] = plan[k];
+  var amt = ewRound2(pay.amount), d = ewIsoDay(pay.date), nd = ewRateNumFromDesc(pay.desc);
+  if (p._autoCreated && nd && nd.tot !== +p.num) { p.num = nd.tot; p.totale = ewRound2((+p.mensile || amt) * nd.tot); }
+  p.pagato = Math.min(+p.totale || Infinity, ewRound2((+p.pagato || 0) + amt));
+  var next = (+p.ratePagate || 0) + 1;
+  if (nd) next = Math.max(next, nd.n);
+  p.ratePagate = (+p.num > 0) ? Math.min(+p.num, next) : next;
+  var dates = (p._paidDates || []).slice();
+  if (d && dates.indexOf(d) < 0) dates.push(d);
+  if (dates.length) p._paidDates = dates;
+  return p;
+}
+// il pagamento non c'è più (spesa cancellata o corretta): si toglie dal pagato e dalle rate pagate
+function ewRateRevert(plan, pay) {
+  var p = {}, k; for (k in plan) p[k] = plan[k];
+  var amt = ewRound2(pay.amount), d = ewIsoDay(pay.date);
+  p.pagato = Math.max(0, ewRound2((+p.pagato || 0) - amt));
+  p.ratePagate = Math.max(0, (+p.ratePagate || 0) - 1);
+  if (d && p._paidDates) { var i = p._paidDates.indexOf(d); if (i >= 0) p._paidDates = p._paidDates.filter(function (x, j) { return j !== i; }); }
+  return p;
+}
+// numeri che non tornano: pagato diverso da (rate pagate × rata mensile), rate pagate più delle rate previste
+function ewRateCheck(r) {
+  var tot = +r.totale || 0, paid = +r.pagato || 0, men = +r.mensile || 0, rp = +r.ratePagate || 0, num = +r.num || 0, bad = [];
+  if (tot > 0 && paid >= tot) return { ok: true, items: bad };
+  var exp = ewRound2(rp * men);
+  if (Math.abs(paid - exp) > Math.max(1, 0.01 * tot)) bad.push({ kind: 'pagato', paid: ewRound2(paid), expected: exp, rate: rp, mensile: men });
+  if (num > 0 && rp > num) bad.push({ kind: 'conteggio', rate: rp, num: num });
+  return { ok: !bad.length, items: bad };
+}
+/* Pagamenti letti da un estratto → piani di rate.
+   `lists` = { anno: [piani] } (copie, vengono modificate). Ogni pagamento va nel piano con lo stesso nome, la stessa rata mensile e non ancora finito
+   (cercato in TUTTI gli anni, il più vicino); se non c'è si crea un piano nell'anno del pagamento. Un pagamento già contato (stessa data) non si ripete. */
+function ewRateSync(lists, payments, idGen, opts) {
+  opts = opts || {};
+  var minY = opts.minYear || 2023, maxY = opts.maxYear || (new Date().getFullYear() + 1);
+  var res = { applied: 0, created: 0, skipped: 0, touched: {} };
+  var pays = (payments || []).filter(function (p) { return p && +p.amount > 0 && ewIsoDay(p.date); })
+    .sort(function (a, b) { var x = ewIsoDay(a.date), y = ewIsoDay(b.date); return x < y ? -1 : x > y ? 1 : 0; });
+  pays.forEach(function (pay) {
+    var d = ewIsoDay(pay.date), amt = ewRound2(pay.amount), yr = +d.slice(0, 4), flat = [];
+    Object.keys(lists).forEach(function (y) { (lists[y] || []).forEach(function (p, i) { flat.push({ yr: +y, i: i, plan: p }); }); });
+    var like = function (x) { return ewRateNameLike(x.plan.name, pay.name) && ewRateAmountOk(x.plan, amt); };
+    if (flat.some(function (x) { return like(x) && (x.plan._paidDates || []).indexOf(d) >= 0; })) { res.skipped++; return; }
+    var cands = flat.filter(function (x) { return like(x) && !ewRateDone(x.plan); });
+    var hit = null;
+    if (cands.length) {
+      var best = Math.min.apply(null, cands.map(function (x) { return Math.abs(x.yr - yr); }));
+      cands = cands.filter(function (x) { return Math.abs(x.yr - yr) === best; });
+      hit = cands.filter(function (x) { return Math.abs(+x.plan.mensile - amt) < 0.02; })[0] || cands[0];
+    }
+    if (hit) {
+      lists[hit.yr][hit.i] = ewRateApply(hit.plan, { amount: amt, date: d, desc: pay.desc });
+      res.touched[hit.yr] = 1; res.applied++;
+    } else {
+      var ty = Math.max(minY, Math.min(yr, maxY)), nd = ewRateNumFromDesc(pay.desc), num = nd ? nd.tot : 12;
+      var plan = { id: idGen(), name: pay.name, totale: ewRound2(amt * num), mensile: amt, num: num, pagato: 0, ratePagate: 0, anno: ty, _autoCreated: true, _paidDates: [] };
+      plan = ewRateApply(plan, { amount: amt, date: d, desc: pay.desc });
+      (lists[ty] = lists[ty] || []).push(plan);
+      res.touched[ty] = 1; res.created++; res.applied++;
+    }
+  });
+  return res;
+}
+
+/* ───────── Salvadanaio ───────── */
+// data del k-esimo versamento (k=0: il primo giorno `day` uguale o successivo all'inizio). Il 31 in un mese corto cade nell'ultimo giorno del mese
+// (prima «31 febbraio» diventava il 3 marzo e il calendario saltava un mese). Il piano ha esattamente `numRate` versamenti: k = 0 … numRate−1.
+function ewSalvPayDate(startIso, day, k) {
+  var s = ewIsoDay(startIso); if (!s) return '';
+  var y = +s.slice(0, 4), m = +s.slice(5, 7) - 1, sd = +s.slice(8, 10), dd = Math.max(1, Math.min(31, +day || 1));
+  function dim(yy, mm) { return new Date(yy, mm + 1, 0).getDate(); }
+  if (Math.min(dd, dim(y, m)) < sd) m += 1;
+  m += (+k || 0);
+  var base = new Date(y, m, 1), by = base.getFullYear(), bm = base.getMonth(), d2 = Math.min(dd, dim(by, bm));
+  return by + '-' + (bm + 1 < 10 ? '0' : '') + (bm + 1) + '-' + (d2 < 10 ? '0' : '') + d2;
+}
+// una riga dell'estratto è il versamento di questo salvadanaio? Rata uguale (±1%) e: nome simile, oppure rata riconosciuta (`_rata`) entro 5 giorni dal giorno di versamento
+function ewSalvTxnMatches(salv, txn) {
+  var numRate = +salv.numRate || 12, rataMs = (+salv.target || 0) / numRate, amt = +txn.amount || 0;
+  if (!(rataMs > 0) || !(amt > 0)) return false;
+  if (Math.abs(amt - rataMs) > Math.max(0.02, rataMs * 0.01)) return false;
+  if (ewRateNameLike(salv.name, txn.desc || txn.name || '')) return true;
+  var d = ewIsoDay(txn.date), dayOk = true;
+  if (d) { var diff = Math.abs(+d.slice(8, 10) - (+salv.day || 1)); dayOk = Math.min(diff, 31 - diff) <= 5; }
+  return !!txn._rata && dayOk;
+}
+// calcolo mesi/rate tra due date: conta mesi interi, senza «+1» fantasma quando il giorno di scadenza cade prima
+function ewMonthsBetween(startIso, endIso) {
+  var a = ewIsoDay(startIso), b = ewIsoDay(endIso);
+  if (!a || !b) return 0;
+  var ay = +a.slice(0, 4), am = +a.slice(5, 7), by = +b.slice(0, 4), bm = +b.slice(5, 7);
+  return (by - ay) * 12 + (bm - am);
+}
+
+/* ───────── Cambio valuta ───────── */
+function ewRound2(v) { return Math.round((+v || 0) * 100) / 100; }
+// URL del cambio del giorno (Frankfurter): da `cur` a EUR. Per le date future o troppo vecchie si usa «latest».
+function ewFxUrl(dateIso, cur) {
+  var d = ewIsoDay(dateIso), c = String(cur || '').toUpperCase().replace(/[^A-Z]/g, '');
+  if (!c || c === 'EUR') return '';
+  return 'https://api.frankfurter.dev/v1/' + (d || 'latest') + '?base=' + c + '&symbols=EUR';
+}
+
 function autoInsertStipendioFromProfile() {
   const p = getProfileData();
   if(!p || !p.redditoNetto || p.redditoNetto <= 0) return;
@@ -10689,7 +11056,9 @@ function addIncome() {
   const _incDate = document.getElementById('incDate')?.value;
   if(isFutureYear(_incDate)) { showFutureBlock(_incDate?.substring(0,4)); return; }
   const type = document.getElementById('incomeType').value;
-  const amount = parseFloat(document.getElementById('incomeAmount').value);
+  let amount = parseFloat(document.getElementById('incomeAmount').value);
+  { const _g = (window.EWFIX && EWFIX.guardAmount) ? EWFIX.guardAmount('incomeAmount', document.getElementById('incomeAmount').value, function(){ addIncome(); }) : amount;   // v318: 1,805 → «intendevi 1.805,00?»
+    if(_g === 'wait') return; amount = _g; }
   const causale = document.getElementById('incomeCausale').value.trim()||'—';
   const dateVal = document.getElementById('incomeDate').value;
   if(!amount||amount<=0) { showToast('⚠️ Importo non valido.'); return; }
@@ -10721,7 +11090,7 @@ function renderIncome() {
   let total = 0;
 
   // ── Stipendio mese precedente (se non c'è uno Ferrino nel mese corrente) ──
-  const hasFerrino = inc.some(i => i.type === 'ferrino');
+  const hasFerrino = ewHasSalary(inc);   // v318: vale anche la stima del profilo (prima si sommava allo stipendio del mese prima)
   let prevStipRows = [];
   if(!hasFerrino) {
     const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
@@ -10752,9 +11121,10 @@ function renderIncome() {
     tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><div class="icon">💰</div>Nessuna entrata questo mese</div></td></tr>`;
   } else {
     inc.forEach(i => {
-      total += i.amount;
+      const _sup = ewSalarySuperseded(i, inc);   // stima del profilo ormai sostituita dallo stipendio reale: si vede, ma non si somma
+      if(!_sup) total += i.amount;
       const _isAuto = i.type === 'stipendio_profile';
-      const _rowBg  = _isAuto ? 'background:rgba(232,180,74,0.07);' : '';
+      const _rowBg  = _isAuto ? ('background:rgba(232,180,74,0.07);' + (_sup ? 'opacity:0.55;' : '')) : '';
       const _badge  = _isAuto
         ? `<span class="badge badge-cat" style="border-color:var(--gold);color:var(--gold);">💶 Stipendio ⚡</span>`
         : `<span class="badge badge-cat">${incomeLabel(i.type)}</span>`;
@@ -10764,7 +11134,7 @@ function renderIncome() {
         : `<button class="btn-del" onclick="delIncome(${i.id})">🗑</button>`;
       tbody.innerHTML += `<tr style="${_rowBg}">
         <td>${_badge}</td>
-        <td>${i.causale}${_isAuto?'<br><span style="font-size:9px;color:var(--text-muted);">Dal profilo — si rinnova ogni mese</span>':''}</td>
+        <td>${i.causale}${_isAuto?(_sup?'<br><span style="font-size:9px;color:var(--text-muted);">Stima del profilo — non conteggiata: c\'è lo stipendio reale del mese</span>':'<br><span style="font-size:9px;color:var(--text-muted);">Dal profilo — si rinnova ogni mese</span>'):''}</td>
         <td class="positive">€${i.amount.toFixed(2).replace('.',',')}</td>
         <td>${_dateStr}</td>
         <td>${_delBtn}</td>
@@ -10837,8 +11207,9 @@ function updateRimanenza() {
   const allExp    = getExpenses();
 
   // ── ENTRATE ──
-  const stipendio = Math.round(allIncome.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
-  const extra     = Math.round(allIncome.filter(i=>i.type!=='ferrino'&&i.type!=='stipendio_profile'&&i.type!=='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
+  const stipendio = ewSalary(allIncome);   // v318: una sola regola (stipendio reale del mese, altrimenti la stima del profilo)
+  const _stipOld  = Math.round(allIncome.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
+  const extra     = ewExtra(allIncome);
   let totEntrate  = Math.round((stipendio + extra)*100)/100;
 
   // ── SPESE FINE MESE PRECEDENTE (dalla data stipendio) ──
@@ -10847,19 +11218,23 @@ function updateRimanenza() {
   const totSpesePrev = Math.round((spesePrevArr.reduce((s,e)=>s+e.amount,0) + _via.tail)*100)/100;
 
   // ── Se non c'è stipendio questo mese, usa quello del mese precedente come saldo di partenza ──
-  let riportoMesePrecedente = 0;
+  let riportoMesePrecedente = 0, _prevStipOld = 0;
   if (stipendio === 0) {
     const prevIncome = load(`income_${_py}_${_pm}`, []);
-    const prevStip = Math.round(prevIncome.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
-    // Solo stipendio Ferrino, non le entrate extra del mese precedente
-    riportoMesePrecedente = Math.round((prevStip - totSpesePrev)*100)/100;
+    const prevStip = ewSalary(prevIncome);
+    _prevStipOld = Math.round(prevIncome.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
+    // v318: lo stipendio del mese prima è il punto di partenza; le spese di fine mese si sottraggono UNA volta sola (nella liquidità, più sotto)
+    riportoMesePrecedente = prevStip;
     totEntrate = Math.round((riportoMesePrecedente + extra)*100)/100;
   }
 
   // ── SPESE MESE CORRENTE (solo reali importate, NO fisse in anticipo) ──
   const fixedTotal  = Math.round(getTotalFixedForYear(yr)*100)/100; // solo per display
-  const speseBonif  = allExp.filter(e=>e.pay==='bonifico'||e.cat==='rata');
-  const speseLibere = allExp.filter(e=>e.pay!=='bonifico'&&e.cat!=='rata');
+  // v318: le spese «fromFixed» (importate dalla banca e abbinate a una spesa fissa) sono già nel totale delle fisse: non si sommano di nuovo
+  const _fixedList  = (typeof getFixedItemsForYear === 'function') ? getFixedItemsForYear(yr) : getFIXED();
+  const allExpVar   = allExp.filter(e=>!ewIsFixedDup(e, _fixedList));
+  const speseBonif  = allExpVar.filter(e=>e.pay==='bonifico'||e.cat==='rata');
+  const speseLibere = allExpVar.filter(e=>e.pay!=='bonifico'&&e.cat!=='rata');
   const totBonif    = Math.round(speseBonif.reduce((s,e)=>s+e.amount,0)*100)/100;
   const totLibere   = Math.round(speseLibere.reduce((s,e)=>s+e.amount,0)*100)/100;
   const totTutteSpese = Math.round((fixedTotal + totBonif + totLibere + _via.month)*100)/100;
@@ -10869,6 +11244,11 @@ function updateRimanenza() {
 
   // ── RIMANENZA REALE = Liquidità − fisse − spese reali mese corrente ──
   const rimanenzaCalc = Math.round((liquidita - totTutteSpese)*100)/100;
+  // v318: la correzione a mano salvata con la formula di prima viene riportata sulla nuova, così il valore che vedi non si sposta
+  try { if(window.EWFIX && EWFIX.migrateAdj) EWFIX.migrateAdj(yr, mo, ewRimLegacyCalc({
+    stipOld:_stipOld, prevStipOld:_prevStipOld, extra:extra,
+    tail: spesePrevArr.reduce((s,e)=>s+e.amount,0), inizio: (getSpeseMesePrecedente(yr, mo).inizio||[]).reduce((s,e)=>s+e.amount,0), viaTail: _via.tail,
+    fixedTotal: fixedTotal, varAll: allExp.reduce((s,e)=>s+e.amount,0), viaMonth: _via.month }), rimanenzaCalc); }catch(_e){}
   const rimanenza = (window.EWBUD && EWBUD.adjust) ? EWBUD.adjust(rimanenzaCalc, yr, mo) : rimanenzaCalc;
 
   const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.',',');
@@ -10996,10 +11376,7 @@ function updateRimanenza() {
   // ── Nuovi elementi dashboard mensile ──
   const mesiN2 = ['','Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
   // Stipendio e extra separati
-  if(el('dash-stipendio')) el('dash-stipendio').textContent = fmt(stipendio > 0 ? stipendio : (() => {
-    const pi = load('income_'+_py+'_'+_pm, []);
-    return Math.round(pi.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
-  })());
+  if(el('dash-stipendio')) el('dash-stipendio').textContent = fmt(stipendio > 0 ? stipendio : ewSalary(load('income_'+_py+'_'+_pm, [])));
   if(el('dash-extra')) { el('dash-extra').textContent = fmt(extra); if(el('dash-extra-row')) el('dash-extra-row').style.display = extra > 0 ? 'flex' : 'none'; }
   // Riporto mese precedente
   if(el('dash-riporto')) {
@@ -11022,9 +11399,8 @@ function updateRimanenza() {
     if(stipendio === 0 && riportoMesePrecedente !== undefined && riportoMesePrecedente !== 0) {
       const { spese: spPrev, prevMo: dpm, prevYr: dpy } = getSpeseMesePrecedente(yr, mo);
       const prevInc = load('income_'+dpy+'_'+dpm, []);
-      const prevStip = Math.round(prevInc.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
-      const prevExtra = Math.round(prevInc.filter(i=>i.type!=='ferrino'&&i.type!=='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
-      const prevTot = Math.round((prevStip+prevExtra)*100)/100;
+      const prevStip = ewSalary(prevInc);
+      const prevTot = prevStip;   // v318: la liquidità parte dallo stipendio del mese prima (non dalle sue entrate extra)
       const spesePrevTot = Math.round((spPrev.reduce((s,e)=>s+e.amount,0) + _via.tail)*100)/100;
       sumDetail.style.display = 'block';
       sumDetail.innerHTML = 'Stip. '+mesiN[dpm]+' '+fmt(prevTot)+' − spese fine mese '+fmt(spesePrevTot);
@@ -11264,7 +11640,9 @@ function calcWeekOffsetForDate(targetDate) {
 
 function addExpense() {
   const cat = document.getElementById('expCat').value;
-  const amount = parseFloat(document.getElementById('expAmount').value);
+  let amount = parseFloat(document.getElementById('expAmount').value);
+  { const _g = (window.EWFIX && EWFIX.guardAmount) ? EWFIX.guardAmount('expAmount', document.getElementById('expAmount').value, function(){ addExpense(); }) : amount;   // v318
+    if(_g === 'wait') return; amount = _g; }
   const desc = (document.getElementById('expDesc').value.trim()||'—').replace(/<[^>]*>/g,'').substring(0,200);
   const pay = document.getElementById('expPay').value;
   const date = document.getElementById('expDate').value;
@@ -11277,18 +11655,24 @@ function addExpense() {
   }
   const exp = getExpenses();
   const _sbSub = (window.EWSUB && EWSUB.value('expCat')) || '';
-  exp.push({ id: Date.now(), cat, amount, desc, pay, date,
+  const _newExp = { id: Date.now(), cat, amount, desc, pay, date,
     source: pay==='satispay'?'satispay':pay==='tickets'?'tickets':pay==='bancomat'||pay==='bonifico'?'sella':'manuale',
     createdAt: new Date().toISOString(),
     ...(_sbSub ? { sub: _sbSub } : {})
-  });
+  };
+  exp.push(_newExp);
   saveExpenses(exp);
   bumpVersion();
   document.getElementById('expAmount').value='';
   document.getElementById('expDesc').value='';
   try { if(window.EWSUB) EWSUB.reset('expCat'); } catch(_) {}
   // Se la categoria è rata, aggiorna il progresso del finanziamento
-  if(cat === 'rata') updateRataProgress(amount, desc);
+  if(cat === 'rata') {   // v318: la spesa si collega alla rata giusta (di qualunque anno); se non si capisce quale, non si tocca nulla
+    let _ref = null;
+    try { _ref = (window.EWFIX && EWFIX.rateLink) ? EWFIX.rateLink(_newExp) : null; } catch(_) {}
+    _newExp.rataRef = _ref;   // oggetto = collegata; null = non collegata (non è una spesa vecchia: se la correggi si riprova)
+    saveExpenses(exp);
+  }
   // Aggiorna periodo al mese della data inserita
   const targetDate = new Date(date+'T12:00:00');
   document.getElementById('globalMonth').value = targetDate.getMonth()+1;
@@ -11394,6 +11778,7 @@ function _doDelExpense(id) {
       const arr = load(k, []);
       const found = arr.some(e => String(e.id) === String(id));
       if(found) {
+        try { if(window.EWFIX && EWFIX.rateUnlink) EWFIX.rateUnlink(arr.find(e => String(e.id) === String(id))); } catch(_) {}   // v318: la rata collegata torna indietro
         save(k, arr.filter(e => String(e.id) !== String(id)));
         bumpVersion(); fbPushToCloud(true);
         renderExpenses(); renderDashboard(); renderWeek(); renderCalendar(); vsRefreshIfActive();
@@ -11425,6 +11810,7 @@ function _doDelIncome(id) {
 function _doDelWeekExp(expId, expDate, currentFilter) {
   const d   = new Date(expDate + 'T12:00:00');
   const key = 'expenses_' + d.getFullYear() + '_' + (d.getMonth()+1);
+  try { const _gone = (load(key, []) || []).find(e => String(e.id) === String(expId)); if(_gone && window.EWFIX && EWFIX.rateUnlink) EWFIX.rateUnlink(_gone); } catch(_) {}   // v318
   const arr = (load(key, []) || []).filter(e => String(e.id) !== String(expId));
   save(key, arr);
   bumpVersion(); fbPushToCloud(true);
@@ -11513,8 +11899,11 @@ function saveEditExpense() {
 
   // Rimuovi dalla chiave originale
   const origArr = load(_editExpOrigDate, []);
+  // v318: la rata collegata segue la modifica (importo, data, categoria)
+  let _rataRef;
+  try { const _old = origArr.find(e => String(e.id) === String(_editExpId)); if(_old && window.EWFIX && EWFIX.rateEdit) _rataRef = EWFIX.rateEdit(_old, { amount, desc, cat, date }); } catch(_) {}
   const updated = origArr.map(e => String(e.id) === String(_editExpId)
-    ? { ...e, amount, desc, cat, pay, date, updatedAt: new Date().toISOString(), sub: _sbSub || undefined }
+    ? { ...e, amount, desc, cat, pay, date, updatedAt: new Date().toISOString(), sub: _sbSub || undefined, rataRef: _rataRef }
     : e
   );
 
@@ -11561,17 +11950,17 @@ function renderDashboard() {
 
   // ── Entrate mese corrente ──
   const curIncome = getIncome();
-  let inc = Math.round(curIncome.reduce((s,i)=>s+i.amount,0) * 100) / 100;
+  let inc = Math.round((ewSalary(curIncome) + ewExtra(curIncome)) * 100) / 100;   // v318: stipendio reale OPPURE stima, mai tutti e due
 
-  // ── Stipendio mese precedente (se non c'è Ferrino nel mese corrente) ──
-  const hasFerrino = curIncome.some(i => i.type === 'ferrino');
+  // ── Stipendio mese precedente (se non c'è stipendio nel mese corrente) ──
+  const hasFerrino = ewHasSalary(curIncome);
   let prevStip = 0;
   if(!hasFerrino) {
     let prevYr = yr, prevMo = mo - 1;
     if(prevMo < 1) { prevMo = 12; prevYr--; }
     const prevKey = prevYr + '_' + prevMo; // stesso formato di periodKey() — senza zero padding
     const prevInc = load('income_' + prevKey, []) || [];
-    prevStip = Math.round(prevInc.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
+    prevStip = ewSalary(prevInc);
     inc = Math.round((inc + prevStip)*100)/100;
   }
 
@@ -11585,14 +11974,12 @@ function renderDashboard() {
   // Aggiorna dettaglio stipendio nella card Entrate
   const dashStip = document.getElementById('dash-stipendio');
   if(dashStip) {
-    const stipVal = hasFerrino
-      ? Math.round(curIncome.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100
-      : prevStip;
+    const stipVal = hasFerrino ? ewSalary(curIncome) : prevStip;
     dashStip.textContent = '€'+stipVal.toFixed(2).replace('.',',');
   }
   const dashExtra = document.getElementById('dash-extra');
   if(dashExtra) {
-    const extraVal = Math.round(curIncome.filter(i=>i.type!=='ferrino'&&i.type!=='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
+    const extraVal = ewExtra(curIncome);
     dashExtra.textContent = '€'+extraVal.toFixed(2).replace('.',',');
   }
 
@@ -13989,7 +14376,7 @@ function renderYearChart() {
     const expByMonth = [], incByMonth = [];
     for(let m=1;m<=12;m++){
       expByMonth.push(load('expenses_'+y+'_'+m,[]));
-      incByMonth.push(load('incomes_'+y+'_'+m,[]));
+      incByMonth.push(load('income_'+y+'_'+m,[]));   // v318: la chiave era sbagliata («incomes_»): le entrate risultavano sempre zero
     }
     return { expByMonth, incByMonth };
   }
@@ -14021,7 +14408,7 @@ function renderYearChart() {
     function totByMonth(data) {
       return {
         exp: data.expByMonth.map(arr => arr.reduce((s,e)=>s+e.amount,0)),
-        inc: data.incByMonth.map(arr => arr.reduce((s,e)=>s+e.amount,0)),
+        inc: data.incByMonth.map(arr => ewSalary(arr) + ewExtra(arr)),
       };
     }
     const t1 = totByMonth(d1);
@@ -14058,16 +14445,17 @@ function renderYearChart() {
 
   // ── Stats annuali ──
   const totExp = d1.expByMonth.flatMap(x=>x).reduce((s,e)=>s+e.amount,0);
-  const totInc = d1.incByMonth.flatMap(x=>x).reduce((s,e)=>s+e.amount,0);
+  const totInc = d1.incByMonth.reduce((s,arr)=>s+ewSalary(arr)+ewExtra(arr),0);
   const saldo  = totInc - totExp;
-  const avgExp = totExp / 12;
   const maxMo  = d1.expByMonth.map(arr=>arr.reduce((s,e)=>s+e.amount,0));
+  const nMesiDati = Math.max(1, maxMo.filter(v=>v>0).length);   // v318: media sui mesi che hanno spese (prima si divideva sempre per 12)
+  const avgExp = totExp / nMesiDati;
   const maxMoIdx = maxMo.indexOf(Math.max(...maxMo));
   document.getElementById('yearStats').innerHTML = [
     { label:'Spese totali '+yr,       value:'€'+totExp.toFixed(2).replace('.',','),  color:'#e05c5c' },
     { label:'Entrate totali '+yr,     value:'€'+totInc.toFixed(2).replace('.',','),  color:'#4ae87a' },
     { label:'Saldo annuale',          value:(saldo>=0?'+':'')+'€'+saldo.toFixed(2).replace('.',','), color:saldo>=0?'#4ae87a':'#e05c5c' },
-    { label:'Media spesa/mese',       value:'€'+avgExp.toFixed(2).replace('.',','),  color:'var(--gold)' },
+    { label:'Media spesa/mese ('+nMesiDati+(nMesiDati===1?' mese':' mesi')+')', value:'€'+avgExp.toFixed(2).replace('.',','),  color:'var(--gold)' },
     { label:'Mese più costoso',       value:MESI_S[maxMoIdx]||'—',                  color:'#ffb347' },
   ].map(s=>`<div style="background:var(--dark3);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;text-align:center;">
     <div style="font-size:11px;color:var(--text-muted);margin-bottom:4px;">${s.label}</div>
@@ -14209,8 +14597,8 @@ function getMonthWeeks() {
   while(true) {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekStart.getDate() + 6);
-    // Includi se la settimana si sovrappone al mese
-    if(weekStart.getMonth() > mo && weekStart.getFullYear() >= yr) break;
+    // Includi se la settimana si sovrappone al mese (v318: a dicembre non esiste una «sesta settimana» di gennaio)
+    if(weekStart > new Date(yr, mo + 1, 0, 23, 59, 59)) break;
     weeks.push({ start: new Date(weekStart), end: new Date(weekEnd), num: weekIndex });
     weekStart.setDate(weekStart.getDate() + 7);
     weekIndex++;
@@ -14848,26 +15236,17 @@ function _salvCalcPlan(target, saved, startV, endV, day, numRate) {
   // Rata mensile FISSA = totale / numero rate
   const rataMs  = numRate > 0 ? target / numRate : target;
 
-  // Calcola data fine automaticamente: start + numRate mesi
-  let endAuto;
-  if(endV) {
-    endAuto = new Date(endV + 'T12:00:00');
-  } else {
-    endAuto = new Date(start.getFullYear(), start.getMonth() + numRate, day);
-  }
-  const end = endAuto;
+  // v318: il piano ha ESATTAMENTE numRate versamenti (prima ne contava uno in più) e il giorno 31 cade a fine mese nei mesi corti
+  // (prima «31 febbraio» diventava il 3 marzo e un mese saltava). La scadenza è il giorno dell'ULTIMO versamento.
+  const nPay = numRate > 0 ? numRate : 1;
+  const _pd  = k => new Date(ewSalvPayDate(startV, day, k) + 'T12:00:00');
+  const end  = _pd(nPay - 1);
 
-  // Trova il prossimo giorno di versamento >= oggi e >= start
-  const startDay = _dateOnly(start);
-  let d = new Date(start.getFullYear(), start.getMonth(), day);
-  if(_dateOnly(d) < startDay) d = new Date(d.getFullYear(), d.getMonth() + 1, day);
-
-  // Raccogli tutte le date future
+  // Raccogli i versamenti che restano (da oggi in poi)
   const payDates = [];
-  let tmp = new Date(d);
-  while(_dateOnly(tmp) <= _dateOnly(end)) {
-    if(_dateOnly(tmp) >= nowDay) payDates.push(new Date(tmp));
-    tmp = new Date(tmp.getFullYear(), tmp.getMonth() + 1, day);
+  for(let k = 0; k < nPay; k++) {
+    const t = _pd(k);
+    if(_dateOnly(t) >= nowDay) payDates.push(t);
   }
 
   const rateRimaste = payDates.length;
@@ -15132,26 +15511,39 @@ function _vacSpTotal(v) { return (v.spese||[]).reduce((s,x)=>s+(x.importoEUR!=nu
 var _vacFxRates = null;
 var _vacFxRatesLive = false;
 var _vacFxFallback = { GBP:0.86, RON:5.03, USD:1.08, CHF:0.93 };
+// v318: il cambio è quello del GIORNO DELLA SPESA (prima era sempre quello di oggi). I tassi veri si ricordano per data, quelli indicativi no (si riprova).
+var _vacFxCache = {};
 
-async function _vacFetchFxRates() {
-  if(_vacFxRates) return _vacFxRates;
+function _vacFxDay(dateIso) {
+  const d = String(dateIso || '').slice(0, 10);
+  const t = new Date(), today = t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(d) || d >= today || d < '2000-01-03') return 'latest';
+  return d;
+}
+
+async function _vacFetchFxRates(dateIso) {
+  const day = _vacFxDay(dateIso);
+  if(_vacFxCache[day]) { _vacFxRates = _vacFxCache[day]; _vacFxRatesLive = true; return _vacFxCache[day]; }
+  let rates, live = false;
   try {
-    const r = await fetch('https://api.frankfurter.dev/v1/latest?base=EUR&symbols=GBP,RON,USD,CHF');
+    const r = await fetch('https://api.frankfurter.dev/v1/' + day + '?base=EUR&symbols=GBP,RON,USD,CHF');
     if(!r.ok) throw new Error('fx fetch failed');
     const data = await r.json();
     if(!data || !data.rates) throw new Error('fx bad response');
-    _vacFxRates = data.rates;
-    _vacFxRatesLive = true;
+    rates = Object.assign({}, data.rates);
+    live = true;
   } catch(e) {
-    _vacFxRates = _vacFxFallback;
-    _vacFxRatesLive = false;
+    rates = Object.assign({}, _vacFxFallback);
   }
-  return _vacFxRates;
+  try { Object.defineProperty(rates, '_live', { value: live, enumerable: false }); } catch(e) { rates._live = live; }
+  if(live) _vacFxCache[day] = rates;
+  _vacFxRates = rates; _vacFxRatesLive = live;
+  return rates;
 }
 
 function _vacConvertToEUR(amount, valuta, rates) {
-  if(!valuta || valuta === 'EUR' || !rates || !rates[valuta]) return amount;
-  return amount / rates[valuta];
+  if(!valuta || valuta === 'EUR' || !rates || !rates[valuta]) return ewRound2(amount);   // v318: sempre a centesimi
+  return ewRound2(amount / rates[valuta]);
 }
 
 const _VAC_CUR_SYMBOL = { EUR:'€', GBP:'£', RON:'RON', USD:'$', CHF:'CHF' };
@@ -15160,14 +15552,17 @@ async function _vacUpdateConvertPreview() {
   const el = document.getElementById('vacSpConvertPreview');
   if(!el) return;
   const valuta = document.getElementById('vacSpValuta').value;
-  const importo = parseFloat(document.getElementById('vacSpImporto').value.replace(',','.'));
+  const dEl = document.getElementById('vacSpData'), day = dEl ? dEl.value : '';
+  const readAmt = () => ewParseMoney(document.getElementById('vacSpImporto').value);
+  const importo = readAmt();
   if(valuta === 'EUR' || !importo || importo <= 0) { el.textContent = ''; return; }
   el.textContent = '⏳ conversione...';
-  const rates = await _vacFetchFxRates();
-  if(document.getElementById('vacSpValuta').value !== valuta || parseFloat(document.getElementById('vacSpImporto').value.replace(',','.')) !== importo) return;
+  const rates = await _vacFetchFxRates(day);
+  if(document.getElementById('vacSpValuta').value !== valuta || readAmt() !== importo || (dEl ? dEl.value : '') !== day) return;
   const eur = _vacConvertToEUR(importo, valuta, rates);
-  const tag = _vacFxRatesLive ? '' : ' (tasso indicativo)';
-  el.textContent = "≈ €" + eur.toFixed(2).replace('.',',') + tag;
+  const when = _vacFxDay(day) !== 'latest' ? ' · cambio del ' + day.slice(8, 10) + '/' + day.slice(5, 7) : '';
+  const tag = (rates && rates._live) ? '' : ' (tasso indicativo)';
+  el.textContent = "≈ €" + eur.toFixed(2).replace('.',',') + when + tag;
 }
 
 function _vacAmountLabel(s) {
@@ -15175,7 +15570,7 @@ function _vacAmountLabel(s) {
   if(s.valuta && s.valuta !== 'EUR') {
     const sym = _VAC_CUR_SYMBOL[s.valuta] || s.valuta;
     const sep = /[a-zA-Z]/.test(sym) ? ' ' : '';
-    return sym + sep + s.importo.toFixed(2).replace('.',',') + ' (≈ €' + eur.toFixed(2).replace('.',',') + ')';
+    return sym + sep + s.importo.toFixed(2).replace('.',',') + ' (≈ €' + eur.toFixed(2).replace('.',',') + (s.fxLive === false ? ' · tasso indicativo' : '') + ')';   // v318: i cambi stimati si riconoscono
   }
   return '€' + eur.toFixed(2).replace('.',',');
 }
@@ -15539,7 +15934,7 @@ function closeSalvModal() {
 }
 
 function calcSalvPreview() {
-  const _pNum = v => parseFloat((v||'').toString().replace(/\./g,'').replace(',','.')) || 0;
+  const _pNum = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : 0; };   // v318: il campo numerico scrive già «1500.5» (prima il punto veniva tolto: importo 100 volte più grande)
   const target   = _pNum(document.getElementById('salvTarget').value);
   const saved    = _pNum(document.getElementById('salvSaved').value);
   const startV   = document.getElementById('salvStart').value;
@@ -15555,9 +15950,7 @@ function calcSalvPreview() {
   if(!target || !startV || !numRate) { prev.style.display='none'; return; }
 
   // Data fine = calcolata automaticamente da start + numRate mesi
-  const startObj = new Date(startV+'T12:00:00');
-  const endObj   = new Date(startObj.getFullYear(), startObj.getMonth() + numRate, day);
-  const endV     = endObj.getFullYear()+'-'+String(endObj.getMonth()+1).padStart(2,'0')+'-'+String(endObj.getDate()).padStart(2,'0');
+  const endV     = ewSalvPayDate(startV, day, numRate - 1);   // v318: data dell'ultimo versamento
   // Aggiorna campo nascosto end
   const endEl = document.getElementById('salvEnd');
   if(endEl) endEl.value = endV;
@@ -15632,16 +16025,18 @@ function calcSalvPreview() {
 
 function saveSalvItem() {
   const name   = document.getElementById('salvName').value.trim();
-  const _pNum2  = v => parseFloat((v||'').toString().replace(/\./g,'').replace(',','.')) || 0;
-  const target  = _pNum2(document.getElementById('salvTarget').value);
+  const _pNum2  = v => { const n = parseFloat(String(v == null ? '' : v).replace(',', '.')); return isFinite(n) ? n : 0; };   // v318: prima il punto decimale veniva tolto (importo 100 volte più grande)
+  let target  = _pNum2(document.getElementById('salvTarget').value);
+  { const _g = (window.EWFIX && EWFIX.guardAmount) ? EWFIX.guardAmount('salvTarget', document.getElementById('salvTarget').value, function(){ saveSalvItem(); }) : target;   // «1.500» → intendevi 1.500,00?
+    if(_g === 'wait') return; target = isFinite(_g) ? _g : 0; }
   const start   = document.getElementById('salvStart').value;
   const day     = parseInt(document.getElementById('salvDay').value) || 1;
   const numRate = parseInt(document.getElementById('salvNumRate')?.value) || 0;
-  const saved   = _pNum2(document.getElementById('salvSaved').value);
-  // Calcola data fine automaticamente
-  const startObj = new Date(start + 'T12:00:00');
-  const endObj   = new Date(startObj.getFullYear(), startObj.getMonth() + numRate, day);
-  const end      = endObj.getFullYear()+'-'+String(endObj.getMonth()+1).padStart(2,'0')+'-'+String(endObj.getDate()).padStart(2,'0');
+  let saved   = _pNum2(document.getElementById('salvSaved').value);
+  { const _g = (window.EWFIX && EWFIX.guardAmount) ? EWFIX.guardAmount('salvSaved', document.getElementById('salvSaved').value, function(){ saveSalvItem(); }) : saved;
+    if(_g === 'wait') return; saved = isFinite(_g) ? _g : 0; }
+  // Data fine = giorno dell'ultimo versamento (v318: prima un mese dopo l'ultimo)
+  const end      = start ? ewSalvPayDate(start, day, Math.max(numRate, 1) - 1) : '';
   if(!name)    { showToast('⚠️ Inserisci un nome'); return; }
   if(!target || target <= 0) { showToast('⚠️ Inserisci un obiettivo valido'); return; }
   if(!start)   { showToast('⚠️ Inserisci la data di inizio'); return; }
@@ -15677,7 +16072,8 @@ function _doDelSalv(id) {
 function addSalvDeposit(id) {
   const amtStr = prompt('Quanto vuoi aggiungere al salvadanaio? (€)');
   if(amtStr === null) return;
-  const amt = parseFloat(amtStr.replace(',','.'));
+  if(ewMoneyAmbiguous(amtStr)) { showToast('⚠️ «' + amtStr.trim() + '» non è chiaro: scrivi 1805 (senza punto) oppure 1,80 per i centesimi'); return; }   // v318
+  const amt = ewRound2(ewParseMoney(amtStr));
   if(isNaN(amt) || amt <= 0) { showToast('⚠️ Importo non valido'); return; }
   const items = getSalvItems();
   const idx = items.findIndex(x => x.id === id);
@@ -17332,7 +17728,7 @@ function renderRate() {
     return `<div class="rata-card${completata ? ' completata' : ''}">
       <button class="rata-del" onclick="delRata(${r.id})" title="Elimina">🗑</button>
       <button style="position:absolute;top:12px;right:44px;background:none;border:none;cursor:pointer;font-size:15px;color:var(--text-muted);" onclick="openEditRata(${r.id})" title="Modifica">✏️</button>
-      <div class="rata-title">${completata ? '✅ ' : '📦 '}${r.name}</div>
+      <div class="rata-title">${completata ? '✅ ' : '📦 '}${r.name}${r._autoCreated ? ' <span class="ew-rt-chip" title="Totale e numero di rate sono stimati dall\'estratto (rata × 12): correggili con la matita">stima</span>' : ''}</div>
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
         <span style="font-size:13px;color:var(--text-muted);">Pagato: <strong style="color:var(--green);">€${r.pagato.toFixed(2).replace('.',',')}</strong> / <strong style="color:var(--gold);">€${r.totale.toFixed(2).replace('.',',')}</strong></span>
         <span style="font-size:13px;font-weight:700;color:${completata?'var(--green)':'var(--gold)'};">${perc.toFixed(0)}%</span>
@@ -17343,6 +17739,7 @@ function renderRate() {
         <span>🔢 Rate pagate: <strong>${r.ratePagate}/${r.num}</strong></span>
         ${completata ? '<span style="color:var(--green);font-weight:700;">🎉 Completato!</span>' : `<span>⏳ Rimangono: <strong>${rateRimaste} rate (€${residuo.toFixed(2).replace('.',',')})</strong></span>`}
       </div>
+      ${(() => { const _w = (window.EWFIX && EWFIX.rateWarnText) ? EWFIX.rateWarnText(r) : ''; return _w ? `<div class="ew-rt-warn">⚠️ Importi non coerenti — ${_w}. Controlla con la matita ✏️</div>` : ''; })()}
       ${(() => {
         // Cerca un salvadanaio collegato (nome simile)
         const salvs = typeof getSalvItems === 'function' ? getSalvItems() : [];
@@ -17422,6 +17819,7 @@ function saveEditRata() {
   }
   if(idx === -1) return;
   rate[idx] = { ...rate[idx], name, totale, mensile, num: num || Math.ceil(totale/mensile), pagato: pagato||0, ratePagate: ratePagate||0, anno: foundYear };
+  delete rate[idx]._autoCreated;   // v318: l'hai controllata tu: non è più una stima
   saveRata(rate, foundYear);
   bumpVersion();
   fbPushToCloud();
@@ -17432,21 +17830,10 @@ function saveEditRata() {
 
 // Chiamata quando si aggiunge una spesa categoria "rata"
 // Cerca la rata con rata mensile uguale all'importo speso e aggiorna il progresso
-function updateRataProgress(amount, desc) {
-  const rate = getRata(); // usa l'anno attivo corrente
-  if(!rate.length) return;
-  // Cerca la rata che corrisponde: nome nella descrizione O rata mensile uguale
-  let matched = rate.find(r => !isNaN(amount) && Math.abs(r.mensile - amount) < 0.02);
-  if(!matched && desc) {
-    matched = rate.find(r => desc.toLowerCase().includes(r.name.toLowerCase()));
-  }
-  if(!matched) matched = rate.find(r => r.pagato < r.totale); // fallback: prima rata non completata
-  if(!matched) return;
-  matched.pagato = Math.min(matched.totale, parseFloat((matched.pagato + amount).toFixed(2)));
-  matched.ratePagate = Math.min(matched.num, matched.ratePagate + 1);
-  saveRata(rate);
-  fbPushToCloud();
-  renderRate();
+function updateRataProgress(amount, desc, date) {
+  // v318: stessa logica di EWFIX.rateLink (tutti gli anni, niente «prima rata non finita»)
+  if(window.EWFIX && EWFIX.rateLink) return EWFIX.rateLink({ amount, desc, date: date || localDateStr(new Date()) });
+  return null;
 }
 
 // ════════════════════════════════════════════════════════════
@@ -18795,7 +19182,7 @@ function parseSatispayText(text) {
 
   const DATE_RE  = /\b(\d{1,2})\s+(gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic)\s+(\d{4})\b/i;
   const TIPO_RE  = /\b(a un [Nn]egozio|a una [Pp]ersona|[Dd]alla [Bb]anca|[Dd]eposito [Rr]isparmi|[Pp]relievo [Rr]isparmi|[Dd]eposito [Ii]nvestimento|[Pp]relievo [Ii]nvestimento|[Tt]ransazione di adeguamento|[Vv]erso la [Bb]anca|[Rr]icarica [Tt]elefonica|[Cc]ommissioni|[Cc]ashback|[Aa]ltro|[Dd]a una [Pp]ersona|[Cc]arta [Rr]egalo)\b/;
-  const NEG_RE   = /[-\u2212]\s*(\d+[,\.]\d{2})\s*\u20ac/;  // importo negativo con €
+  const NEG_RE   = /[-\u2212]\s*(\d{1,3}(?:[.,]\d{3})+[,.]\d{2}|\d+[,.]\d{2})\s*\u20ac/;  // importo negativo con € (v318: anche 1.234,56)
   const UUID_RE  = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi;
   const UUIDP_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}\b/gi; // UUID parziali
 
@@ -18819,7 +19206,7 @@ function parseSatispayText(text) {
     // Cerca il PRIMO importo negativo nella riga
     const nm = line.match(NEG_RE);
     if(!nm) continue;
-    const amount = parseFloat(nm[1].replace(',', '.'));
+    const amount = ewRevMoney(nm[1]);
     if(!amount || amount <= 0) continue;
 
     // Estrai data
@@ -18833,7 +19220,7 @@ function parseSatispayText(text) {
     let desc = line;
     desc = desc.replace(DATE_RE, '');
     desc = desc.replace(/\d{1,2}:\d{2}/g, '');                // orario
-    desc = desc.replace(/[-\u2212]?\s*\d+[,\.]\d{2}\s*\u20ac/g, ''); // importi
+    desc = desc.replace(/[-\u2212]?\s*(?:\d{1,3}(?:[.,]\d{3})+[,.]\d{2}|\d+[,.]\d{2})\s*\u20ac/g, ''); // importi
     desc = desc.replace(TIPO_RE, '');                            // tipo
     desc = desc.replace(/\bApprovato\b|\bIn corso\b|\bAnnullato\b/gi, '');
     desc = desc.replace(UUID_RE, '');                            // UUID completi
@@ -18845,7 +19232,7 @@ function parseSatispayText(text) {
     desc = desc.replace(/\s{2,}/g, ' ').trim();
     if(!desc || desc.length < 2) desc = '—';
 
-    const key = `${dateStr}_${amount.toFixed(2)}_${desc.substring(0,12)}`;
+    const key = `${dateStr}_${amount.toFixed(2)}_${desc.substring(0,12)}_${(line.match(/\b\d{1,2}:\d{2}\b/) || [''])[0]}`;   // v318: con l'orario, due acquisti uguali nello stesso giorno restano due
     if(seenIds.has(key)) continue;
     seenIds.add(key);
 
@@ -18880,19 +19267,19 @@ function parseSatispayText(text) {
 
       const nm2 = full.match(NEG_RE);
       if(!nm2) continue;
-      const amount2 = parseFloat(nm2[1].replace(',','.'));
+      const amount2 = ewRevMoney(nm2[1]);
       if(!amount2 || amount2 <= 0) continue;
 
       let desc2 = full;
       desc2 = desc2.replace(DATE_RE,'').replace(/\d{1,2}:\d{2}/g,'')
-                   .replace(/[-\u2212]?\s*\d+[,\.]\d{2}\s*\u20ac/g,'')
+                   .replace(/[-\u2212]?\s*(?:\d{1,3}(?:[.,]\d{3})+[,.]\d{2}|\d+[,.]\d{2})\s*\u20ac/g,'')
                    .replace(TIPO_RE,'').replace(/approvato|in corso|annullato/gi,'')
                    .replace(UUID_RE,'').replace(UUIDP_RE,'')
                    .replace(/AGTT[a-zA-Z0-9]*/g,'').replace(/Da\s*\(IT\*+\d+\)/gi,'')
                    .replace(/\s{2,}/g,' ').trim();
       if(!desc2 || desc2.length < 2) desc2 = '—';
 
-      const key2 = `${dateStr}_${amount2.toFixed(2)}_${desc2.substring(0,12)}`;
+      const key2 = `${dateStr}_${amount2.toFixed(2)}_${desc2.substring(0,12)}_${(full.match(/\b\d{1,2}:\d{2}\b/) || [''])[0]}`;
       if(seenIds.has(key2)) continue;
       seenIds.add(key2);
       results.push({ date: dateStr, desc: cleanSatispayDesc(desc2), amount: amount2, cat: guessCategorySatispay(desc2), pay: 'satispay' });
@@ -19297,7 +19684,7 @@ function parseSellaText(text) {
       continue;
     }
 
-    const key = `${dateStr}_${amount.toFixed(2)}_${desc.substring(0,12)}`;
+    const key = `${dateStr}_${amount.toFixed(2)}_${desc}`;   // v318: descrizione intera (con i codici): due acquisti uguali nello stesso giorno restano due
     if(seen.has(key)) continue;
     seen.add(key);
 
@@ -19687,58 +20074,12 @@ function confirmSellaImport() {
   }
 
   // ── Crea/aggiorna Rate & Finanziamenti
+  // v318: ogni pagamento va nel piano giusto di QUALUNQUE anno (stesso nome e stessa rata, non ancora finito); se non c'è si crea nell'anno del pagamento.
+  // Un piano già pieno non assorbe più i pagamenti successivi (prima si perdevano), e prestiti con rate diverse non si mescolano.
   let rataCount = 0, rataNewCount = 0;
   if(sellaRataP.length) {
-    const rateList = getRata();
-    // Raggruppa i pagamenti per nome rata
-    const byName = {};
-    sellaRataP.forEach(r => {
-      if(!byName[r.name]) byName[r.name] = [];
-      byName[r.name].push(r);
-    });
-    for(const [name, pagamenti] of Object.entries(byName)) {
-      const mensile = pagamenti[0].amount; // usa prima rata come mensile
-      const totPagato = pagamenti.reduce((s,p)=>s+p.amount,0);
-      // Cerca rata esistente (confronto fuzzy sul nome)
-      let existing = rateList.find(r =>
-        r.name.toLowerCase()===name.toLowerCase() ||
-        name.toLowerCase().includes(r.name.toLowerCase()) ||
-        r.name.toLowerCase().includes(name.toLowerCase())
-      );
-      if(existing) {
-        // Aggiorna progresso evitando duplicati (dedup per data)
-        const paidDates = existing._paidDates || [];
-        let added = 0;
-        for(const p of pagamenti) {
-          if(!paidDates.includes(p.date)) {
-            existing.pagato = Math.min(existing.totale, parseFloat((existing.pagato + p.amount).toFixed(2)));
-            existing.ratePagate = Math.min(existing.num, existing.ratePagate + 1);
-            paidDates.push(p.date);
-            added++;
-          }
-        }
-        existing._paidDates = paidDates;
-        rataCount += added;
-      } else {
-        // Crea nuova rata — stima totale = mensile × 12 (l'utente potrà modificarlo)
-        const estimated = parseFloat((mensile * 12).toFixed(2));
-        const newRata = {
-          id: Date.now() + Math.random(),
-          name,
-          totale: estimated,
-          mensile,
-          num: 12,
-          pagato: totPagato,
-          ratePagate: pagamenti.length,
-          _paidDates: pagamenti.map(p=>p.date),
-          _autoCreated: true,
-        };
-        rateList.push(newRata);
-        rataNewCount++;
-        rataCount += pagamenti.length;
-      }
-    }
-    saveRata(rateList);
+    const _rs = (window.EWFIX && EWFIX.rateImport) ? EWFIX.rateImport(sellaRataP) : { applied: 0, created: 0 };
+    rataCount = _rs.applied; rataNewCount = _rs.created;
   }
 
   // ── Salva movimenti libretto
@@ -19762,38 +20103,28 @@ function confirmSellaImport() {
   // ── Sync Salvadanaio ─────────────────────────────────────────
   // Match SOLO per importo: rata PDF == target/numRate del salvadanaio (±2%)
   // Es. Findomestic €71,58 → salvadanaio iPhone 17 (€1718÷24=€71,58)
+  // v318: si abbina per rata (±1%) e giorno (±5) se è una rata riconosciuta, oppure per nome + importo. Più versamenti nello stesso estratto contano tutti;
+  // una riga non conta due volte (né per due salvadanai); una spesa qualunque con lo stesso importo non basta più.
   let salvCount = 0;
   const salvItems = getSalvItems ? getSalvItems() : [];
   if(salvItems.length) {
-    // Usa SOLO le transazioni riconosciute come rate (sellaRataP) + spese generiche
-    const allTxns = [...(sellaRataP||[]), ...(sellaParsed||[])];
+    const allTxns = [...(sellaRataP||[]).map(t => ({ ...t, _rata: true })), ...(sellaParsed||[])]
+      .sort((a, b) => String(a.date).localeCompare(String(b.date)));
+    const usedKeys = new Set();
     let salvChanged = false;
     for(const salv of salvItems) {
-      const numRate   = salv.numRate || 12;
-      const rataMs    = salv.target / numRate;
-      if(rataMs <= 0) continue;
-      const paidDates = salv._paidDates || [];
-      const payDay    = salv.day || 1; // giorno del mese atteso per il versamento
+      const paid = (salv._paidDates || []).slice();
       for(const txn of allTxns) {
+        if((salv.saved || 0) >= salv.target) break;
         const amt  = txn.amount || 0;
         const dKey = (txn.date||'') + '_' + Math.round(amt * 100);
-        if(paidDates.includes(dKey)) continue; // dedup data+importo
-        // 1. Match per importo (±2%)
-        if(Math.abs(amt - rataMs) / rataMs > 0.02) continue;
-        // 2. Match per data: il bonifico deve cadere entro ±7 giorni dal giorno atteso
-        if(txn.date) {
-          const txnDate  = new Date(txn.date + 'T12:00:00');
-          const txnDay   = txnDate.getDate();
-          const dayDiff  = Math.abs(txnDay - payDay);
-          // Gestisce fine/inizio mese (es. gg 30 vs gg 1 = diff 1, non 29)
-          const dayDiffWrapped = Math.min(dayDiff, 31 - dayDiff);
-          if(dayDiffWrapped > 7) continue; // fuori finestra ±7 giorni
-        }
-        salv.saved      = parseFloat(((salv.saved || 0) + amt).toFixed(2));
-        salv._paidDates = [...paidDates, dKey];
-        salvChanged     = true;
+        if(paid.includes(dKey) || usedKeys.has(dKey)) continue;
+        if(!ewSalvTxnMatches(salv, txn)) continue;
+        salv.saved = parseFloat(((salv.saved || 0) + amt).toFixed(2));
+        paid.push(dKey); usedKeys.add(dKey);
+        salv._paidDates = paid;
+        salvChanged = true;
         salvCount++;
-        break;
       }
     }
     if(salvChanged) {
@@ -19865,18 +20196,334 @@ async function importRevolutPDF(event) {
       fullText += '\n\n';
     }
     statusEl.textContent = '🔍 Analisi movimenti...';
-    window._revSaldoChiusura = null; // reset
+    window._revSaldoChiusura = null; window._revSaldoDate = ''; window._revWarn = []; // reset
     revolutParsed = parseRevolutText(fullText);
     if(!revolutParsed.length) {
       statusEl.textContent = '⚠️ Nessuna uscita trovata. Verifica che sia un estratto Revolut.';
       return;
     }
-    statusEl.textContent = `✅ Trovate ${revolutParsed.length} uscite`;
+    statusEl.textContent = `✅ Trovate ${revolutParsed.length} uscite` + ((window._revWarn||[]).some(w => w.lvl === 'warn') ? ' · ⚠️ controlla gli avvisi' : '');
     renderBankPreview('revolut', revolutParsed);
   } catch(err) {
     console.error(err);
     statusEl.textContent = '❌ Errore lettura PDF: ' + err.message;
   }
+}
+
+// ══════════ v318 · lettura estratti Revolut con quadratura dei saldi (stesso testo dei collaudi) ══════════
+/* v318 · Revolut — lettura robusta degli estratti (PDF e CSV). Funzioni pure: stesso file nella pagina e nei test di Node.
+   Idea: ogni riga dell'estratto riporta l'importo e il SALDO dopo il movimento. Dalla catena dei saldi si capisce, riga per riga,
+   se il denaro è entrato o uscito (i riconoscimenti a parole restano come seconda difesa) e si controlla che nulla sia stato letto male. */
+
+/* ───────── Importi ───────── */
+// Importo → numero (NaN se non è un importo). Accetta «€1,234.56», «1.234,56», «−12,5», «-€12.00».
+// lenient=false: due decimali obbligatori (estratti PDF); lenient=true: anche 0–1 decimali (CSV).
+function ewRevMoney(tok, lenient) {
+  var s = String(tok == null ? '' : tok).replace(/−/g, '-').replace(/[\s  €$£]|EUR|USD|GBP|CHF/gi, '');
+  if (!s) return NaN;
+  var m = /^([+-]*)(.*)$/.exec(s), sign = m[1].indexOf('-') >= 0 ? -1 : 1;
+  s = m[2];
+  var mm = /^(\d{1,3}(?:[.,]\d{3})+|\d+)[.,](\d{2})$/.exec(s);
+  if (mm) return sign * parseFloat(mm[1].replace(/[.,]/g, '') + '.' + mm[2]);
+  if (lenient) {
+    mm = /^(\d{1,3}(?:[.,]\d{3})+|\d+)(?:[.,](\d))?$/.exec(s);
+    if (mm) return sign * parseFloat(mm[1].replace(/[.,]/g, '') + (mm[2] ? '.' + mm[2] : ''));
+  }
+  return NaN;
+}
+
+// Tutti gli importi «€…» di un testo, nell'ordine in cui compaiono → [{ v: numero con segno, i: posizione }]
+// (solo con il simbolo davanti: «29,99€» scritto dentro una descrizione NON è un importo dell'estratto)
+function ewRevEuros(text) {
+  var re = /€\s*([-−+])?\s*(\d{1,3}(?:[.,  ]\d{3})+|\d+)[.,](\d{2})(?!\d)/g, out = [], m, t = String(text == null ? '' : text);
+  while ((m = re.exec(t))) {
+    var before = m.index > 0 ? t.charAt(m.index - 1) : '', before2 = m.index > 1 ? t.charAt(m.index - 2) : '';
+    var neg = m[1] === '-' || m[1] === '−' || ((before === '-' || before === '−') && (m.index < 2 || /[\s(]/.test(before2)));
+    var v = parseFloat(m[2].replace(/[.,  ]/g, '') + '.' + m[3]);
+    out.push({ v: neg ? -v : v, i: m.index });
+  }
+  return out;
+}
+
+// Primo importo di una riga di riepilogo, con o senza «€» (serve per «Saldo di chiusura …»)
+function ewRevLastMoney(line) {
+  var e = ewRevEuros(line);
+  if (e.length) return e[e.length - 1].v;
+  var re = /(\d{1,3}(?:[.,]\d{3})+|\d+)[.,](\d{2})(?!\d)/g, m, last = NaN;
+  while ((m = re.exec(String(line || '')))) last = parseFloat(m[1].replace(/[.,]/g, '') + '.' + m[2]);
+  return last;
+}
+
+/* ───────── Data di una riga «5 gen 2026 …» → «2026-01-05» ───────── */
+var EW_REV_MESI = { gen: 1, feb: 2, mar: 3, apr: 4, mag: 5, giu: 6, lug: 7, ago: 8, set: 9, ott: 10, nov: 11, dic: 12 };
+function ewRevDateIso(line) {
+  var m = /\b(\d{1,2})\s+(gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic)\s+(\d{4})\b/i.exec(String(line || ''));
+  if (!m) return '';
+  var mo = EW_REV_MESI[m[2].toLowerCase()], d = +m[1];
+  return m[3] + '-' + (mo < 10 ? '0' : '') + mo + '-' + (d < 10 ? '0' : '') + d;
+}
+
+/* ───────── Importo e saldo di un blocco dell'estratto PDF ───────── */
+// block = righe del movimento (la prima porta la data). Importo = primo «€», saldo = ultimo «€» della riga della data.
+function ewRevBlockAmounts(block) {
+  var first = ewRevEuros(block[0]);
+  if (first.length >= 2) return { amount: Math.abs(first[0].v), balance: first[first.length - 1].v, n: first.length };
+  if (first.length === 1) return { amount: Math.abs(first[0].v), balance: null, n: 1 };
+  var all = ewRevEuros(block.join(' '));
+  if (all.length) return { amount: Math.abs(all[0].v), balance: null, n: all.length };
+  return { amount: 0, balance: null, n: 0 };
+}
+
+/* ───────── Catena dei saldi ─────────
+   rows = [{ amount (positivo), balance (o null) }] nell'ordine del documento.
+   Con documento in ordine di data (asc) il saldo della riga i = saldo della riga i-1 ± importo i;
+   in ordine inverso (desc) il saldo della riga i-1 = saldo della riga i ± importo i-1.
+   → { order: 'asc'|'desc'|'none', dirs: ['in'|'out'|'?'], signed: [numero|null], breaks: [{ idx, expected, got }], closing, closingIdx, opening, pairs, matched } */
+function ewRevChain(rows, opts) {
+  opts = opts || {};
+  var TOL = 0.011, n = rows.length, i;
+  var res = { order: 'none', pairs: 0, matched: 0, dirs: [], signed: [], breaks: [], closing: null, closingIdx: -1, opening: null };
+  for (i = 0; i < n; i++) { res.dirs.push('?'); res.signed.push(null); }
+  function near(a, b) { return Math.abs(a - b) <= TOL; }
+  var asc = 0, desc = 0, pairs = 0;
+  for (i = 1; i < n; i++) {
+    var a = rows[i - 1], b = rows[i];
+    if (a.balance == null || b.balance == null) continue;
+    pairs++;
+    if (near(Math.abs(b.balance - a.balance), b.amount)) asc++;
+    if (near(Math.abs(a.balance - b.balance), a.amount)) desc++;
+  }
+  res.pairs = pairs;
+  var best = Math.max(asc, desc), other = Math.min(asc, desc);
+  // un saldo sbagliato rompe DUE coppie: nei documenti corti basta che un'ipotesi abbia riscontri e l'altra no; nei lunghi serve la maggioranza
+  if (pairs === 0 || best < 1 || best === other || (pairs > 8 && best < Math.ceil(pairs * 0.6))) return res;
+  res.order = asc >= desc ? 'asc' : 'desc';
+  res.matched = best;
+  var hasOpen = opts.opening != null && isFinite(opts.opening);
+  function setDir(idx, d) {
+    if (near(Math.abs(d), rows[idx].amount)) { d = Math.round(d * 100) / 100; res.signed[idx] = d; res.dirs[idx] = d > 0 ? 'in' : 'out'; return true; }
+    return false;
+  }
+  if (res.order === 'asc') {
+    for (i = 0; i < n; i++) {
+      if (rows[i].balance == null) continue;
+      var prev = i === 0 ? (hasOpen ? opts.opening : null) : (rows[i - 1].balance);
+      if (prev == null) continue;
+      if (!setDir(i, rows[i].balance - prev)) res.breaks.push({ idx: i, expected: prev, got: rows[i].balance, amount: rows[i].amount });
+    }
+    for (i = n - 1; i >= 0; i--) if (rows[i].balance != null) { res.closing = rows[i].balance; res.closingIdx = i; break; }
+    if (res.signed[0] != null) res.opening = Math.round((rows[0].balance - res.signed[0]) * 100) / 100;
+  } else {
+    for (i = 0; i < n; i++) {
+      if (rows[i].balance == null) continue;
+      var nxt = i === n - 1 ? (hasOpen ? opts.opening : null) : (rows[i + 1].balance);
+      if (nxt == null) continue;
+      if (!setDir(i, rows[i].balance - nxt)) res.breaks.push({ idx: i, expected: nxt, got: rows[i].balance, amount: rows[i].amount });
+    }
+    for (i = 0; i < n; i++) if (rows[i].balance != null) { res.closing = rows[i].balance; res.closingIdx = i; break; }
+    if (res.signed[n - 1] != null) res.opening = Math.round((rows[n - 1].balance - res.signed[n - 1]) * 100) / 100;
+  }
+  return res;
+}
+
+/* ───────── Riepilogo dell'estratto («Saldo iniziale, Denaro in uscita, Denaro in entrata, Saldo di chiusura») ─────────
+   Cerca una riga con almeno quattro importi in € che «quadrano»: iniziale − uscite + entrate = chiusura. */
+function ewRevSummary(lines) {
+  var out = [];
+  for (var k = 0; k < lines.length; k++) {
+    var e = ewRevEuros(lines[k]);
+    if (e.length < 4) continue;
+    var v = e.slice(0, 4).map(function (x) { return x.v; });
+    var o = v[0], c = v[3];
+    if (Math.abs(o - v[1] + v[2] - c) <= 0.02) out.push({ opening: o, out: v[1], 'in': v[2], closing: c });
+    else if (Math.abs(o - v[2] + v[1] - c) <= 0.02) out.push({ opening: o, out: v[2], 'in': v[1], closing: c });
+  }
+  return out;
+}
+
+/* ───────── Analisi dell'estratto PDF ─────────
+   blocks = blocchi di righe (ogni blocco con data inizia con una riga che contiene la data); dateRe = espressione della data; lines = tutte le righe del testo.
+   → oggetto con byBlock (Map blocco → { amount, balance, dir, idx, date }), chain, summary, closing, closingDate, counters e finish(results) che dà gli avvisi. */
+function ewRevAnalyze(blocks, dateRe, lines) {
+  var rows = [], infos = [], byBlock = new Map(), i;
+  for (i = 0; i < blocks.length; i++) {
+    var b = blocks[i];
+    dateRe.lastIndex = 0;
+    if (!b.length || !dateRe.test(b[0])) continue;
+    var am = ewRevBlockAmounts(b);
+    if (!am.n || !(am.amount > 0)) continue;
+    var info = { amount: am.amount, balance: am.balance, dir: '?', date: ewRevDateIso(b[0]), idx: rows.length };
+    rows.push({ amount: am.amount, balance: am.balance });
+    infos.push(info);
+    byBlock.set(b, info);
+  }
+  var sums = ewRevSummary(lines || []);
+  // il riepilogo giusto è quello del conto principale: se ce n'è più d'uno prendo il primo; la quadratura dirà se non torna
+  var summary = sums.length ? sums[0] : null;
+  var chain = ewRevChain(rows, { opening: summary ? summary.opening : null });
+  for (i = 0; i < infos.length; i++) { infos[i].dir = chain.dirs[i]; infos[i].signed = chain.signed[i]; }
+  var closing = null, closingDate = '', closingFrom = '';
+  if (chain.closing != null) { closing = chain.closing; closingFrom = 'catena'; closingDate = infos[chain.closingIdx] ? infos[chain.closingIdx].date : ''; }
+  if (summary && isFinite(summary.closing)) {
+    if (closing == null || Math.abs(closing - summary.closing) <= 0.02) { closing = summary.closing; closingFrom = closingFrom || 'riepilogo'; }
+  }
+  var A = { byBlock: byBlock, infos: infos, chain: chain, summary: summary, closing: closing, closingFrom: closingFrom, closingDate: closingDate, skippedIn: 0, skippedInSum: 0, merged: 0, unknown: 0 };
+  A.finish = function (results) { return ewRevWarnings(A, results); };
+  return A;
+}
+
+function ewRevMoneyFmt(v) { return '€' + (Math.round(v * 100) / 100).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+/* Avvisi per l'anteprima: quadratura dei saldi, totali del riepilogo, direzioni dubbie, doppioni, importi anomali */
+function ewRevWarnings(A, results) {
+  var W = [], ch = A.chain, infos = A.infos, i;
+  if (infos.length >= 3 && ch.order === 'none') W.push({ lvl: 'warn', text: 'Non riesco a verificare i saldi riga per riga: controlla a mano le uscite prima di importare.' });
+  if (ch.breaks.length) {
+    var ex = ch.breaks.slice(0, 3).map(function (b) { var inf = infos[b.idx]; return (inf.date ? inf.date.split('-').reverse().join('/') : 'riga ' + (b.idx + 1)) + ' ' + ewRevMoneyFmt(b.amount); }).join(', ');
+    W.push({ lvl: 'warn', text: ch.breaks.length + (ch.breaks.length === 1 ? ' movimento ha' : ' movimenti hanno') + ' un saldo che non torna (righe mancanti o lette male?): ' + ex + (ch.breaks.length > 3 ? '…' : '') });
+  }
+  if (A.unknown) W.push({ lvl: 'info', text: A.unknown + (A.unknown === 1 ? ' riga senza saldo verificabile: considerata uscita' : ' righe senza saldo verificabile: considerate uscite') + ' (salvo quelle riconosciute come entrate dalla descrizione).' });
+  if (A.skippedIn) W.push({ lvl: 'info', text: A.skippedIn + (A.skippedIn === 1 ? ' entrata' : ' entrate') + ' (' + ewRevMoneyFmt(A.skippedInSum) + ') non conteggiata come spesa.' });
+  if (A.merged) W.push({ lvl: 'info', text: A.merged + (A.merged === 1 ? ' riga identica scartata' : ' righe identiche scartate') + ' (stessa data, importo, descrizione e saldo).' });
+  var out = 0, inn = 0, unk = 0, unkSum = 0;
+  infos.forEach(function (x) { if (x.dir === 'out') out += x.amount; else if (x.dir === 'in') inn += x.amount; else { unk++; unkSum += x.amount; } });
+  out = Math.round(out * 100) / 100; inn = Math.round(inn * 100) / 100;
+  if (A.summary && ch.order !== 'none') {
+    // uscite lette = uscite sicure + righe di direzione dubbia (si contano come uscite, come fa l'importazione)
+    var outAll = Math.round((out + unkSum) * 100) / 100;
+    if (Math.abs(outAll - A.summary.out) > 0.02) W.push({ lvl: 'warn', text: 'Quadratura: le uscite dell\'estratto sono ' + ewRevMoneyFmt(A.summary.out) + ', quelle lette ' + ewRevMoneyFmt(outAll) + ' (differenza ' + ewRevMoneyFmt(Math.abs(outAll - A.summary.out)) + ').' });
+    if (!unk && Math.abs(inn - A.summary['in']) > 0.02) W.push({ lvl: 'warn', text: 'Quadratura: le entrate dell\'estratto sono ' + ewRevMoneyFmt(A.summary['in']) + ', quelle lette ' + ewRevMoneyFmt(inn) + ' (differenza ' + ewRevMoneyFmt(Math.abs(inn - A.summary['in'])) + ').' });
+    if (ch.closing != null && Math.abs(ch.closing - A.summary.closing) > 0.02) W.push({ lvl: 'warn', text: 'Il saldo dell\'ultimo movimento (' + ewRevMoneyFmt(ch.closing) + ') è diverso dal saldo di chiusura dell\'estratto (' + ewRevMoneyFmt(A.summary.closing) + ').' });
+  }
+  // tutto torna: lo si dice (una riga sola, in cima)
+  if (infos.length >= 3 && ch.order !== 'none' && !ch.breaks.length && !unk && !W.some(function (w) { return w.lvl === 'warn'; })) {
+    W.unshift({ lvl: 'ok', text: 'Saldi verificati riga per riga' + (A.summary ? ' e totali uguali al riepilogo dell\'estratto' : '') + '.' });
+  }
+  W = W.concat(ewRevOutliers(results || []));
+  return W;
+}
+
+/* HTML dell'avviso nell'anteprima (i testi contengono solo importi e date, mai descrizioni dei movimenti) */
+function ewRevWarnHtml(list) {
+  if (!list || !list.length) return '';
+  var esc = function (t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); };
+  var hasWarn = list.some(function (w) { return w.lvl === 'warn'; });
+  var rows = list.map(function (w) {
+    var ic = w.lvl === 'warn' ? '⚠️' : (w.lvl === 'ok' ? '✅' : 'ℹ️');
+    return '<div class="ew-revw-i ' + esc(w.lvl) + '"><span class="ic">' + ic + '</span><span>' + esc(w.text) + '</span></div>';
+  }).join('');
+  return '<div class="ew-revw' + (hasWarn ? ' has-warn' : '') + '">' + (hasWarn ? '<div class="ew-revw-t">Controlla prima di importare</div>' : '') + rows + '</div>';
+}
+
+/* Importi insoliti in un elenco di movimenti [{ amount, desc, date }]: molto sopra la mediana e sopra 300 € */
+function ewRevOutliers(list) {
+  var a = list.map(function (t) { return t.amount; }).filter(function (v) { return v > 0; }).sort(function (x, y) { return x - y; });
+  if (a.length < 4) return [];
+  var med = a[Math.floor(a.length / 2)], lim = Math.max(300, med * 12);
+  var big = list.filter(function (t) { return t.amount >= lim; }).sort(function (x, y) { return y.amount - x.amount; });
+  if (!big.length) return [];
+  var ex = big.slice(0, 3).map(function (t) { return t.date.split('-').reverse().join('/') + ' ' + ewRevMoneyFmt(t.amount); }).join(', ');
+  return [{ lvl: 'info', text: (big.length === 1 ? 'Un importo insolitamente alto: ' : big.length + ' importi insolitamente alti: ') + ex + (big.length > 3 ? '…' : '') + ' — controlla che siano giusti.' }];
+}
+
+/* ───────── CSV Revolut ───────── */
+function ewRevCsvSplit(line, sep) {
+  var row = [], cur = '', inQ = false, i, ch;
+  for (i = 0; i < line.length; i++) {
+    ch = line.charAt(i);
+    if (ch === '"') { if (inQ && line.charAt(i + 1) === '"') { cur += '"'; i++; } else inQ = !inQ; }
+    else if (ch === sep && !inQ) { row.push(cur.trim()); cur = ''; }
+    else cur += ch;
+  }
+  row.push(cur.trim());
+  return row;
+}
+var EW_REV_COLS = {
+  type: ['type', 'tipo'], product: ['product', 'prodotto'], started: ['started_date', 'data_di_inizio', 'data_inizio'],
+  completed: ['completed_date', 'data_di_completamento', 'data_completamento'], desc: ['description', 'descrizione'],
+  amount: ['amount', 'importo'], fee: ['fee', 'commissione', 'commissioni'], currency: ['currency', 'valuta'], state: ['state', 'stato'], balance: ['balance', 'saldo']
+};
+function ewRevCsvDate(raw) {
+  var s = String(raw || '').trim();
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  if (m) return m[1] + '-' + m[2] + '-' + m[3];
+  m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/.exec(s);
+  if (m) return m[3] + '-' + (m[2].length < 2 ? '0' : '') + m[2] + '-' + (m[1].length < 2 ? '0' : '') + m[1];
+  return '';
+}
+
+// Legge il CSV. → { ok, sep, rows: [{ line, type, product, ts, date, cdate, desc, amount, fee, currency, state, balance }], warnings }
+function ewRevCsv(text) {
+  var lines = String(text || '').replace(/^﻿/, '').split(/\r?\n/).map(function (l) { return l.trim(); }).filter(function (l) { return l.length > 0; });
+  var res = { ok: false, sep: ',', rows: [], warnings: [] }, hi = -1, i;
+  for (i = 0; i < Math.min(lines.length, 5); i++) {
+    var h = lines[i].toLowerCase();
+    if (/type|tipo/.test(h) && /description|descrizione/.test(h) && /amount|importo/.test(h)) { hi = i; break; }
+  }
+  if (hi < 0) return res;
+  var head = lines[hi];
+  res.sep = (head.split(';').length > head.split(',').length) ? ';' : ',';
+  var names = ewRevCsvSplit(head, res.sep).map(function (c) { return c.toLowerCase().replace(/\s+/g, '_'); }), idx = {};
+  Object.keys(EW_REV_COLS).forEach(function (k) {
+    for (var j = 0; j < EW_REV_COLS[k].length; j++) { var p = names.indexOf(EW_REV_COLS[k][j]); if (p >= 0) { idx[k] = p; return; } }
+  });
+  var dflt = { type: 0, product: 1, started: 2, completed: 3, desc: 4, amount: 5, fee: 6, currency: 7, state: 8, balance: 9 };
+  Object.keys(dflt).forEach(function (k) { if (idx[k] == null) idx[k] = (names.length >= 10 ? dflt[k] : (k === 'type' ? 0 : k === 'desc' ? 4 : k === 'amount' ? 5 : k === 'started' ? 2 : k === 'currency' ? 7 : k === 'state' ? 8 : -1)); });
+  res.cols = idx;
+  var bad = 0;
+  for (i = hi + 1; i < lines.length; i++) {
+    var f = ewRevCsvSplit(lines[i], res.sep);
+    if (f.length < 5) continue;
+    var g = function (k) { return idx[k] >= 0 && idx[k] < f.length ? f[idx[k]] : ''; };
+    var amount = ewRevMoney(g('amount'), true), feeRaw = g('fee'), fee = feeRaw === '' ? 0 : ewRevMoney(feeRaw, true), balRaw = g('balance');
+    var balance = balRaw === '' ? null : ewRevMoney(balRaw, true);
+    if (isNaN(amount)) { bad++; continue; }
+    res.rows.push({
+      line: i + 1, type: g('type'), product: g('product'), ts: g('started') || g('completed'), date: ewRevCsvDate(g('started') || g('completed')),
+      cdate: ewRevCsvDate(g('completed') || g('started')), desc: g('desc'), amount: amount, fee: isNaN(fee) ? 0 : fee,
+      currency: (g('currency') || 'EUR').toUpperCase(), state: g('state').toLowerCase(), balance: (balance == null || isNaN(balance)) ? null : balance
+    });
+  }
+  if (bad) res.warnings.push({ lvl: 'warn', text: bad + (bad === 1 ? ' riga con importo illeggibile scartata.' : ' righe con importo illeggibile scartate.') });
+  res.ok = true;
+  return res;
+}
+
+// Catena dei saldi del CSV: righe completate in EUR del conto principale. Prova «con commissione» e «senza» e tiene la migliore.
+// → { order, feeMode: 'incl'|'excl', pairs, matched, breaks, closing: { amount, date } | null }
+function ewRevCsvChain(rows) {
+  var main = rows.filter(function (r) { return /^(completed|completato)?$/.test(r.state) && r.currency === 'EUR' && r.balance != null; });
+  if (main.some(function (r) { return /^(current|corrente|conto)/i.test(r.product); })) main = main.filter(function (r) { return /^(current|corrente|conto)/i.test(r.product); });
+  var out = { order: 'none', feeMode: 'incl', pairs: 0, matched: 0, breaks: 0, closing: null, used: main.length };
+  if (!main.length) return out;
+  function near(a, b) { return Math.abs(a - b) <= 0.011; }
+  var mode = 'incl', k, i;
+  var scores = {};
+  ['incl', 'excl'].forEach(function (m) {
+    var asc = 0, desc = 0;
+    for (i = 1; i < main.length; i++) {
+      var ch = function (r) { return r.amount - (m === 'incl' ? r.fee : 0); };
+      if (near(main[i].balance - main[i - 1].balance, ch(main[i]))) asc++;
+      if (near(main[i - 1].balance - main[i].balance, ch(main[i - 1]))) desc++;
+    }
+    scores[m] = { asc: asc, desc: desc };
+  });
+  var pairs = Math.max(0, main.length - 1), s1 = scores.incl, s2 = scores.excl;
+  var bestIncl = Math.max(s1.asc, s1.desc), bestExcl = Math.max(s2.asc, s2.desc);
+  mode = bestIncl >= bestExcl ? 'incl' : 'excl';
+  var sc = scores[mode], order = sc.asc >= sc.desc ? 'asc' : 'desc', matched = Math.max(sc.asc, sc.desc);
+  out.pairs = pairs; out.feeMode = mode;
+  if (pairs >= 1 && matched >= Math.max(1, Math.ceil(pairs * 0.6))) { out.order = order; out.matched = matched; out.breaks = pairs - matched; }
+  var last;
+  if (out.order === 'asc') last = main[main.length - 1];
+  else if (out.order === 'desc') last = main[0];
+  else {
+    // ordine non verificabile: il movimento con la data di completamento più recente (a parità, l'ultimo del file)
+    last = main[0];
+    for (k = 1; k < main.length; k++) if ((main[k].cdate || main[k].date) >= (last.cdate || last.date)) last = main[k];
+  }
+  out.closing = { amount: last.balance, date: last.cdate || last.date };
+  return out;
 }
 
 function parseRevolutText(text) {
@@ -19886,7 +20533,8 @@ function parseRevolutText(text) {
   // PDF.js raggruppa per riga Y: "D feb 2026 Descrizione €XX.XX €YY.YY"
   const MESI = { gen:0,feb:1,mar:2,apr:3,mag:4,giu:5,lug:6,ago:7,set:8,ott:9,nov:10,dic:11 };
   const DATE_RE  = /\b(\d{1,2})\s+(gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic)\s+(\d{4})\b/i;
-  const AMT_RE   = /€\s*(\d+[.,]\d{2})/g;
+  const AMT_RE   = /€\s*(\d{1,3}(?:[.,]\d{3})+[.,]\d{2}|\d+[.,]\d{2})(?!\d)/g;   // v318: anche «€1,234.56» (prima diventava 1,23)
+  const AMT_STRIP = /€\s*(?:\d{1,3}(?:[.,]\d{3})+[.,]\d{2}|\d+[.,]\d{2})(?!\d)/g;
   const UUIID_RE = /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi;
 
   // Entrate: da skippare come spesa (sono giri in entrata o rimborsi)
@@ -19921,8 +20569,8 @@ function parseRevolutText(text) {
     if(/^(estratto conto|revolut bank|© 20\d\d revolut|segnala carta|ottieni assistenza|scansiona codice|condizioni economiche|pagina \d+ di \d+|se desideri sapere|le normative|i depositi|avviso|attenzione)/i.test(line)) continue;
     // Salva saldo di chiusura prima di skippare la riga
     if(/saldo\s+di\s+chiusura/i.test(line)) {
-      const sm = line.match(/([0-9]{1,3}(?:[.,][0-9]{3})*[.,][0-9]{2})/);
-      if(sm && !window._revSaldoChiusura) window._revSaldoChiusura = parseFloat(sm[1].replace(/\./g,'').replace(',','.'));
+      const _sv = ewRevLastMoney(line);   // v318: legge anche 1,234.56 (prima diventava 1,23456 → 1,23)
+      if(isFinite(_sv) && !window._revSaldoChiusura) window._revSaldoChiusura = _sv;
     }
     if(/^(riepilogo del saldo|in sospeso da|transazioni del conto|data d'inizio|prodotto|saldo iniziale|saldo di chiusura|denaro in uscita|denaro in entrata|data\s+descrizione|numero di conto|iban|bic|\d{12,})/i.test(line)) continue;
     if(/^(via |torino|san mauro|REVOITM|IT\d{2}[A-Z])/i.test(line)) continue;
@@ -19939,10 +20587,14 @@ function parseRevolutText(text) {
   }
   if(pendingLines.length) blocks.push(pendingLines);
 
+  // v318: importo e saldo di ogni riga → catena dei saldi (direzione entrata/uscita, quadratura con il riepilogo)
+  const _an = ewRevAnalyze(blocks, DATE_RE, lines);
+
   for(const block of blocks) {
     const full = block.join(' ');
     const dm   = full.match(DATE_RE);
     if(!dm) continue;
+    const _ri  = _an.byBlock.get(block);
 
     const mo  = MESI[dm[2].toLowerCase()];
     if(mo === undefined) continue;
@@ -19973,19 +20625,23 @@ function parseRevolutText(text) {
     // Skip spese fisse?
     if(SKIP.some(re => re.test(full))) continue;
 
+    // v318: se la catena dei saldi dice che il denaro è ENTRATO non è una spesa (prima contava come uscita se la descrizione non era tra quelle note)
+    if(_ri && _ri.dir === 'in') { _an.skippedIn++; _an.skippedInSum += _ri.amount; continue; }
+    if(_ri && _ri.dir === '?' && _an.chain.order !== 'none') _an.unknown++;
+
     // Estrai importi: il primo €XX.XX è "denaro in uscita"
     const amts = [...full.matchAll(AMT_RE)];
     if(!amts.length) continue;
 
-    // Il primo importo è l'uscita (le entrate sono già filtrate sopra)
-    const amount = parseFloat(amts[0][1].replace(',','.'));
+    // Il primo importo è l'uscita (le entrate sono già filtrate sopra); v318: importo già letto con le migliaia
+    const amount = _ri ? _ri.amount : ewRevMoney(amts[0][1]);
     if(!amount || amount <= 0) continue;
 
     // Estrai descrizione: rimuovi data, importi €, UUID, riferimenti IBAN
     let desc = full;
     desc = desc.replace(DATE_RE, '');
     desc = desc.replace(UUIID_RE, '');
-    desc = desc.replace(/€\s*\d+[.,]\d{2}/g, '');
+    desc = desc.replace(AMT_STRIP, '');
     desc = desc.replace(/\bIT\d{2}[A-Z0-9]{23,}\b/gi, '');
     desc = desc.replace(/\$\s*\d+[.,]\d{2}/g, '');
     desc = desc.replace(/tasso revolut[^€]*/gi, '');
@@ -20001,19 +20657,24 @@ function parseRevolutText(text) {
     const mainLine = block[0];
     let descClean = mainLine
       .replace(DATE_RE,'')
-      .replace(/€\s*\d+[.,]\d{2}/g,'')
+      .replace(AMT_STRIP,'')
       .replace(/\s{2,}/g,' ').trim();
     if(descClean.length < 2) descClean = desc.substring(0, 40).trim();
     if(descClean.length < 2) descClean = '—';
     descClean = cleanRevolutDesc(descClean);
 
-    const key = `${dateStr}_${amount.toFixed(2)}_${descClean.substring(0,12)}`;
-    if(seen.has(key)) continue;
+    // v318: due acquisti identici nello stesso giorno hanno saldi diversi → restano entrambi; si scarta solo la riga davvero doppia (stesso saldo)
+    const key = `${dateStr}_${amount.toFixed(2)}_${descClean.substring(0,12)}_${_ri && _ri.balance != null ? _ri.balance.toFixed(2) : ''}`;
+    if(seen.has(key)) { _an.merged++; continue; }
     seen.add(key);
 
     results.push({ date: dateStr, desc: descClean, amount, cat: guessCategorySatispay(descClean), pay: 'bancomat' });
   }
 
+  // v318: saldo di chiusura = saldo dell'ultimo movimento (con la sua data); avvisi di quadratura per l'anteprima
+  window._revWarn = _an.finish(results);
+  window._revSaldoDate = '';
+  if(_an.closing != null) { window._revSaldoChiusura = _an.closing; window._revSaldoDate = _an.closingDate || ''; }
   return results.sort((a,b) => a.date.localeCompare(b.date));
 }
 
@@ -20022,7 +20683,7 @@ function confirmRevolutImport()  {
   // Auto-aggiorna saldo CC da saldo di chiusura Revolut
   if(window._revSaldoChiusura) {
     // Data = ultima data dei movimenti
-    const lastDate = revolutParsed.length ? revolutParsed[revolutParsed.length-1].date : new Date().toISOString().split('T')[0];
+    const lastDate = window._revSaldoDate || (revolutParsed.length ? revolutParsed[revolutParsed.length-1].date : new Date().toISOString().split('T')[0]);   // v318: data dell'ultimo movimento dell'estratto (prima, a import fatto, era sempre oggi)
     autoAggiornaSaldoCC({ amount: window._revSaldoChiusura, date: lastDate }, 'revolut');
   }
 }
@@ -20092,7 +20753,7 @@ function parseSellaCSV(text) {
     else continue;
 
     // Parsea importo: "-1.234,56" → -1234.56
-    const amtClean = amtRaw.replace(/\./g,'').replace(',','.').replace(/\s/g,'');
+    const amtClean = amtRaw.replace(/−/g,'-').replace(/\./g,'').replace(',','.').replace(/\s/g,'');   // v318: anche il segno «−»
     const amount = parseFloat(amtClean);
     if(isNaN(amount) || amount >= 0) continue; // solo uscite (negative)
 
@@ -20103,7 +20764,7 @@ function parseSellaCSV(text) {
     if(/giro al[l]?\s|libretto di risparmio|satispay europe|revolut\*+\d+\*|giroconto/i.test(fullDesc)) continue;
     if(/contributo.*da\s|stipendio|salario|\bsdd\b.*add\.diretto/i.test(fullDesc)) continue;
 
-    const key = `${dateStr}_${absAmount.toFixed(2)}_${fullDesc.substring(0,10)}`;
+    const key = `${dateStr}_${absAmount.toFixed(2)}_${fullDesc.substring(0,10)}_${(cols[4] || '').replace(/\s/g, '')}`;   // v318: con il saldo della riga, due acquisti uguali nello stesso giorno restano due
     if(seen.has(key)) continue;
     seen.add(key);
 
@@ -20156,7 +20817,7 @@ async function importRevolutCSV(event) {
       statusEl.textContent = '⚠️ Nessun movimento trovato. Verifica che sia un CSV Revolut con intestazioni Type,Product,Started Date,...';
       return;
     }
-    statusEl.textContent = `✅ Trovate ${revolutCsvParsed.length} uscite`;
+    statusEl.textContent = `✅ Trovate ${revolutCsvParsed.length} uscite` + ((window._revCsvWarn||[]).some(w => w.lvl === 'warn') ? ' · ⚠️ controlla gli avvisi' : '');
     renderCSVPreview('revolutCsv', revolutCsvParsed, '💜 Revolut CSV');
   } catch(e) {
     statusEl.textContent = '❌ Errore lettura file: ' + e.message;
@@ -20262,7 +20923,76 @@ function cleanRevolutDesc(raw) {
   return d || '—';
 }
 
+// v318 · CSV Revolut: colonne per nome (virgola o punto e virgola), controllo dei saldi riga per riga, commissioni,
+// doppioni veri (stesso istante, importo, descrizione e saldo), saldo = quello dell'ULTIMO movimento in ordine di tempo.
 function parseRevolutCSV(text) {
+  window._revolutCsvBalance = null;
+  window._revCsvWarn = [];
+  let R = null;
+  try { R = ewRevCsv(text); } catch(e) { R = null; }
+  if(!R) return _parseRevolutCSV_old(text);
+  if(!R.ok) return [];
+  const C = ewRevCsvChain(R.rows);
+  const W = R.warnings.slice();
+  const results = [], feeRows = [];
+  const seen = new Set();
+  const useFee = C.feeMode === 'incl' && C.order !== 'none';   // le commissioni si aggiungono solo se i saldi dimostrano che sono state addebitate
+  const isPending = r => /^(pending|in sospeso|in attesa)/.test(r.state);
+  const isDead    = r => /^(failed|reverted|declined|fallit|annullat|rifiutat|stornat)/.test(r.state);
+  let merged = 0, pend = 0, pendSum = 0, foreign = 0, refunds = 0, refundSum = 0, feeN = 0, feeSum = 0;
+
+  for(const r of R.rows) {
+    if(isPending(r)) { if(r.amount < 0 && r.currency === 'EUR') { pend++; pendSum += Math.abs(r.amount); } continue; }
+    if(isDead(r)) continue;
+    const desc = cleanRevolutDesc((r.desc || '—').substring(0, 80));
+
+    // commissione della riga (colonna Fee): è un costo vero, il saldo la comprende
+    if(useFee && r.currency === 'EUR' && r.fee > 0.004 && /^\d{4}-\d{2}-\d{2}$/.test(r.date)) {
+      feeRows.push({ date: r.date, desc: 'Commissione · ' + desc, amount: Math.round(r.fee * 100) / 100, cat: 'extra', pay: 'bancomat', source: 'revolut' });
+      feeN++; feeSum += r.fee;
+    }
+
+    const type = (r.type || '').toLowerCase();
+    // Salta top-up, exchange, reward
+    if(/top.?up|exchange|reward|cashback|refund|reversal/i.test(type)) {
+      if(r.amount > 0 && r.currency === 'EUR' && /refund|reversal/i.test(type)) { refunds++; refundSum += r.amount; }
+      continue;
+    }
+    if(!(r.amount < 0)) continue;
+    if(r.currency !== 'EUR') { foreign++; continue; }   // solo EUR
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(r.date)) continue;
+
+    // Skip interni Revolut
+    if(/to eur personal|from eur personal|spiccioli|revpoints|savings vault|accredita\s*eur|spare change|cashback revolut/i.test(desc)) continue;
+
+    const absAmount = Math.abs(r.amount);
+    const key = [r.ts, absAmount.toFixed(2), desc, r.balance == null ? '' : r.balance.toFixed(2)].join('|');
+    if(seen.has(key)) { merged++; continue; }
+    seen.add(key);
+
+    results.push({ date: r.date, desc, amount: absAmount, cat: guessCategorySatispay(desc), pay: 'bancomat', source: 'revolut' });
+  }
+
+  feeRows.forEach(f => results.push(f));   // le commissioni dopo le spese (a parità di giorno la spesa resta sopra)
+
+  // saldo dell'ultimo movimento in ordine di tempo (anche se non è una spesa)
+  if(C.closing) window._revolutCsvBalance = { amount: C.closing.amount, date: C.closing.date };
+
+  if(C.used >= 3 && C.order === 'none') W.push({ lvl: 'warn', text: 'Non riesco a verificare i saldi riga per riga: controlla a mano le uscite prima di importare.' });
+  else if(C.breaks > 0) W.push({ lvl: 'warn', text: C.breaks + (C.breaks === 1 ? ' movimento ha' : ' movimenti hanno') + ' un saldo che non torna (righe mancanti o modificate?).' });
+  else if(C.used >= 3) W.unshift({ lvl: 'ok', text: 'Saldi verificati riga per riga.' });
+  if(merged) W.push({ lvl: 'info', text: merged + (merged === 1 ? ' riga identica scartata' : ' righe identiche scartate') + ' (stesso istante, importo, descrizione e saldo).' });
+  if(feeN) W.push({ lvl: 'info', text: feeN + (feeN === 1 ? ' commissione' : ' commissioni') + ' (' + ewRevMoneyFmt(feeSum) + ') aggiunte come spese a parte: il saldo di Revolut le comprende.' });
+  if(pend) W.push({ lvl: 'info', text: pend + (pend === 1 ? ' movimento in sospeso' : ' movimenti in sospeso') + ' (' + ewRevMoneyFmt(pendSum) + ') non importati: arriveranno con l\'estratto successivo.' });
+  if(foreign) W.push({ lvl: 'info', text: foreign + (foreign === 1 ? ' movimento' : ' movimenti') + ' in altra valuta non importati (si leggono solo i conti in EUR).' });
+  if(refunds) W.push({ lvl: 'info', text: refunds + (refunds === 1 ? ' rimborso' : ' rimborsi') + ' (' + ewRevMoneyFmt(refundSum) + ') non sottratti dalle spese: se riguardano acquisti già registrati, toglili a mano.' });
+  ewRevOutliers(results).forEach(w => W.push(w));
+  window._revCsvWarn = W;
+  return results.sort((a,b) => a.date.localeCompare(b.date));
+}
+
+// Lettore CSV precedente: resta solo come riserva se il nuovo non riesce a leggere il file
+function _parseRevolutCSV_old(text) {
   const lines = text.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
   const results = [];
   const seen = new Set();
@@ -20386,6 +21116,7 @@ function renderCSVPreview(id, parsed, label) {
       💸 Totale: <strong>€${total.toFixed(2).replace('.',',')}</strong>
     </div>
   </div>`;
+  if(id === 'revolutCsv') summEl.insertAdjacentHTML('beforeend', ewRevWarnHtml(window._revCsvWarn));   // v318: avvisi del controllo saldi
 
   // Raggruppa per mese
   const byMonth = {};
@@ -20464,6 +21195,7 @@ function renderBankPreview(bank, parsed) {
         📅 <strong>${months.length}</strong> mes${months.length===1?'e':'i'}
       </div>
     </div>
+    ${bank === 'revolut' ? ewRevWarnHtml(window._revWarn) : ''}
     <div style="font-size:12px;color:var(--text-muted);">Le categorie sono assegnate automaticamente — puoi modificarle dopo l'importazione.</div>`;
 
   let html = '';
@@ -20591,7 +21323,7 @@ function bankImportMissingOnly(bank) {
   showToast(`✅ Importate ${count} spese mancanti da ${icon}!`);
   // Auto-aggiorna saldo CC per Revolut
   if(bank === 'revolut' && window._revSaldoChiusura) {
-    const lastDate = parsed.length ? parsed[parsed.length-1].date : new Date().toISOString().split('T')[0];
+    const lastDate = window._revSaldoDate || (parsed.length ? parsed[parsed.length-1].date : new Date().toISOString().split('T')[0]);
     autoAggiornaSaldoCC({ amount: window._revSaldoChiusura, date: lastDate }, 'revolut');
   }
   // Ricarica preview con dati aggiornati
@@ -20878,7 +21610,7 @@ function getStipendioArrivalDay(year, month) {
 }
 
 // ── Spese del mese precedente dal giorno stipendio in poi (filtrate VS) ──
-// Include anche spese registrate nei primi 3 giorni del mese corrente (ritardo PDF)
+// v318: solo il tratto di fine mese precedente. I primi giorni del mese corrente fanno già parte delle spese del mese (prima si contavano due volte).
 function getSpeseMesePrecedente(yr, mo) {
   const prevMo = mo === 1 ? 12 : mo - 1;
   const prevYr = mo === 1 ? yr - 1 : yr;
@@ -20891,14 +21623,14 @@ function getSpeseMesePrecedente(yr, mo) {
     return d.getDate() >= arrivalDay;
   });
 
-  // Spese dei primi 3 giorni del mese corrente (importate con ritardo dal PDF)
+  // v318: i primi 3 giorni del mese corrente restano disponibili in `inizio` solo per riportare ai valori di prima le correzioni a mano
   const currSpese = vsLoadMonth(yr, mo);
   const speseInizio = currSpese.filter(e => {
     const d = new Date(e.date + 'T12:00:00');
     return d.getDate() <= 3;
   });
 
-  return { spese: [...speseTail, ...speseInizio], arrivalDay, prevMo, prevYr };
+  return { spese: speseTail, inizio: speseInizio, arrivalDay, prevMo, prevYr };
 }
 
 // ── Spese del mese precedente dal giorno stipendio (TUTTE, per dashboard principale) ──
@@ -20923,8 +21655,8 @@ function renderVSBudget() {
   const yr = parseInt(document.getElementById('globalYear').value);
   const mo = parseInt(document.getElementById('globalMonth').value);
   const allIncome = getIncome();
-  const stipendio = Math.round(allIncome.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
-  const extra     = Math.round(allIncome.filter(i=>i.type!=='ferrino'&&i.type!=='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
+  const stipendio = ewSalary(allIncome);
+  const extra     = ewExtra(allIncome);
 
   // Spese fisse anno corrente
   const fixedTotal = Math.round(getTotalFixedForYear(yr)*100)/100;
@@ -20942,11 +21674,11 @@ function renderVSBudget() {
   const totSpesePrev = Math.round(spesePrev.reduce((s,e)=>s+e.amount,0)*100)/100;
 
   // ── Se non c'è stipendio questo mese, usa quello del mese precedente ──
-  let totEntrate = Math.round((stipendio + extra)*100)/100;
+  let totEntrate = Math.round((stipendio + extra - totSpesePrev)*100)/100;   // v318: anche qui le spese di fine mese si sottraggono una volta (come nella Rimanenza)
   let prevStipLordo = stipendio; // per display
   if (stipendio === 0) {
     const prevIncome = load(`income_${prevYr}_${prevMo}`, []);
-    prevStipLordo = Math.round(prevIncome.filter(i=>i.type==='ferrino'||i.type==='stipendio_profile').reduce((s,i)=>s+i.amount,0)*100)/100;
+    prevStipLordo = ewSalary(prevIncome);
     // totEntrate = stipendio prec - spese fine mese + eventuali entrate extra del mese corrente
     totEntrate = Math.round((prevStipLordo - totSpesePrev + extra)*100)/100;
   }
@@ -24252,9 +24984,9 @@ function checkIOSInstallPrompt() {
 function dashQuickSaldo() {
   const saved = load('saldo_banca_manuale', null);
   const cur = saved ? saved.amount.toFixed(2).replace('.', ',') : '';
-  const val = prompt('Saldo reale da app Sella (es. 1272.96):', cur);
+  const val = prompt('Saldo reale da app Sella (es. 1272,96):', cur);
   if(val === null) return;
-  const amount = parseFloat(val.replace(',', '.'));
+  const amount = ewParseMoney(val);   // v318: capisce anche «1.272,96»
   if(isNaN(amount)) { showToast('⚠️ Importo non valido'); return; }
   const today = new Date().toISOString().split('T')[0];
   save('saldo_banca_manuale', { amount, date: today });
@@ -24267,7 +24999,7 @@ function dashQuickEditSaldo() {
   const saved = getSaldoBanca();
   const val = prompt('Inserisci il saldo attuale del conto (€):', saved ? saved.amount : '');
   if(val === null) return; // annullato
-  const amount = parseFloat(val.replace(',', '.'));
+  const amount = ewParseMoney(val);   // v318: capisce anche «1.272,96»
   if(isNaN(amount)) { showToast('⚠️ Importo non valido'); return; }
   const data = { amount, date: new Date().toLocaleDateString('it-IT') };
   saveSaldoBanca(data);
@@ -24305,57 +25037,33 @@ function renderDashSaldoBanca() {
     /tradori/i,        // qualsiasi giro a Sergio Tradori stesso
   ];
 
-  let E = 0, totSel = 0, totRev = 0, totSat = 0, totMan = 0, nMesi = 0;
-
-  for(let y = 2023; y <= nowY + 1; y++) {
-    for(let m = 1; m <= 12; m++) {
-      const exp = load('expenses_' + y + '_' + m, []) || [];
-      const inc = load('income_'   + y + '_' + m, []) || [];
-      if(!exp.length && !inc.length) continue;
-      nMesi++;
-      inc.forEach(i => { E += (i.amount || 0); });
-      exp.forEach(e => {
-        const s   = e.source || '';
-        const d   = (e.desc || '').toLowerCase();
-        const p   = e.pay || '';
-        const amt = e.amount || 0;
-        if(s === 'revolut')   { totRev += amt; return; }
-        if(s === 'satispay')  { totSat += amt; return; }
-        if(s === 'sella') {
-          // Escludi ricariche e trasferimenti interni
-          if(SKIP_SELLA.some(r => r.test(d))) return;
-          if(p === 'bonifico' && /revolut|satispay/i.test(d)) return;
-          totSel += amt; return;
-        }
-        totMan += amt;
-      });
-    }
-  }
-
+  // v318: stessa stima del Conto corrente: ultimo saldo certo + movimenti successivi (prima qui si sommava tutto dal 2023)
+  const _mdl = EWFIX.ccModel();
   const saldoBase = getCCSaldoIniziale();
-  const base  = saldoBase ? saldoBase.amount : 0;
-  const saldo = base + E - totRev - totSat - totSel - totMan;
+  const saldo = _mdl.estimate == null ? 0 : _mdl.estimate;
+  const E = _mdl.entrate + _mdl.libPre, totUsc = _mdl.uscite + _mdl.libDep, nMesi = _mdl.nMov;
 
   // Verifica se esiste una correzione manuale recente
   const manuale = load('saldo_banca_manuale', null);
   const manLabel = document.getElementById('dash-saldo-banca-manual-label');
 
-  if(manuale) {
-    // Mostra il saldo manuale come valore principale
-    val.textContent = fmt(manuale.amount);
-    val.style.color = manuale.amount >= 0 ? '#4a90e8' : 'var(--red)';
-    if(sub)  sub.textContent = 'Confermato da Sella il ' + new Date(manuale.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'});
-    if(date) date.textContent = 'Stima automatica: ' + fmt(saldo) + ' · clicca ✏️ Correggi per aggiornare';
+  if(_mdl.estimate == null) {
+    val.textContent = '—'; val.style.color = 'var(--text-muted)';
+    if(sub)  sub.textContent = 'Saldo reale non ancora configurato';
+    if(date) date.textContent = 'Imposta saldo iniziale in Conto Corrente';
     if(manLabel) manLabel.textContent = '';
-  } else {
-    // Mostra il calcolato
+  } else if(manuale && _mdl.anchor && _mdl.anchor.kind === 'manuale') {
+    // saldo confermato + movimenti arrivati dopo (se non ce ne sono, coincide con il saldo confermato)
     val.textContent = fmt(saldo);
     val.style.color = saldo >= 0 ? '#4a90e8' : 'var(--red)';
-    if(sub)  sub.textContent = '+' + fmt(E) + ' entrate − ' + fmt(totRev+totSat+totSel+totMan) + ' uscite';
-    const dataLabel = saldoBase
-      ? 'Stima su ' + nMesi + ' mesi · clicca ✏️ Correggi con il saldo reale'
-      : 'Imposta saldo iniziale in Conto Corrente';
-    if(date) date.textContent = dataLabel;
+    if(sub)  sub.textContent = 'Confermato da Sella il ' + new Date(manuale.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'}) + (_mdl.nMov ? ' · ' + fmt(manuale.amount) + ' + ' + _mdl.nMov + ' mov.' : '');
+    if(date) date.textContent = _mdl.nMov ? 'Stima dal saldo confermato · clicca ✏️ Correggi con il saldo reale' : 'Saldo confermato · clicca ✏️ Correggi per aggiornare';
+    if(manLabel) manLabel.textContent = '';
+  } else {
+    val.textContent = fmt(saldo);
+    val.style.color = saldo >= 0 ? '#4a90e8' : 'var(--red)';
+    if(sub)  sub.textContent = EWFIX.ccAnchorText(_mdl) + (E || totUsc ? ' · +' + fmt(E) + ' entrate − ' + fmt(totUsc) + ' uscite' : '');
+    if(date) date.textContent = 'Stima · clicca ✏️ Correggi con il saldo reale';
     if(manLabel) manLabel.textContent = '';
   }
   if(row)  row.style.borderColor = (manuale || saldo >= 0) ? 'rgba(74,144,232,0.35)' : 'rgba(224,92,92,0.4)';
@@ -24563,27 +25271,15 @@ function extractSaldoFromText(text, bank) {
 // Mostra un toast con la possibilità di confermare
 function autoAggiornaSaldoCC(saldoInfo, bank) {
   if(!saldoInfo) return;
-  const attuale = getCCSaldoIniziale();
-  // Non sovrascrivere un saldo storico (2023) con uno recente da PDF
-  // Aggiorna solo se non c'è ancora un saldo O se quello nuovo è più recente
-  if(attuale) {
-    // Se l'utente ha già un saldo storico dal 2023, non aggiornarlo con saldo da PDF
-    if(attuale.date <= '2024-01-01' && saldoInfo.date > attuale.date) {
-      // Mostra solo info senza sovrascrivere
-      const fmt = v => '€' + v.toFixed(2).replace('.', ',');
-      const bankName = bank === 'revolut' || bank === 'revolut_csv' ? '💜 Revolut' : bank === 'sella' ? '🏦 Sella' : '📱 Satispay';
-      showToast(`🏦 ${bankName} chiusura: ${fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short'})}`);
-      return;
-    }
-    if(attuale.date > saldoInfo.date) return; // saldo attuale più recente, non aggiornare
+  // v318: il saldo di chiusura di Revolut o Satispay non è il saldo del conto Sella: si mostra e basta, non lo sostituisce mai.
+  // L'estratto Sella, se è più recente dell'ultimo saldo certo, si propone come «saldo confermato» (decidi tu).
+  const _fmt = v => '€' + v.toFixed(2).replace('.', ',');
+  const _bankName = bank === 'revolut' || bank === 'revolut_csv' ? '💜 Revolut' : bank === 'sella' ? '🏦 Sella' : '📱 Satispay';
+  if(bank !== 'sella') {
+    showToast(`${_bankName} chiusura: ${_fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short'})} · il saldo del conto Sella non cambia`);
+    return;
   }
-  const fmt = v => '€' + v.toFixed(2).replace('.', ',');
-  const bankName = bank === 'revolut' || bank === 'revolut_csv' ? '💜 Revolut' : bank === 'sella' ? '🏦 Sella' : '📱 Satispay';
-  saveCCSaldoIniziale(saldoInfo);
-  fbPushToCloud();
-  renderDashSaldoBanca();
-  if(document.getElementById('sec-contocorrente')?.classList.contains('active')) renderCC();
-  showToast(`💳 Saldo CC aggiornato da ${bankName}: ${fmt(saldoInfo.amount)} al ${new Date(saldoInfo.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'short',year:'numeric'})}`);
+  if(window.EWFIX && EWFIX.offerClosing) EWFIX.offerClosing(saldoInfo);
 }
 
 // ═══════════════════════════════════════════════
@@ -25118,6 +25814,8 @@ function ccGetAllMovimenti() {
     }
   }
 
+  // v318: i giroconti col libretto spostano il conto (non sono spese): entrano nell'elenco e nella stima
+  try { if(window.EWFIX) EWFIX.ccLibRows().forEach(r => movimenti.push(r)); } catch(_e) {}
   // Ordina per data crescente (dal più vecchio al più recente)
   movimenti.sort((a, b) => a.dateObj - b.dateObj || String(a.id).localeCompare(String(b.id)));
   return movimenti;
@@ -25139,23 +25837,13 @@ function renderDashCCBanner() {
     banner.style.borderColor = 'rgba(74,144,232,0.2)';
     return;
   }
-  // Calcola saldo attuale = iniziale + entrate/uscite POST data riferimento
-  const movimenti = ccGetAllMovimenti();
-  const _sd = new Date(saldoIniz.date + 'T00:00:00');
-  const _TRASF2 = [/satispay\s*europe/i,/revolut\*+\d+\*/i,/revolut.*dublin/i,/giro\s*al[l]?\s/i,/giroconto/i,/libretto\s*di\s*risparmio/i,/accredita\s*eur/i,/savings?\s*vault/i,/spare\s*change/i,/to\s*eur\s*personal/i,/top[\s-]*up/i,/instant\s*top/i,/ricarica.*revolut/i,/ricarica.*satispay/i];
-  const _isT2 = m => _TRASF2.some(r=>r.test(m.desc||'')) || (m.tipo!=='entrata'&&m.pay==='bonifico'&&/revolut|satispay/i.test(m.desc||''));
-  let totE = 0, totU = 0, nPost = 0;
-  movimenti.forEach(m => {
-    if(m.dateObj < _sd) return;
-    nPost++;
-    if(m.tipo === 'entrata') totE += m.amount;
-    else if(!_isT2(m)) totU += m.amount;
-  });
-  const saldoAtt = saldoIniz.amount + totE - totU;
+  // v318: stessa stima della pagina Conto corrente e della scheda «Saldo banca» (ultimo saldo certo + movimenti successivi)
+  const _mdl = EWFIX.ccModel();
+  const saldoAtt = _mdl.estimate, nPost = _mdl.nMov;
   const fmt = v => (v<0?'-':'')+'€'+Math.abs(v).toFixed(2).replace('.', ',');
   if(saldoEl) { saldoEl.textContent = fmt(saldoAtt); saldoEl.style.color = saldoAtt>=0?'#4a90e8':'var(--red)'; }
   if(dataEl)  dataEl.textContent = 'Aggiornato · ' + nPost + ' movimenti · clicca per dettaglio';
-  if(subEl)   subEl.textContent  = 'Dal ' + new Date(saldoIniz.date+'T12:00:00').toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'});
+  if(subEl)   subEl.textContent  = EWFIX.ccAnchorText(_mdl);
   banner.style.borderColor = saldoAtt>=0?'rgba(74,144,232,0.4)':'rgba(224,92,92,0.4)';
 }
 
@@ -25186,45 +25874,12 @@ function renderCC() {
   }
 
   const tutti = ccGetAllMovimenti();
-  const startDate = new Date(saldoIniz.date + 'T00:00:00');
-
-  // Pattern trasferimenti interni da escludere dal saldo (doppio conteggio)
-  const _TRASF_RE = [
-    /satispay\s*europe/i,
-    /revolut\*+\d+\*/i,
-    /revolut.*dublin/i,
-    /giro\s*al[l]?\s/i,
-    /giroconto/i,
-    /libretto\s*di\s*risparmio/i,
-    /accredita\s*eur/i,
-    /savings?\s*vault/i,
-    /spare\s*change/i,
-    /to\s*eur\s*personal/i,
-    /from\s*eur\s*personal/i,
-    /top[\s-]*up/i,
-    /instant\s*top/i,
-    /ricarica.*revolut/i,
-    /ricarica.*satispay/i,
-    /risparmio/i,    // autoversamenti risparmio
-    /tradori/i,      // giri a se stesso (Sergio Tradori)
-  ];
-  // È un trasferimento interno se: desc corrisponde OR (è bonifico verso Revolut/Satispay)
-  const _isTrasf = m => {
-    if(_TRASF_RE.some(r => r.test(m.desc || ''))) return true;
-    if(m.tipo !== 'entrata' && m.pay === 'bonifico' && /revolut|satispay/i.test(m.desc || '')) return true;
-    return false;
-  };
-
-  let totEntrate = 0, totUscite = 0, totTrasf = 0;
-  tutti.forEach(m => {
-    if(m.dateObj < startDate) return;
-    if(m.tipo === 'entrata') { totEntrate += m.amount; return; }
-    if(_isTrasf(m)) { totTrasf += m.amount; return; }
-    totUscite += m.amount;
-  });
-
-  // saldo iniziale + entrate - uscite reali (esclusi trasferimenti interni)
-  const saldoAttuale = saldoIniz.amount + totEntrate - totUscite;
+  // v318: stima unica (vale anche per Dashboard): ogni movimento riceve eff (effetto sul conto) e pre (già nel saldo certo)
+  const _mdl = EWFIX.ccModel(tutti);
+  const _anc = _mdl.anchor || { amount: saldoIniz.amount, date: saldoIniz.date, kind: 'iniziale' };
+  const startDate = new Date(_anc.date + 'T00:00:00');
+  const totEntrate = _mdl.entrate + _mdl.libPre, totUscite = _mdl.uscite + _mdl.libDep, totTrasf = _mdl.trasf;
+  const saldoAttuale = _mdl.estimate;
   const fmt = v => (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
 
   // Aggiorna KPI
@@ -25254,7 +25909,7 @@ function renderCC() {
   if(siEl) { siEl.textContent = fmt(saldoIniz.amount); }
   const sidEl = document.getElementById('cc-saldo-iniziale-data');
   if(sidEl) sidEl.textContent = 'Dal ' + new Date(saldoIniz.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit',month:'long',year:'numeric'});
-  const movPost = tutti.filter(m => m.dateObj >= startDate);
+  const movPost = tutti.filter(m => !m.pre);
   const nmEl = document.getElementById('cc-n-movimenti');
   if(nmEl) nmEl.textContent = movPost.length;
   const pmEl = document.getElementById('cc-periodo-movimenti');
@@ -25266,7 +25921,7 @@ function renderCC() {
   const teEl = document.getElementById('cc-tot-entrate');
   if(teEl) teEl.textContent = '+' + fmt(totEntrate);
   // Aggiorna label saldo attuale con info trasferimenti esclusi
-  if(saCc) saCc.textContent = 'Calcolato al ' + new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}) + ' · ' + fmt(totTrasf) + ' trasf. interni esclusi';
+  if(saCc) saCc.textContent = 'Calcolato al ' + new Date().toLocaleDateString('it-IT',{day:'2-digit',month:'long',year:'numeric'}) + ' · ' + EWFIX.ccAnchorText(_mdl) + (totTrasf > 0 ? ' · ' + fmt(totTrasf) + ' giri interni esclusi' : '');
   const tuEl = document.getElementById('cc-tot-uscite');
   if(tuEl) tuEl.textContent = '-' + fmt(totUscite);
   const deEl = document.getElementById('cc-delta');
@@ -25363,11 +26018,13 @@ function renderCC() {
     }
 
     // ── Calcola saldo (lista newest-first, risaliamo) ──
-    const isStorico = m.dateObj < startDate; // prima del saldo iniziale → non influenza
+    const isStorico = !!m.pre; // già dentro il saldo certo → non influenza
     const saldoDopo = isStorico ? null : saldoProgressivo;
     if(!isStorico) {
-      if(m.tipo === 'entrata') { saldoProgressivo -= m.amount; mEntrate += m.amount; aEntrate += m.amount; }
-      else                     { saldoProgressivo += m.amount; mUscite  += m.amount; aUscite  += m.amount; }
+      // v318: si risale solo con i movimenti che contano davvero (i giri tra i tuoi conti, i contanti e i ticket non spostano il saldo)
+      saldoProgressivo -= (m.eff || 0);
+      if((m.eff || 0) > 0)      { mEntrate += m.amount; aEntrate += m.amount; }
+      else if((m.eff || 0) < 0) { mUscite  += m.amount; aUscite  += m.amount; }
       saldoChiusuraMese = saldoDopo;
       saldoChiusuraAnno = saldoDopo;
     }
@@ -25380,8 +26037,9 @@ function renderCC() {
                     : m.source === 'revolut'  ? '<span style="background:rgba(138,92,246,0.2);color:#a78bfa;border-radius:4px;padding:1px 5px;font-size:9px;font-weight:700;margin-left:4px;">💜</span>'
                     : '';
 
-    const saldoCell = saldoDopo === null
-      ? `<span style="color:var(--text-muted);font-size:10px;text-align:right;padding-left:12px;font-style:italic;">storico</span>`
+    const _noEff = !isStorico && !(m.eff || 0);   // v318: non sposta il conto → «non incide» invece di ripetere il saldo
+    const saldoCell = (saldoDopo === null || _noEff)
+      ? `<span style="color:var(--text-muted);font-size:10px;text-align:right;padding-left:12px;font-style:italic;">${_noEff ? 'non incide' : 'storico'}</span>`
       : `<span style="color:${saldoDopo>=0?'#4a90e8':'var(--red)'};font-weight:700;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;">${fmtV(saldoDopo)}</span>`;
     html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:9px 16px 9px 20px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;align-items:center;${isStorico?'opacity:0.4;':''}${idx%2===0?'':'background:rgba(255,255,255,0.012);'}">
       <span style="color:var(--text-muted);font-size:11px;">${dateStr}</span>
@@ -25401,10 +26059,10 @@ function renderCC() {
   // Riga saldo attuale (punto di riferimento)
   const fmtSI = v => (v<0?'-':'') + '€' + Math.abs(v).toFixed(2).replace('.', ',');
   html += `<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:0;padding:12px 16px;background:rgba(74,144,232,0.1);border-top:2px solid rgba(74,144,232,0.4);font-size:12px;align-items:center;">
-    <span style="color:var(--text-muted);font-size:11px;">${new Date(saldoIniz.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit', month:'short', year:'numeric'})}</span>
-    <span style="font-weight:700;color:#4a90e8;">📌 Saldo di riferimento impostato</span>
+    <span style="color:var(--text-muted);font-size:11px;">${new Date(_anc.date + 'T12:00:00').toLocaleDateString('it-IT', {day:'2-digit', month:'short', year:'numeric'})}</span>
+    <span style="font-weight:700;color:#4a90e8;">📌 ${_anc.kind === 'manuale' ? 'Saldo confermato (app Sella)' : 'Saldo di riferimento impostato'}</span>
     <span style="color:var(--text-muted);font-size:10px;text-align:right;">rimanenza TRAD.CLAB</span>
-    <span style="color:#4a90e8;font-weight:900;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;font-size:16px;">${fmtSI(saldoIniz.amount)}</span>
+    <span style="color:#4a90e8;font-weight:900;white-space:nowrap;text-align:right;padding-left:12px;font-family:'Playfair Display',serif;font-size:16px;">${fmtSI(_anc.amount)}</span>
   </div>`;
 
   if(listEl) listEl.innerHTML = html;
@@ -29325,6 +29983,13 @@ function bkOnOpen() {
             <div class="bk-result bk-note" id="bkSyncMsg" hidden></div>
           </div>
 
+          <!-- CONTROLLO DATI -->
+          <div class="bk-card" id="chkCard">
+            <h3>Controllo dati</h3>
+            <p>Cerca nei dati registrati ciò che non torna: <b>saldi salvati al posto dei movimenti</b>, importi con più di due decimali, righe identiche ripetute. Non cambia nulla senza il tuo tocco e, prima di ogni correzione, salva una copia di sicurezza.</p>
+            <button type="button" class="bk-ghost bk-full" id="chkBtnOpen" onclick="EWCHK.open()">🔍 Controlla ora</button>
+          </div>
+
           <!-- SCARICA -->
           <div class="bk-card">
             <h3>Scarica un backup</h3>
@@ -32913,6 +33578,30 @@ body.light{
 @media (max-width:480px){:is(html,#_) body #vacSpVia{padding:9px 16px}}
 :is(html,#_) body .via-chip{display:inline-flex;align-items:center;gap:4px;max-width:100%;padding:1px 8px;border-radius:999px;background:var(--fill);color:var(--label2);
   font-size:10px;font-weight:600;line-height:1.5;white-space:nowrap}
+:is(html,#_) body .ew-fx-scrim{position:fixed;inset:0;z-index:2147483000;display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);overscroll-behavior:contain;animation:ewPopFade .18s ease both}
+:is(html,#_) body .ew-fx-scrim .ew-pop-bd p{overflow-wrap:anywhere}
+:is(html,#_) body.ew-embed .ew-fx-scrim{padding-top:max(52px,calc(env(safe-area-inset-top,0px) + 46px))}
+:is(html,#_) body .ew-fx-scrim .ew-pop-ft{display:flex;flex-direction:column;gap:9px;padding:12px 22px 22px}
+@media (prefers-reduced-motion:reduce){:is(html,#_) body .ew-fx-scrim{animation:none!important}}
+:is(html,#_) body .ew-rt-chip{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:999px;font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;vertical-align:middle;background:var(--fill);color:var(--label2);border:1px solid var(--hair);cursor:help}
+:is(html,#_) body .ew-rt-warn{margin-top:8px;padding:7px 10px;border-radius:9px;font-size:12px;line-height:1.4;background:rgba(224,92,92,.10);border:1px solid rgba(224,92,92,.30);color:var(--label);overflow-wrap:anywhere}
+:is(html,#_) body .ew-revw{margin:2px 0 10px;padding:9px 12px;border-radius:12px;background:var(--fill3);border:1px solid var(--hair);font-size:12px;line-height:1.45;color:var(--label)}
+:is(html,#_) body .ew-revw.has-warn{background:rgba(255,179,64,.12);border-color:rgba(255,179,64,.42)}
+:is(html,#_) body .ew-revw-t{font-weight:700;margin-bottom:3px}
+:is(html,#_) body .ew-revw-i{display:flex;gap:7px;align-items:flex-start;padding:2px 0;overflow-wrap:anywhere}
+:is(html,#_) body .ew-revw-i .ic{flex:none}
+:is(html,#_) body .ew-revw-i.info,:is(html,#_) body .ew-revw-i.ok{color:var(--label2)}
+:is(html,#_) body .ew-chk-list{display:flex;flex-direction:column;gap:12px}
+:is(html,#_) body .ew-chk-card{padding:12px 14px;border-radius:16px;background:var(--fill3);border:1px solid var(--hair)}
+:is(html,#_) body .ew-chk-t{font:700 15px/1.3 var(--font);margin-bottom:6px;overflow-wrap:anywhere}
+:is(html,#_) body .ew-chk-d{font:500 14px/1.45 var(--font);color:var(--label2);overflow-wrap:anywhere}
+:is(html,#_) body .ew-chk-d b{color:var(--label)}
+:is(html,#_) body .ew-pop-bd label.ew-chk-l{margin:12px 0 4px}
+:is(html,#_) body .ew-pop-bd input.ew-chk-in{height:44px!important;font-size:18px!important}
+:is(html,#_) body .ew-chk-b{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+:is(html,#_) body .ew-chk-b button{flex:1 1 auto;min-height:44px;border:0;border-radius:13px;padding:0 14px;font:600 15px var(--font);cursor:pointer;background:var(--fill);color:var(--label);-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .ew-chk-b button.pri{background:linear-gradient(180deg,var(--ac2),var(--ac));color:var(--on-ac)}
+:is(html,#_) body .ew-chk-ok{text-align:center;padding:14px 4px 6px;color:var(--label2);font-size:15px}
 @media screen and (min-width:900px) and (min-height:560px){:is(html,#_) body.ew-focus{--gl:max(28px,env(safe-area-inset-left,0px));--gr:max(28px,env(safe-area-inset-right,0px));--wgap:18px}
 :is(html,#_) body.ew-focus .main-content{max-width:1480px!important;width:100%!important;margin-left:auto!important;margin-right:auto!important;
     display:grid!important;grid-template-columns:minmax(0,1fr);column-gap:var(--wgap);row-gap:var(--wgap);align-content:start}
@@ -34236,7 +34925,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWVIA;
   async function addSpesa(editId) {
     var vacId = global._vacSpeseCurrentId;
     if (!vacId) return;
-    var importo = parseFloat($('vacSpImporto').value.replace(',', '.'));
+    var importo = ewParseMoney($('vacSpImporto').value);                 // v318: capisce «1.272,96»
+    { var _g = (global.EWFIX && global.EWFIX.guardAmount) ? global.EWFIX.guardAmount('vacSpImporto', $('vacSpImporto').value, function () { addSpesa(editId); }) : importo;
+      if (_g === 'wait') return; importo = _g; }
     var valuta = $('vacSpValuta').value;
     var pay = $('vacSpPay').value;
     var causaleRaw = $('vacSpCausale').value.trim();
@@ -34250,8 +34941,19 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWVIA;
     var sub = '';
     try { sub = (global.EWSUB && global.EWSUB.value) ? (global.EWSUB.value(SEL) || '') : ''; } catch (e) { sub = ''; }
     if (!ORGC[cat]) sub = '';
-    var rates = await _vacFetchFxRates();
-    var importoEUR = _vacConvertToEUR(importo, valuta, rates);
+    // v318: cambio del giorno della spesa (prima sempre quello di oggi). Se in modifica non cambiano valuta, importo e data, il controvalore già salvato resta com'è.
+    var keep = null;
+    if (editId) {
+      try {
+        var v0 = getVacanze().find(function (x) { return x.id === vacId; });
+        var ex0 = v0 && (v0.spese || []).find(function (s) { return s.id === editId; });
+        if (ex0 && ex0.valuta === valuta && Math.abs((+ex0.importo || 0) - importo) < 0.005 && (ex0.data || '') === data && ex0.importoEUR != null) keep = ex0;
+      } catch (e) { keep = null; }
+    }
+    var rates = keep ? null : await _vacFetchFxRates(data);
+    var importoEUR = keep ? keep.importoEUR : _vacConvertToEUR(importo, valuta, rates);
+    var fxRate = valuta === 'EUR' ? undefined : (keep ? keep.fxRate : ((rates && rates[valuta]) || undefined));
+    var fxLive = valuta === 'EUR' ? undefined : (keep ? keep.fxLive : !!(rates && rates._live));
     var arr = getVacanze();
     var v = arr.find(function (x) { return x.id === vacId; });
     if (!v) return;
@@ -34261,12 +34963,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWVIA;
       var idx = v.spese.findIndex(function (s) { return s.id === editId; });
       if (idx >= 0) {
         var next = Object.assign({}, v.spese[idx], { importo: importo, valuta: valuta, importoEUR: importoEUR, pay: pay, causale: causale, luogo: luogo, ora: ora, data: data, cat: cat, updatedAt: now });
+        if (fxRate) { next.fxRate = fxRate; next.fxLive = fxLive; } else { delete next.fxRate; delete next.fxLive; }
         if (sub) next.sub = sub; else delete next.sub;
         v.spese[idx] = next;
       }
     } else {
       var item = { id: Date.now().toString() + Math.random().toString(36).slice(2, 7), importo: importo, valuta: valuta, importoEUR: importoEUR, pay: pay, causale: causale, luogo: luogo, ora: ora, data: data, cat: cat, createdAt: now };
       if (sub) item.sub = sub;
+      if (fxRate) { item.fxRate = fxRate; item.fxLive = fxLive; }
       v.spese.push(item);
     }
     var ok = saveVacanze(arr);
@@ -34460,10 +35164,10 @@ var EWBUD = (function () {
   function weeksOfMonth(yr, mo0) {
     var first = new Date(yr, mo0, 1, 12, 0, 0), d0 = first.getDay();
     var start = new Date(first); start.setDate(first.getDate() - (d0 === 0 ? 6 : d0 - 1));
-    var out = [], idx = 1;
+    var out = [], idx = 1, last = new Date(yr, mo0 + 1, 0, 23, 59, 59);
     while (true) {
       var end = new Date(start); end.setDate(start.getDate() + 6);
-      if (start.getMonth() > mo0 && start.getFullYear() >= yr) break;
+      if (start > last) break;                          // v318: a dicembre non esiste una «sesta settimana» di gennaio
       out.push({ start: new Date(start), end: end, num: idx });
       start.setDate(start.getDate() + 7); idx++;
       if (idx > 6) break;
@@ -34529,7 +35233,7 @@ var EWBUD = (function () {
   }
 
   function applyAdj(calc, adj) { return r2(calc + (adj && isFinite(+adj.delta) ? +adj.delta : 0)); }
-  function makeAdj(calc, typed, atIso) { return { delta: r2(typed - calc), value: r2(typed), at: atIso || '' }; }
+  function makeAdj(calc, typed, atIso) { return { delta: r2(typed - calc), value: r2(typed), at: atIso || '', fv: 318 }; }   // fv = versione della formula della rimanenza
 
   var core = {
     pad: pad, dstr: dstr, parseDs: parseDs, addDays: addDays, mondayOf: mondayOf, r2: r2, parseAmount: parseAmount,
@@ -35040,6 +35744,584 @@ var EWBUD = (function () {
 })();
 try { window.ewSnapshot = EWBUD.snapshot; } catch (e) { }
 if (typeof module !== 'undefined' && module.exports) module.exports = EWBUD;
+
+</script>
+<script id="fix-js">
+/* ═══════════════════════════════════════════════════════════════
+   EWFIX — v318 · parte che tocca l'app (storage, schermate, finestre). Il calcolo puro sta in tc_fix_core.js
+   (funzioni ew*, già dentro lo script principale). Qui: correzione a mano della rimanenza, controllo degli importi,
+   stima unica del conto corrente, rate, cambio valuta.
+   ═══════════════════════════════════════════════════════════════ */
+var EWFIX = (function () {
+  'use strict';
+  var FV = 318;                                   // versione della formula della rimanenza
+  var core = {};
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function eur(v) { v = +v || 0; return (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+
+  /* ───────── Rimanenza: la correzione a mano segue il cambio di formula ───────── */
+  function migrateAdj(yr, mo, calcOld, calcNew) {
+    var key = 'rim_adj_' + yr + '_' + mo, adj = null;
+    try { adj = load(key, null); } catch (e) { return false; }
+    var out = ewAdjMigrate(adj, calcOld, calcNew, FV);
+    if (!out) return false;
+    try { save(key, out); bumpVersion(); fbPushToCloud(); } catch (e) { return false; }
+    return true;
+  }
+
+  /* ───────── Conto corrente: una sola stima ───────── */
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function todayIso() { var d = new Date(); return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate()); }
+  function itDate(iso, long) {
+    try { return new Date(iso + 'T12:00:00').toLocaleDateString('it-IT', long ? { day: '2-digit', month: 'long', year: 'numeric' } : { day: '2-digit', month: 'short', year: 'numeric' }); } catch (e) { return iso; }
+  }
+  // movimenti del libretto di risparmio nella forma dell'elenco del Conto corrente
+  function ccLibRows() {
+    var out = [], arr = [];
+    try { arr = getLibrietto() || []; } catch (e) { arr = []; }
+    arr.forEach(function (l) {
+      var ds = ewIsoDay(l && l.date);
+      if (!ds || !(+l.amount > 0)) return;
+      var dep = l.direction === 'deposito';
+      out.push({ id: 'lib_' + (l.id || ds + '_' + l.amount), date: ds, dateObj: new Date(ds + 'T12:00:00'), tipo: dep ? 'uscita' : 'entrata',
+        desc: (dep ? 'Libretto · deposito' : 'Libretto · prelievo') + (l.desc ? ' — ' + l.desc : ''), amount: +l.amount, cat: 'libretto', pay: '', source: 'libretto' });
+    });
+    return out;
+  }
+  function ccModel(list) {
+    var l = list || ccGetAllMovimenti(), man = null, init = null;
+    try { man = load('saldo_banca_manuale', null); } catch (e) { man = null; }
+    try { init = getCCSaldoIniziale(); } catch (e) { init = null; }
+    var r = ewCCEstimateList(l, { init: init, manual: man, today: todayIso() });
+    r.list = l;
+    return r;
+  }
+  function ccAnchorText(m) {
+    if (!m || !m.anchor) return 'Saldo non impostato';
+    return (m.anchor.kind === 'manuale' ? 'Dal saldo confermato del ' : 'Dal saldo iniziale del ') + itDate(m.anchor.date, false);
+  }
+  // l'estratto Sella (saldo di chiusura) più recente dell'ultimo saldo certo: lo si propone come «saldo confermato»
+  function offerClosing(info) {
+    if (!info || !isFinite(+info.amount)) return;
+    var date = ewIsoDay(info.date) || todayIso(), m = ccModel(), fmt = function (v) { return '€' + (+v).toFixed(2).replace('.', ','); };
+    if (!m.anchor) {                                             // primo saldo in assoluto: come prima, diventa il saldo di partenza
+      saveCCSaldoIniziale({ amount: +info.amount, date: date }); fbPushToCloud();
+      refreshCC();
+      showToast('💳 Saldo del conto impostato dall\'estratto Sella: ' + fmt(info.amount) + ' al ' + itDate(date, false));
+      return;
+    }
+    if (date <= m.anchor.date) {
+      showToast('🏦 Sella chiusura: ' + fmt(info.amount) + ' al ' + itDate(date, false) + ' · hai già un saldo più recente');
+      return;
+    }
+    tcAsk('L\'estratto Sella chiude a ' + fmt(info.amount) + ' al ' + itDate(date, false) + '. La stima del conto adesso è ' + fmt(m.estimate) + '. Usare il saldo dell\'estratto come ultimo saldo confermato?',
+      '🏦', 'Usa il saldo dell\'estratto', '#4a90e8', 'ewUseClosing', +info.amount, date);
+  }
+  function refreshCC() {
+    try { renderDashSaldoBanca(); } catch (e) {}
+    try { renderDashCCBanner(); } catch (e) {}
+    try { if (document.getElementById('sec-contocorrente') && document.getElementById('sec-contocorrente').classList.contains('active')) renderCC(); } catch (e) {}
+  }
+  window.ewUseClosing = function (amount, date) {
+    save('saldo_banca_manuale', { amount: +amount, date: date, src: 'estratto' });
+    try { bumpVersion(); fbPushToCloud(); } catch (e) {}
+    refreshCC();
+    showToast('✅ Saldo confermato dall\'estratto Sella: ' + eur(amount) + ' al ' + itDate(date, false));
+  };
+
+  /* ───────── finestre (stesso aspetto dei popup del budget) ───────── */
+  var POP = null;
+  function closePop() { if (POP && POP.parentNode) POP.parentNode.removeChild(POP); POP = null; document.removeEventListener('keydown', onKey, true); }
+  function onKey(e) { if (e.key === 'Escape' && POP) { e.stopPropagation(); closePop(); } }
+  function openPop(icon, title, sub, bodyHtml, buttons, onPick) {
+    closePop();
+    var p = document.createElement('div');
+    p.className = 'ew-fx-scrim'; p.setAttribute('role', 'presentation');
+    var btns = buttons.map(function (b, i) {
+      return '<button type="button" class="' + (i === 0 ? 'ew-pop-b1' : (b.cancel ? 'ew-pop-b3' : 'ew-pop-b2')) + '" data-fx="' + esc(b.id) + '"' + (i === 0 ? ' data-primary' : '') + '>' + esc(b.label) + '</button>';
+    }).join('');
+    p.innerHTML = '<div class="ew-pop tone-sheet" role="alertdialog" aria-modal="true" aria-labelledby="ewFxT">' +
+      '<div class="ew-pop-hd"><span class="ew-pop-ic" aria-hidden="true">' + icon + '</span><div><div class="ew-pop-ttl" id="ewFxT">' + esc(title) + '</div>' + (sub ? '<div class="ew-pop-sub">' + esc(sub) + '</div>' : '') + '</div></div>' +
+      '<div class="ew-pop-bd">' + bodyHtml + '</div>' +
+      '<div class="ew-pop-ft">' + btns + '</div></div>';
+    p.addEventListener('click', function (e) {
+      if (e.target === p) { closePop(); onPick && onPick('cancel'); return; }
+      var b = e.target.closest ? e.target.closest('[data-fx]') : null;
+      if (!b) return;
+      var id = b.getAttribute('data-fx'); closePop(); onPick && onPick(id);
+    });
+    document.body.appendChild(p); POP = p; document.addEventListener('keydown', onKey, true);
+    var f = p.querySelector('[data-primary]'); if (f) { try { f.focus({ preventScroll: true }); } catch (e) { } }
+    return p;
+  }
+
+  /* ───────── importi scritti nei moduli ─────────
+     Un solo separatore seguito da tre cifre («1.805», «1,805», «1.800») è quasi sempre il punto delle migliaia: si chiede cosa intendevi.
+     Si passa il TESTO scritto nel campo (da numero «1.800» diventerebbe 1,8 e non si vedrebbe più il dubbio).
+     Restituisce l'importo da usare (già a centesimi), NaN se non è un numero, oppure 'wait' se è comparsa la domanda
+     (dopo la scelta si riprova da sola con `retry`). */
+  function guardAmount(inputId, value, retry) {
+    var raw = typeof value === 'string' ? value : null, c;
+    if (raw !== null && ewMoneyAmbiguous(raw)) {
+      var t = raw.replace(/[\s €]/g, '');
+      c = { kind: 'ask', typed: t, rounded: ewR2(parseFloat(t.replace(',', '.'))), thousand: parseInt(t.replace(/[.,]/g, ''), 10) };
+    } else {
+      var n = raw !== null ? ewParseMoney(raw) : +value;
+      c = ewAmountCheck(n);
+    }
+    if (c.kind === 'ok' || c.kind === 'round') return c.amount;
+    if (c.kind !== 'ask') return NaN;                                    // non è un numero: ci pensano i controlli già presenti
+    var typed = String(c.typed).replace('.', ',');
+    openPop('🔢', 'Controlla l\'importo', 'Hai scritto ' + typed + ' — più di due decimali',
+      '<p>Un importo ha al massimo i centesimi. Intendevi <b>' + esc(eur(c.thousand)) + '</b> (con il punto delle migliaia) oppure <b>' + esc(eur(c.rounded)) + '</b>?</p>',
+      [{ id: 'thousand', label: eur(c.thousand) }, { id: 'round', label: eur(c.rounded) }, { id: 'cancel', label: 'Annulla, correggo io', cancel: true }],
+      function (pick) {
+        var el = $(inputId);
+        if (pick === 'cancel') { try { el && el.focus(); } catch (e) { } return; }
+        if (el) el.value = String(pick === 'thousand' ? c.thousand : c.rounded);
+        try { retry && retry(); } catch (e) { }
+      });
+    return 'wait';
+  }
+
+  /* ───────── Rate (finanziamenti) ─────────
+     Una spesa «rata» scritta a mano si collega al piano giusto di QUALUNQUE anno (non solo della scheda aperta) e ricorda il collegamento (`rataRef`):
+     se poi la spesa viene cancellata o corretta, il pagato e le rate pagate tornano indietro. Se non si capisce di quale rata si tratta
+     non si tocca nulla e lo si dice (prima si aggiornava «la prima rata non finita»). */
+  function rateYears() { var out = [], cy = new Date().getFullYear(); for (var y = 2023; y <= cy + 1; y++) out.push(y); return out; }
+  function ratePlans() {
+    var out = [];
+    rateYears().forEach(function (y) { (getRata(y) || []).forEach(function (p) { out.push({ yr: y, plan: p }); }); });
+    return out;
+  }
+  function later(msg) { setTimeout(function () { try { showToast(msg); } catch (e) { } }, 900); }
+  function repaintRate() { try { if (document.getElementById('rataList')) renderRate(); } catch (e) { } }
+  function planIndex(list, id) { var i = -1; (list || []).forEach(function (p, k) { if (String(p.id) === String(id)) i = k; }); return i; }
+
+  function rateLink(exp) {
+    var d = ewIsoDay(exp.date), yr = d ? +d.slice(0, 4) : new Date().getFullYear();
+    var m = ewRateMatch(ratePlans(), { amount: exp.amount, desc: exp.desc, yr: yr });
+    if (!m.hit) {
+      later(m.ambiguous ? '📦 Più rate hanno questo importo: apri Rate e aggiorna quella giusta con ✏️' : '📦 Nessuna rata collegata a questa spesa: controlla il nome o la rata mensile in Rate');   // dopo il «Spesa aggiunta»
+      return null;
+    }
+    var list = getRata(m.hit.yr) || [], i = planIndex(list, m.hit.plan.id);
+    if (i < 0) return null;
+    list[i] = ewRateApply(list[i], { amount: exp.amount, date: exp.date, desc: exp.desc });
+    saveRata(list, m.hit.yr);
+    repaintRate();
+    return { id: m.hit.plan.id, yr: m.hit.yr };
+  }
+  function rateUnlink(e, quiet) {
+    if (!e || e.cat !== 'rata') return '';
+    if (!e.rataRef) {                                                    // registrata prima della v318: non si sa quale rata ha mosso → non si tocca
+      if (!quiet) later('📦 Spesa «rata» eliminata: il progresso della rata non è cambiato (correggilo da Rate → ✏️ se serve)');
+      return 'legacy';
+    }
+    var m = ewRateMatch(ratePlans(), { ref: e.rataRef });
+    if (!m.hit) return 'gone';
+    var list = getRata(m.hit.yr) || [], i = planIndex(list, m.hit.plan.id);
+    if (i < 0) return 'gone';
+    list[i] = ewRateRevert(list[i], { amount: e.amount, date: e.date });
+    saveRata(list, m.hit.yr);
+    repaintRate();
+    if (!quiet) later('📦 «' + (list[i].name || 'Rata') + '»: tolti ' + eur(e.amount) + ' dal pagato');
+    return 'ok';
+  }
+  // modifica di una spesa: ritorna il collegamento da registrare
+  //   oggetto {id, yr} = collegata · null = «rata» che non si è riusciti a collegare · undefined = spesa vecchia (prima della v318) o non-rata: non si tocca
+  function rateEdit(old, nw) {
+    var was = old && old.cat === 'rata', is = nw && nw.cat === 'rata';
+    if (!was && !is) return undefined;
+    if (was && old.rataRef === undefined) return undefined;             // registrata prima della v318: il progresso resta com'è
+    var applied = was && old.rataRef;                                   // oggetto = un pagamento è già stato applicato a una rata
+    var sameAmt = Math.abs((+old.amount || 0) - (+nw.amount || 0)) < 0.005, sameDate = ewIsoDay(old.date) === ewIsoDay(nw.date);
+    if (applied && is && sameAmt && sameDate) return old.rataRef;
+    if (applied) rateUnlink(old, true);
+    if (!is) return undefined;
+    return rateLink({ amount: nw.amount, desc: nw.desc, date: nw.date }) || null;
+  }
+  // pagamenti letti dall'estratto Sella → piani (tutti gli anni)
+  function rateImport(payments) {
+    var lists = {}, cy = new Date().getFullYear();
+    rateYears().forEach(function (y) { lists[y] = JSON.parse(JSON.stringify(getRata(y) || [])); });
+    var res = ewRateSync(lists, payments, function () { return Date.now() + Math.random(); }, { minYear: 2023, maxYear: cy + 1 });
+    Object.keys(res.touched).forEach(function (y) { saveRata(lists[y], +y); });
+    repaintRate();
+    return { applied: res.applied, created: res.created, skipped: res.skipped };
+  }
+  // avvisi della scheda di una rata (testo già pronto)
+  function rateWarnText(r) {
+    var c = ewRateCheck(r); if (c.ok) return '';
+    return c.items.map(function (it) {
+      return it.kind === 'pagato' ? 'pagato ' + eur(it.paid) + ', ma ' + it.rate + ' rate × ' + eur(it.mensile) + ' = ' + eur(it.expected)
+        : 'rate pagate ' + it.rate + ' più delle ' + it.num + ' previste';
+    }).join(' · ');
+  }
+  core.rateLink = rateLink; core.rateUnlink = rateUnlink; core.rateEdit = rateEdit; core.rateImport = rateImport; core.rateWarnText = rateWarnText; core.ratePlans = ratePlans;
+
+  core.FV = FV; core.migrateAdj = migrateAdj; core.esc = esc; core.eur = eur; core.openPop = openPop; core.closePop = closePop; core.guardAmount = guardAmount;
+  core.ccLibRows = ccLibRows; core.ccModel = ccModel; core.ccAnchorText = ccAnchorText; core.offerClosing = offerClosing; core.refreshCC = refreshCC; core.todayIso = todayIso; core.itDate = itDate;
+  return core;
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = EWFIX;
+
+</script>
+<script id="chk-js">
+/* v318 · Controllo dati — funzioni pure (stesso file nella pagina e nei test di Node).
+   Cerca tre cose nei dati registrati:
+   1) mesi in cui le «spese» di Revolut/Satispay sono in realtà i SALDI del conto (importo = saldo dopo il movimento, non il movimento)
+   2) importi con più di due decimali (es. 1.805 scritto con il punto delle migliaia)
+   3) righe identiche ripetute */
+
+function ewChkR2(v) { v = +v; return (v < 0 ? -1 : 1) * Math.round((Math.abs(v) + 1e-9) * 100) / 100; }
+function ewChkSum(a) { var s = 0; for (var i = 0; i < a.length; i++) s += a[i]; return ewChkR2(s); }
+function ewChkMedian(a) {
+  if (!a.length) return 0;
+  var b = a.slice().sort(function (x, y) { return x - y; }), h = Math.floor(b.length / 2);
+  return b.length % 2 ? b[h] : (b[h - 1] + b[h]) / 2;
+}
+// generatore pseudo-casuale con seme fisso: i collaudi devono dare sempre lo stesso risultato
+function ewChkRng(seed) { var s = seed >>> 0 || 1; return function () { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; }
+
+/* ───────── 1) serie di saldi ─────────
+   amounts = importi del gruppo (stessa fonte, stesso mese) nell'ordine in cui sono registrati.
+   Una serie di saldi ha due impronte: i valori sono molto più alti del solito e ogni valore è vicino al precedente
+   (il saldo cambia poco da un movimento all'altro), cosa che non accade per importi di spese indipendenti. */
+function ewChkSeries(amounts) {
+  var n = amounts.length, i, derived = [], absd = [], pos = 0, neg = 0, zero = 0;
+  for (i = 1; i < n; i++) {
+    var d = ewChkR2(amounts[i - 1] - amounts[i]);
+    absd.push(Math.abs(d));
+    if (d > 0.004) { pos++; derived.push(d); } else if (d < -0.004) neg++; else zero++;
+  }
+  var rnd = ewChkRng(7919 + n), shufs = [], r, k, j, t, a, ad;
+  for (r = 0; r < 40; r++) {
+    a = amounts.slice();
+    for (k = n - 1; k > 0; k--) { j = Math.floor(rnd() * (k + 1)); t = a[k]; a[k] = a[j]; a[j] = t; }
+    ad = [];
+    for (k = 1; k < n; k++) ad.push(Math.abs(a[k - 1] - a[k]));
+    shufs.push(ewChkMedian(ad));
+  }
+  var absMed = ewChkMedian(absd), shufMed = ewChkMedian(shufs);
+  // correlazione fra ogni valore e il precedente: ~0 per importi indipendenti, vicina a 1 per i saldi di un conto
+  var r1 = 0;
+  if (n >= 3) {
+    var mx = 0, my = 0, sxy = 0, sxx = 0, syy = 0;
+    for (i = 0; i < n - 1; i++) { mx += amounts[i]; my += amounts[i + 1]; }
+    mx /= (n - 1); my /= (n - 1);
+    for (i = 0; i < n - 1; i++) { sxy += (amounts[i] - mx) * (amounts[i + 1] - my); sxx += Math.pow(amounts[i] - mx, 2); syy += Math.pow(amounts[i + 1] - my, 2); }
+    r1 = (sxx > 0 && syy > 0) ? sxy / Math.sqrt(sxx * syy) : 0;
+  }
+  return {
+    n: n, med: ewChkMedian(amounts), sum: ewChkSum(amounts), absMed: absMed, shufMed: shufMed, ratio: shufMed > 0 ? absMed / shufMed : 1, r1: r1,
+    pos: pos, neg: neg, zero: zero, posShare: n > 1 ? pos / (n - 1) : 0, derivedMed: ewChkMedian(derived), derivedSum: ewChkSum(derived)
+  };
+}
+
+// ref = importo «tipico» della stessa fonte negli altri mesi (mediana delle mediane); senza altri mesi si assume 15 €
+function ewChkIsBalanceSeries(amounts, ref) {
+  var s = ewChkSeries(amounts), lim = Math.max(60, 4 * (ref > 0 ? ref : 15));
+  var hit = s.n >= 12 && s.med >= lim && s.ratio <= 0.4 && s.r1 >= 0.6 && s.posShare >= 0.5 && s.derivedMed <= 0.35 * s.med && s.sum >= 3 * s.derivedSum;
+  return { hit: hit, stats: s, limit: lim };
+}
+
+/* Ricalcolo: movimento i = saldo (i−1) − saldo i, nell'ordine registrato. Se il saldo sale o resta uguale non è una spesa → riga scartata.
+   La prima riga si ricalcola solo se si conosce il saldo di inizio mese (opening), altrimenti si scarta.
+   → { out: [nuovo importo | null], dropped: [{ i, kind: 'first'|'up'|'same' }], before, after, kept } */
+function ewChkRepairSeries(amounts, opening) {
+  var out = [], dropped = [], i, prev, d, hasOpen = opening != null && opening !== '' && isFinite(+opening);
+  for (i = 0; i < amounts.length; i++) {
+    prev = i === 0 ? (hasOpen ? +opening : null) : amounts[i - 1];
+    if (prev == null) { out.push(null); dropped.push({ i: i, kind: 'first' }); continue; }
+    d = ewChkR2(prev - amounts[i]);
+    if (d > 0.004) out.push(d);
+    else { out.push(null); dropped.push({ i: i, kind: d < -0.004 ? 'up' : 'same' }); }
+  }
+  var kept = out.filter(function (x) { return x != null; });
+  return { out: out, dropped: dropped, before: ewChkSum(amounts), after: ewChkSum(kept), kept: kept.length };
+}
+
+/* ───────── 2) più di due decimali ─────────
+   → null se l'importo è a posto; altrimenti { rounded, thousand }: «thousand» c'è solo se il numero si legge come migliaia (1.805 → 1805) */
+function ewChkDecimal(v) {
+  v = +v;
+  if (!isFinite(v)) return null;
+  if (Math.abs(v * 100 - Math.round(v * 100)) < 1e-6) return null;
+  var th = null;
+  if (Math.abs(v) >= 1 && Math.abs(v) < 1000 && Math.abs(v * 1000 - Math.round(v * 1000)) < 1e-6) th = Math.round(v * 1000);
+  return { rounded: ewChkR2(v), thousand: th };
+}
+
+/* ───────── 3) righe identiche ─────────
+   rows = [{ id, date, amount, label, cat, pay, source }] → gruppi con almeno due righe uguali in tutto tranne l'id */
+function ewChkDups(rows) {
+  var map = {}, order = [];
+  rows.forEach(function (r) {
+    var key = [r.date, String(r.amount), r.label || '', r.cat || '', r.pay || '', r.source || ''].join('|');
+    if (!map[key]) { map[key] = { key: key, ids: [], date: r.date, amount: r.amount, label: r.label || '' }; order.push(key); }
+    map[key].ids.push(r.id);
+  });
+  return order.map(function (k) { return map[k]; }).filter(function (g) { return g.ids.length > 1; })
+    .map(function (g) { g.n = g.ids.length; return g; })
+    .sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   EWCHK — v318 · Controllo dati. Il calcolo puro sta in tc_chk_core.js (funzioni ewChk*, inserite subito sopra in questo script).
+   Qui: lettura dei mesi registrati, schermata con le segnalazioni, correzioni. Regole:
+   · non si cambia nulla senza un tuo tocco su «Ricalcola / Correggi / Tieni una»;
+   · prima della PRIMA correzione si salva una copia di sicurezza (se non riesce, non si tocca niente);
+   · ogni correzione lascia una riga nel registro (chk_log) e, per gli importi cambiati, l'importo di prima (origAmount).
+   ═══════════════════════════════════════════════════════════════ */
+var EWCHK = (function () {
+  'use strict';
+  var MESI = ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'];
+  var SRC = { revolut: 'Revolut', satispay: 'Satispay', sella: 'Sella' };
+  var POP = null, backedUp = false, busy = false, found = [], auto = false;
+
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function eur(v) { v = +v || 0; return (v < 0 ? '-' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+  function eurRaw(v) { return '€' + String(+v).replace('.', ','); }          // l'importo com'è registrato (anche con più di due decimali)
+  function email() { try { return (currentUser && currentUser.email) ? String(currentUser.email) : ''; } catch (e) { return ''; } }
+  function itDay(iso) { var p = String(iso || '').split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : ''; }
+  function monthName(y, m) { return (MESI[m - 1] || '') + ' ' + y; }
+  function srcName(s) { return SRC[s] || (s ? s.charAt(0).toUpperCase() + s.slice(1) : ''); }
+  function toast(msg) { try { showToast(msg); } catch (e) { } }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { } }
+
+  /* ───────── lettura dei mesi (spese ed entrate) ───────── */
+  function readMonth(key) {
+    try { var a = JSON.parse(localStorage.getItem(key) || '[]'); return Array.isArray(a) ? a : null; } catch (e) { return null; }
+  }
+  function months() {
+    var em = email(), out = [];
+    if (!em) return out;
+    var pre = 'tc_' + em + '_', i, k, m, arr;
+    for (i = 0; i < localStorage.length; i++) {
+      k = localStorage.key(i);
+      if (!k || k.indexOf(pre) !== 0) continue;
+      m = /^(expenses|income)_(\d{4})_(\d{1,2})$/.exec(k.slice(pre.length));
+      if (!m) continue;
+      arr = readMonth(k);
+      if (arr) out.push({ kind: m[1], y: +m[2], m: +m[3], key: k, arr: arr });
+    }
+    out.sort(function (a, b) { return (a.y - b.y) || (a.m - b.m) || (a.kind < b.kind ? -1 : a.kind > b.kind ? 1 : 0); });
+    return out;
+  }
+  function labelOf(e) { return String(e && (e.desc || e.causale || e.type || '') || ''); }
+
+  /* ───────── ricerca ───────── */
+  function scan() {
+    var ms = months(), F = [], bySrc = {};
+    // 1) serie di saldi: stessa fonte (Revolut, Satispay…), stesso mese, nell'ordine in cui sono registrate
+    ms.forEach(function (mo) {
+      if (mo.kind !== 'expenses') return;
+      var by = {};
+      mo.arr.forEach(function (e, i) { if (e && e.source && +e.amount > 0) (by[e.source] = by[e.source] || []).push({ i: i, a: +e.amount }); });
+      Object.keys(by).forEach(function (s) { (bySrc[s] = bySrc[s] || []).push({ mo: mo, amounts: by[s].map(function (x) { return x.a; }) }); });
+    });
+    Object.keys(bySrc).forEach(function (s) {
+      bySrc[s].forEach(function (g) {
+        if (g.amounts.length < 12) return;
+        var meds = bySrc[s].filter(function (o) { return o !== g && o.amounts.length >= 5; }).map(function (o) { return ewChkMedian(o.amounts); });
+        var ref = meds.length >= 2 ? ewChkMedian(meds) : 15;
+        var r = ewChkIsBalanceSeries(g.amounts, ref);
+        if (!r.hit) return;
+        var rep = ewChkRepairSeries(g.amounts, null), ups = 0, same = 0, first = 0;
+        rep.dropped.forEach(function (d) { if (d.kind === 'up') ups++; else if (d.kind === 'same') same++; else first++; });
+        F.push({ id: 'series:' + g.mo.key + ':' + s, kind: 'series', key: g.mo.key, y: g.mo.y, m: g.mo.m, source: s, n: g.amounts.length, med: r.stats.med, ref: ref,
+          before: rep.before, after: rep.after, kept: rep.kept, dropped: rep.dropped.length, ups: ups, same: same, first: first });
+      });
+    });
+    // 2) più di due decimali (spese ed entrate)
+    ms.forEach(function (mo) {
+      mo.arr.forEach(function (e, i) {
+        var d = e ? ewChkDecimal(e.amount) : null;
+        if (d) F.push({ id: 'dec:' + mo.key + ':' + i + ':' + e.amount, kind: 'dec', key: mo.key, ik: mo.kind, y: mo.y, m: mo.m, i: i, amount: +e.amount, date: e.date, label: labelOf(e), rounded: d.rounded, thousand: d.thousand });
+      });
+    });
+    // 3) righe identiche ripetute (nello stesso mese)
+    ms.forEach(function (mo) {
+      var rows = [];
+      mo.arr.forEach(function (e, i) { if (e) rows.push({ id: i, date: e.date, amount: e.amount, label: labelOf(e), cat: e.cat || e.type || '', pay: e.pay || '', source: e.source || '' }); });
+      ewChkDups(rows).forEach(function (g) {
+        F.push({ id: 'dup:' + mo.key + ':' + g.key, kind: 'dup', key: mo.key, ik: mo.kind, y: mo.y, m: mo.m, gkey: g.key, n: g.n, date: g.date, amount: +g.amount, label: g.label });
+      });
+    });
+    return F;
+  }
+
+  /* ───────── copia di sicurezza prima della prima correzione ───────── */
+  function ensureBackup() {
+    if (backedUp) return Promise.resolve(true);
+    if (!window.EWBK || !window.EWBK.saveCopy) return Promise.resolve(false);
+    return window.EWBK.saveCopy('before-chk', 'Prima del Controllo dati').then(function () { backedUp = true; return true; }, function () { return false; });
+  }
+
+  /* ───────── correzioni ───────── */
+  function commit(key, arr, entry) {
+    localStorage.setItem(key, JSON.stringify(arr));
+    try { var lg = load('chk_log', []); if (!Array.isArray(lg)) lg = []; entry.at = new Date().toISOString(); lg.push(entry); save('chk_log', lg.slice(-60)); } catch (e) { }
+    try { bumpVersion(); fbPushToCloud(); } catch (e) { }
+    try { refreshAll(); } catch (e) { }
+  }
+  var STALE = { ok: false, msg: '⚠️ I dati sono cambiati nel frattempo: rifai il controllo' };
+
+  function applySeries(f, opening) {
+    var arr = readMonth(f.key), idx = [], am = [];
+    if (!arr) return STALE;
+    arr.forEach(function (e, i) { if (e && e.source === f.source && +e.amount > 0) { idx.push(i); am.push(+e.amount); } });
+    if (am.length !== f.n || Math.abs(ewChkSum(am) - f.before) > 0.005) return STALE;
+    var rep = ewChkRepairSeries(am, opening), pos = {}, out = [];
+    idx.forEach(function (i, p) { pos[i] = p; });
+    arr.forEach(function (e, i) {
+      if (pos[i] == null) { out.push(e); return; }
+      var na = rep.out[pos[i]];
+      if (na == null) return;                                                            // entrata o riga a saldo invariato: non è una spesa
+      var c = {}; Object.keys(e).forEach(function (k) { c[k] = e[k]; });
+      c.origAmount = e.amount; c.amount = na; c.chk = 'saldo';
+      out.push(c);
+    });
+    commit(f.key, out, { kind: 'series', ym: f.y + '-' + f.m, source: f.source, before: { n: am.length, total: rep.before }, after: { n: rep.kept, total: rep.after }, dropped: rep.dropped.length, opening: opening == null ? null : +opening });
+    return { ok: true, msg: '✅ ' + monthName(f.y, f.m) + ' · ' + srcName(f.source) + ': ' + rep.kept + ' uscite per ' + eur(rep.after) + ' (prima ' + eur(rep.before) + ')' };
+  }
+  function applyDecimal(f, kind) {
+    var arr = readMonth(f.key);
+    if (!arr || !arr[f.i] || +arr[f.i].amount !== f.amount) return STALE;
+    var v = kind === 'dec-th' ? f.thousand : f.rounded;
+    if (!(v > 0)) return STALE;
+    var c = {}; Object.keys(arr[f.i]).forEach(function (k) { c[k] = arr[f.i][k]; });
+    c.origAmount = arr[f.i].amount; c.amount = v; c.chk = 'decimali';
+    arr[f.i] = c;
+    commit(f.key, arr, { kind: 'decimals', ym: f.y + '-' + f.m, from: f.amount, to: v });
+    return { ok: true, msg: '✅ Importo corretto: ' + eurRaw(f.amount) + ' → ' + eur(v) };
+  }
+  function applyDups(f) {
+    var arr = readMonth(f.key);
+    if (!arr) return STALE;
+    var rows = [];
+    arr.forEach(function (e, i) { if (e) rows.push({ id: i, date: e.date, amount: e.amount, label: labelOf(e), cat: e.cat || e.type || '', pay: e.pay || '', source: e.source || '' }); });
+    var g = ewChkDups(rows).filter(function (x) { return x.key === f.gkey; })[0];
+    if (!g || g.n !== f.n) return STALE;
+    var drop = {}; g.ids.slice(1).forEach(function (i) { drop[i] = 1; });
+    var out = arr.filter(function (e, i) { return !drop[i]; });
+    commit(f.key, out, { kind: 'dups', ym: f.y + '-' + f.m, date: f.date, amount: f.amount, removed: g.n - 1 });
+    return { ok: true, msg: '✅ Tolte ' + (g.n - 1) + (g.n === 2 ? ' riga doppia' : ' righe doppie') + ' (' + itDay(f.date) + ' · ' + eur(f.amount) + ')' };
+  }
+
+  /* ───────── schermata ───────── */
+  function card(f, i) {
+    var t, d, extra = '', btn;
+    if (f.kind === 'series') {
+      t = monthName(f.y, f.m) + ' · ' + srcName(f.source) + ' — saldi al posto dei movimenti';
+      d = '<b>' + f.n + ' righe</b> hanno importi che sembrano i <b>saldi del conto</b>, non i movimenti: la mediana è ' + eur(f.med) + ' (negli altri mesi circa ' + eur(f.ref) + ') e ogni valore è vicino al precedente. Registrate pesano <b>' + eur(f.before) + '</b>.<br>' +
+        'Ricalcolando dalla differenza tra un saldo e il successivo restano <b>' + f.kept + ' uscite per ' + eur(f.after) + '</b>. Le altre ' + f.dropped + ' righe escono: ' +
+        [f.ups ? f.ups + ' dove il saldo sale (entrate)' : '', f.same ? f.same + ' senza variazione' : '', f.first ? 'la prima del mese (serve il saldo iniziale)' : ''].filter(Boolean).join(', ') + '.';
+      extra = '<label class="ew-chk-l" for="ewChkOp' + i + '">Saldo a inizio mese (facoltativo)</label><input class="ew-chk-in" id="ewChkOp' + i + '" data-op="' + i + '" inputmode="decimal" autocomplete="off" placeholder="es. 1.200,00">';
+      btn = '<button type="button" class="pri" data-chk="series" data-i="' + i + '">Ricalcola dai saldi</button>';
+    } else if (f.kind === 'dec') {
+      var inc = f.ik === 'income';
+      t = (inc ? 'Entrata' : 'Spesa') + ' del ' + itDay(f.date) + (f.label ? ' · ' + f.label : '');
+      d = 'Importo registrato <b>' + esc(eurRaw(f.amount)) + '</b>: ha più di due decimali. ' + (f.thousand ? 'Intendevi <b>' + eur(f.thousand) + '</b> (punto delle migliaia) oppure <b>' + eur(f.rounded) + '</b>?' : 'Lo arrotondo a <b>' + eur(f.rounded) + '</b>?');
+      btn = (f.thousand ? '<button type="button" class="pri" data-chk="dec-th" data-i="' + i + '">' + esc(eur(f.thousand)) + '</button>' : '') + '<button type="button"' + (f.thousand ? '' : ' class="pri"') + ' data-chk="dec-r" data-i="' + i + '">' + esc(eur(f.rounded)) + '</button>';
+    } else {
+      t = itDay(f.date) + (f.label ? ' · ' + f.label : '') + ' · ' + eur(f.amount);
+      d = (f.ik === 'income' ? 'Entrata' : 'Spesa') + ' registrata <b>' + f.n + ' volte</b> identica (stesso giorno, importo, categoria e pagamento). Può essere giusto (due acquisti uguali) oppure un doppione dell\'importazione.';
+      btn = '<button type="button" class="pri" data-chk="dup" data-i="' + i + '">Tieni una, togli ' + (f.n - 1) + '</button>';
+    }
+    return '<div class="ew-chk-card" data-id="' + i + '"><div class="ew-chk-t">' + esc(t) + '</div><div class="ew-chk-d">' + d + '</div>' + extra + '<div class="ew-chk-b">' + btn + '<button type="button" data-chk="skip" data-i="' + i + '">Lascia così</button></div></div>';
+  }
+  function html() {
+    if (!found.length) return '<div class="ew-chk-ok">✅ Non ho trovato nulla di strano: saldi, importi e righe tornano.</div>';
+    return '<div class="ew-chk-list">' + found.map(card).join('') + '</div>';
+  }
+  function sub() {
+    return found.length ? (found.length === 1 ? '1 cosa da verificare' : found.length + ' cose da verificare') : 'Tutto a posto';
+  }
+  function close() { if (POP && POP.parentNode) POP.parentNode.removeChild(POP); POP = null; backedUp = false; document.removeEventListener('keydown', onKey, true); }
+  function onKey(e) { if (e.key === 'Escape' && POP) { e.stopPropagation(); close(); } }
+
+  function paint() {
+    if (!POP) return;
+    var bd = POP.querySelector('.ew-pop-bd'), sb = POP.querySelector('.ew-pop-sub');
+    if (bd) bd.innerHTML = html();
+    if (sb) sb.textContent = sub();
+  }
+  function render() { found = scan().filter(function (f) { return !render.skip[f.id]; }); paint(); }
+  render.skip = {};
+
+  function open(isAuto) {
+    close();
+    auto = !!isAuto; render.skip = {};
+    found = scan();
+    var p = document.createElement('div');
+    p.className = 'ew-fx-scrim'; p.setAttribute('role', 'presentation'); p.id = 'ewChkPop';
+    p.innerHTML = '<div class="ew-pop tone-sheet" role="dialog" aria-modal="true" aria-labelledby="ewChkT">' +
+      '<div class="ew-pop-hd"><span class="ew-pop-ic" aria-hidden="true">🔍</span><div><div class="ew-pop-ttl" id="ewChkT">Controllo dati</div><div class="ew-pop-sub">' + esc(sub()) + '</div></div></div>' +
+      '<div class="ew-pop-bd">' + html() + '</div>' +
+      '<div class="ew-pop-ft"><button type="button" class="ew-pop-b1" data-chk="close" data-primary>Chiudi</button></div></div>';
+    p.addEventListener('click', onClick);
+    document.body.appendChild(p); POP = p;
+    document.addEventListener('keydown', onKey, true);
+    return found.length;
+  }
+
+  function onClick(e) {
+    if (e.target === POP) { close(); return; }
+    var b = e.target.closest ? e.target.closest('[data-chk]') : null;
+    if (!b || busy) return;
+    var a = b.getAttribute('data-chk'), i = +b.getAttribute('data-i'), f = found[i];
+    if (a === 'close') { close(); return; }
+    if (!f) return;
+    if (a === 'skip') { render.skip[f.id] = 1; render(); return; }
+    var op = null;
+    if (a === 'series') {
+      var inp = POP.querySelector('input[data-op="' + i + '"]'), raw = inp ? String(inp.value || '').trim() : '';
+      if (raw) {
+        op = ewParseMoney(raw);
+        if (!isFinite(op) || op < 0) { toast('⚠️ Saldo di inizio mese non valido'); try { inp.focus(); } catch (x) { } return; }
+      }
+    }
+    busy = true;
+    ensureBackup().then(function (ok) {
+      if (!ok) { busy = false; toast('⚠️ Copia di sicurezza non riuscita: non ho cambiato nulla'); return; }
+      var res;
+      try { res = a === 'series' ? applySeries(f, op) : (a === 'dec-th' || a === 'dec-r') ? applyDecimal(f, a) : applyDups(f); } catch (x) { res = { ok: false, msg: '⚠️ Errore: ' + x.message }; }
+      busy = false;
+      toast(res.msg);
+      render();
+    }, function () { busy = false; });
+  }
+
+  /* ───────── avviso all'avvio (una volta per insieme di segnalazioni; nessun avviso se c'è già un'altra finestra) ───────── */
+  // c'è già qualcosa aperto sopra l'app (un avviso, oppure la finestra Profilo/Backup): l'avviso all'avvio aspetta
+  function otherOpen() {
+    if (document.querySelector('.ew-fx-scrim,.ew-pop-scrim')) return true;
+    var pm = document.getElementById('profileModal');
+    return !!(pm && pm.style.display && pm.style.display !== 'none');
+  }
+  function startup() {
+    if (lsGet('ew_chk_off') === '1') return;
+    var tries = 0;
+    (function go() {
+      if (++tries > 8) return;
+      if (!email() || otherOpen()) { setTimeout(go, 3000); return; }
+      var F = [];
+      try { F = scan(); } catch (e) { return; }
+      var sig = F.map(function (f) { return f.id; }).sort().join('~');
+      if (!F.length || sig === lsGet('ew_chk_seen')) return;
+      lsSet('ew_chk_seen', sig);
+      open(true);
+    })();
+  }
+  setTimeout(startup, 5000);
+
+  return { scan: scan, open: open, close: close, render: render, _state: function () { return { found: found, backedUp: backedUp, auto: auto }; } };
+})();
 
 </script>
 <script>try{if(window.parent&&window.parent!==window)document.body.classList.add("ew-embed");}catch(e){}</script>

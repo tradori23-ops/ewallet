@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20261025-gw-v54-apple';
+  var BUILD='20261108-gw-v55-festivi';
   try{window.GW_BUILD=BUILD;}catch(e){}
   try{
     var qp=new URLSearchParams(location.search);
@@ -544,6 +544,11 @@ html[data-theme="dark"]{
 :is(html,#_) body .calcell.festivo .cd{color:var(--bad)}
 :is(html,#_) body .calcell .ch{font:700 9.5px var(--font-num);color:var(--good)}
 :is(html,#_) body .callbl{font-size:8.5px;font-weight:600}
+:is(html,#_) body .callbl.hol{font-size:7px;font-weight:600;white-space:nowrap;color:var(--bad)}
+:is(html,#_) body .callbl.hol .hfn{display:none}
+:is(html,#_) body .callbl.hol .hfs{font-size:7.5px}
+@media(min-width:420px){:is(html,#_) body .callbl.hol .hfn{display:inline}
+:is(html,#_) body .callbl.hol .hfs{display:none}}
 :is(html,#_) body .caldots i{width:5px;height:5px}
 :is(html,#_) body .callegend{gap:14px;font-size:12.5px;color:var(--label2)}
 :is(html,#_) body .callegend i{width:8px;height:8px}
@@ -1048,6 +1053,10 @@ html[data-theme="dark"]:is(html,#_) .profcard .av{color:var(--on-ac)}
       </div>
       <label class="f">Giorni lavorativi</label>
       <div id="setDays" class="segbtns" style="grid-template-columns:repeat(7,minmax(0,1fr))"></div>
+      <div class="toggle"><div><b>Festività italiane</b><div class="sub" style="margin:0">Capodanno, Pasqua, 25 aprile, Natale… non contano come giorni di lavoro né di ferie</div></div>
+        <div class="sw on" id="setFestIT" onclick="toggleFestIT(this)"></div></div>
+      <label class="f">Festa del patrono (facoltativa)</label>
+      <input id="setPatrono" placeholder="gg/mm, es. 29/06" inputmode="numeric" maxlength="5" autocomplete="off">
     </div>
 
     <div class="card">
@@ -1205,7 +1214,7 @@ function parseDay(s){const[y,m,d]=s.split('-').map(Number);return new Date(y,m-1
 function hm(ms){const t=Math.max(0,Math.round(ms/1000));const h=Math.floor(t/3600),m=Math.floor((t%3600)/60);return h+':'+pad(m);}
 function hms(ms){const t=Math.max(0,Math.floor(ms/1000));return pad(Math.floor(t/3600))+':'+pad(Math.floor((t%3600)/60))+':'+pad(t%60);}
 function oreStr(h){const v=Math.round(h*100)/100;return (Number.isInteger(v)?v:v.toFixed(1)).toString();}
-function decToHM(h){const neg=h<0;h=Math.abs(h);const H=Math.floor(h);const M=Math.round((h-H)*60);return (neg?'−':'')+H+':'+pad(M);}
+function decToHM(h){return gwDecToHM(h);}   // v318: dai minuti interi (prima 7,9999 diventava «7:60»)
 const MESI=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];
 const GIORNI=['Dom','Lun','Mar','Mer','Gio','Ven','Sab'];
 const GG=['D','L','M','M','G','V','S'];
@@ -1216,17 +1225,156 @@ function toast(m){const t=document.getElementById('toast');t.textContent=m;t.cla
 function pauseMs(pause,now){let tot=0;(pause||[]).forEach(p=>{const f=p.fine?new Date(p.fine):now;tot+=(f-new Date(p.inizio));});return tot;}
 function sessDurMs(s,now=new Date()){const fine=s.fine?new Date(s.fine):now;return (fine-new Date(s.inizio))-pauseMs(s.pause,now);}
 function oreGiorno(iso){const g=D.giornate[iso];if(!g)return 0;return g.sessioni.reduce((a,s)=>a+sessDurMs(s)/3600000,0);}
-function isLavorativo(iso){return D.settings.giorniLavorativi.includes(parseDay(iso).getDay());}
+/* v318 · GoWork — funzioni pure: formato ore, festività italiane, giorni lavorativi, ore previste.
+   Stesso file inserito nella pagina (fino al blocco finale «module.exports») e caricato dai test di Node. */
+
+/* ───────── Ore in formato H:MM (sempre dai minuti interi: niente «7:60») ───────── */
+function gwDecToHM(h) {
+  h = +h;
+  if (!isFinite(h)) h = 0;
+  var tot = Math.round(Math.abs(h) * 60);
+  var H = Math.floor(tot / 60), M = tot % 60;
+  return (h < 0 && tot > 0 ? '−' : '') + H + ':' + (M < 10 ? '0' : '') + M;
+}
+
+/* ───────── Date ───────── */
+function gwIsoOk(iso) { return typeof iso === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(iso); }
+function gwDow(iso) { return new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10)).getDay(); }
+function gwIso(y, m, d) { return y + '-' + (m < 10 ? '0' : '') + m + '-' + (d < 10 ? '0' : '') + d; }
+function gwAddDays(iso, n) {
+  var d = new Date(+iso.slice(0, 4), +iso.slice(5, 7) - 1, +iso.slice(8, 10) + n);
+  return gwIso(d.getFullYear(), d.getMonth() + 1, d.getDate());
+}
+
+/* Pasqua (calendario gregoriano, algoritmo di Meeus/Jones/Butcher) → «AAAA-MM-GG» */
+function gwEasterIso(y) {
+  var a = y % 19, b = Math.floor(y / 100), c = y % 100, d = Math.floor(b / 4), e = b % 4,
+    f = Math.floor((b + 8) / 25), g = Math.floor((b - f + 1) / 3), h = (19 * a + b - d - g + 15) % 30,
+    i = Math.floor(c / 4), k = c % 4, l = (32 + 2 * e + 2 * i - h - k) % 7,
+    m = Math.floor((a + 11 * h + 22 * l) / 451), t = h + l - 7 * m + 114;
+  return gwIso(y, Math.floor(t / 31), (t % 31) + 1);
+}
+
+/* Festa del patrono scritta «gg/mm» (anche «g/m», «gg-mm», «gg.mm»): restituisce «gg/mm» oppure '' se non è una data valida */
+function gwNormPatrono(txt) {
+  var m = /^\s*(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*$/.exec(String(txt == null ? '' : txt));
+  if (!m) return '';
+  var d = +m[1], mo = +m[2];
+  if (mo < 1 || mo > 12 || d < 1) return '';
+  var dim = [31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mo - 1];
+  if (d > dim) return '';
+  return (d < 10 ? '0' : '') + d + '/' + (mo < 10 ? '0' : '') + mo;
+}
+
+/* Festività nazionali italiane dell'anno → { 'AAAA-MM-GG': 'Nome' }.
+   Pasqua e Lunedì dell'Angelo sono mobili; si aggiunge, se indicata, la festa del patrono. */
+var GW_FEST_CACHE = {};
+function gwFestiviIT(y, patrono) {
+  var key = y + '|' + (patrono || '');
+  if (GW_FEST_CACHE[key]) return GW_FEST_CACHE[key];
+  var out = {};
+  var pasqua = gwEasterIso(y);
+  out[gwIso(y, 1, 1)] = 'Capodanno';
+  out[gwIso(y, 1, 6)] = 'Epifania';
+  out[pasqua] = 'Pasqua';
+  out[gwAddDays(pasqua, 1)] = 'Pasquetta';
+  out[gwIso(y, 4, 25)] = '25 Aprile';
+  out[gwIso(y, 5, 1)] = '1° Maggio';
+  out[gwIso(y, 6, 2)] = '2 Giugno';
+  out[gwIso(y, 8, 15)] = 'Ferragosto';
+  out[gwIso(y, 11, 1)] = 'Ognissanti';
+  out[gwIso(y, 12, 8)] = 'Immacolata';
+  out[gwIso(y, 12, 25)] = 'Natale';
+  out[gwIso(y, 12, 26)] = 'S. Stefano';
+  var p = gwNormPatrono(patrono);
+  if (p) {
+    var pd = gwIso(y, +p.slice(3, 5), +p.slice(0, 2));
+    if (!out[pd]) out[pd] = 'Patrono';
+  }
+  GW_FEST_CACHE[key] = out;
+  return out;
+}
+
+/* Nome della festività di quel giorno ('' se non è festivo). cfg = impostazioni: { festiviIT, patrono }.
+   Le festività italiane sono attive di default; il patrono vale solo se indicato. */
+function gwHolidayName(iso, cfg) {
+  if (!gwIsoOk(iso)) return '';
+  cfg = cfg || {};
+  var y = +iso.slice(0, 4);
+  var pat = cfg.patrono || '';
+  if (cfg.festiviIT === false) {
+    var p = gwNormPatrono(pat);
+    return (p && iso === gwIso(y, +p.slice(3, 5), +p.slice(0, 2))) ? 'Patrono' : '';
+  }
+  return gwFestiviIT(y, pat)[iso] || '';
+}
+
+/* Giorno di lavoro = giorno della settimana tra quelli lavorativi E non festivo */
+function gwWorkingDay(iso, cfg) {
+  if (!gwIsoOk(iso)) return false;
+  cfg = cfg || {};
+  var days = cfg.giorniLavorativi || [1, 2, 3, 4, 5];
+  if (days.indexOf(gwDow(iso)) < 0) return false;
+  return !gwHolidayName(iso, cfg);
+}
+
+/* Ore che una voce di assenza «copre» in quel giorno (ferie e malattia: giornata intera; mezza giornata: metà;
+   ROL e permessi: le ore indicate). Non supera mai le ore del giorno. */
+function gwAbsenceHours(a, iso, og) {
+  if (!a) return 0;
+  if (a.tipo === 'ferie') {
+    if (a.giornataIntera === false) return iso === a.dataInizio ? og / 2 : 0;   // mezza giornata = un giorno solo
+    return og;
+  }
+  if (a.tipo === 'malattia') return og;
+  var h = parseFloat(a.ore);
+  if (!(h > 0)) return 0;
+  return Math.min(h, og);
+}
+
+/* Ore previste in quel giorno: 0 se non lavorativo o festivo; altrimenti ore del giorno meno quelle di ferie/permessi/malattia */
+function gwTargetDay(iso, cfg, assenze) {
+  if (!gwWorkingDay(iso, cfg)) return 0;
+  var og = +(cfg && cfg.oreGiornaliere) || 0;
+  if (!(og > 0)) return 0;
+  var cop = 0;
+  (assenze || []).forEach(function (a) {
+    var ini = a && a.dataInizio, fin = (a && (a.dataFine || a.dataInizio)) || '';
+    if (!ini || iso < ini || iso > fin) return;
+    cop += gwAbsenceHours(a, iso, og);
+  });
+  return Math.max(0, og - cop);
+}
+
+/* Ore previste in un periodo [da, a] (estremi inclusi). Se il periodo non è ancora finito si ferma a `oggi`:
+   il saldo non deve risultare in rosso per giorni che devono ancora arrivare. */
+function gwExpectedPeriod(da, a, cfg, assenze, oggi) {
+  if (!gwIsoOk(da) || !gwIsoOk(a)) return 0;
+  if (gwIsoOk(oggi) && a > oggi) a = oggi;
+  if (da > a) return 0;
+  var tot = 0, iso = da, guard = 0;
+  while (iso <= a && guard++ < 800) {
+    tot += gwTargetDay(iso, cfg, assenze);
+    iso = gwAddDays(iso, 1);
+  }
+  return Math.round(tot * 100) / 100;
+}
+
+/* v318: festività e ore previste (calcolo in gwFestiviIT / gwTargetDay / gwExpectedPeriod) */
+function festivoNome(iso){return gwHolidayName(iso,D.settings);}
+function isLavorativo(iso){return gwWorkingDay(iso,D.settings);}
+function oreAttese(iso){return gwTargetDay(iso,D.settings,D.assenze||[]);}
+function attesePeriodo(da,a){return gwExpectedPeriod(da,a,D.settings,D.assenze||[],isoDay());}
 
 /* ===== saldi assenze ===== */
 function meseCorrAnno(){return new Date().getMonth()+1;} // 1..12 (per maturazione progressiva anno corrente)
 function assenzeAnno(anno){return D.assenze.filter(a=>parseDay(a.dataInizio).getFullYear()===anno);}
-function giorniAssenza(a){ // numero giorni (per ferie) o 1 se intera
-  if(a.tipo!=='ferie')return 0;
-  if(!a.giornataIntera) return 0.5;
+function giorniAssenza(a){ // v318: giorni LAVORATIVI coperti (festivi e giorni non lavorativi esclusi) per ferie e malattia
+  if(a.tipo!=='ferie'&&a.tipo!=='malattia')return 0;
+  if(a.tipo==='ferie'&&!a.giornataIntera) return isLavorativo(a.dataInizio)?0.5:0;
   const d1=parseDay(a.dataInizio),d2=parseDay(a.dataFine||a.dataInizio);
   let n=0;for(let d=new Date(d1);d<=d2;d.setDate(d.getDate()+1)){if(isLavorativo(isoDay(d)))n++;}
-  return Math.max(1,n);
+  return n;
 }
 function oreAssenza(a){if(a.tipo==='ferie')return 0;return a.ore||0;}
 function saldi(anno){
@@ -1611,13 +1759,13 @@ function refreshTick(){
   function paint(){
     const now=new Date();
     big.textContent=pad(now.getHours())+':'+pad(now.getMinutes());
-    if(bd){var _gg=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];var _mm=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];bd.textContent=_gg[now.getDay()]+' '+now.getDate()+' '+_mm[now.getMonth()]+' '+now.getFullYear();}
+    if(bd){var _gg=['Domenica','Lunedì','Martedì','Mercoledì','Giovedì','Venerdì','Sabato'];var _mm=['gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre'];bd.textContent=_gg[now.getDay()]+' '+now.getDate()+' '+_mm[now.getMonth()]+' '+now.getFullYear()+(festivoNome(isoDay(now))?' · '+festivoNome(isoDay(now)):'');}
     const s=D.sessione;
     let lavMs=D.giornate[isoDay()]?D.giornate[isoDay()].sessioni.reduce((a,x)=>a+sessDurMs(x),0):0;
     if(s) lavMs+=sessDurMs(s);
     if(wt) wt.textContent='Lavorate oggi '+hm(lavMs);
     document.getElementById('stWork').textContent=hm(lavMs);
-    const prev=isLavorativo(isoDay())?D.settings.oreGiornaliere:0;
+    const prev=oreAttese(isoDay());   // v318: 0 nei festivi, ridotte da ferie/permessi/malattia
     document.getElementById('stTarget').textContent=decToHM(prev);
     const diff=lavMs/3600000-prev;
     const de=document.getElementById('stDiff');de.textContent=(diff>=0?'+':'')+decToHM(diff);
@@ -1713,7 +1861,7 @@ function renderRegistro(){
   let totMs=0,giorni=0,attese=0;
   Object.keys(D.giornate).forEach(k=>{const d=parseDay(k);if(d.getFullYear()===y&&d.getMonth()===m){totMs+=D.giornate[k].sessioni.reduce((a,s)=>a+sessDurMs(s),0);giorni++;}});
   const lastDay=new Date(y,m+1,0).getDate();
-  for(let d=1;d<=lastDay;d++){const iso=y+'-'+pad(m+1)+'-'+pad(d);if(isLavorativo(iso))attese+=D.settings.oreGiornaliere;}
+  attese=attesePeriodo(y+'-'+pad(m+1)+'-01',y+'-'+pad(m+1)+'-'+pad(lastDay));   // v318: senza festivi e assenze, fino a oggi se il mese non è finito
   const over=totMs/3600000-attese;
   document.getElementById('mWork').textContent=oreStr(totMs/3600000)+'h';
   const ov=document.getElementById('mOver');ov.textContent=(over>=0?'+':'')+oreStr(over)+'h';ov.className='v mono '+(over>=0?'pos':'neg');
@@ -1726,10 +1874,12 @@ function renderRegistro(){
   for(let d=1;d<=lastDay;d++){
     const iso=y+'-'+pad(m+1)+'-'+pad(d);
     const g=D.giornate[iso];const ms=g?g.sessioni.reduce((a,s)=>a+sessDurMs(s),0):0;
-    const impList=impegniDi(iso), ass=assenzeDi(iso);
+    const impList=impegniDi(iso), ass=assenzeDi(iso), fest=festivoNome(iso);
     let lbl='';
     if(impList.length){
       lbl=`<div class="callbl" style="color:var(--rol)">${escH(impList[0].titolo)}${impList.length>1?' +'+(impList.length-1):''}</div>`;
+    }else if(fest){
+      lbl=`<div class="callbl hol"><span class="hfn">${escH(fest)}</span><span class="hfs">Festa</span></div>`;
     }else if(ass.length){
       const t=TIPI[ass[0].tipo];
       lbl=`<div class="callbl" style="color:${t.col}">${t.em} ${t.lab}${ass.length>1?' +'+(ass.length-1):''}</div>`;
@@ -1737,7 +1887,7 @@ function renderRegistro(){
     let dots='';
     if(impList.length&&ass.length){ass.forEach(a=>{dots+=`<i style="background:${TIPI[a.tipo].col}"></i>`;});} // mostra i pallini delle assenze solo se c'è già il titolo impegno
     const dow=parseDay(iso).getDay();
-    cells+=`<div class="calcell${iso===oggi?' oggi':''}${(dow===0||dow===6)?' festivo':''}" onclick="openGiorno('${iso}')">
+    cells+=`<div class="calcell${iso===oggi?' oggi':''}${(dow===0||dow===6||fest)?' festivo':''}"${fest?' title="'+escH(fest)+'"':''} onclick="openGiorno('${iso}')">
       <div class="cd">${d}</div>${ms?`<div class="ch">${hm(ms)}</div>`:''}${lbl}${dots?`<div class="caldots">${dots}</div>`:''}</div>`;
   }
   document.getElementById('calGrid').innerHTML=
@@ -1760,7 +1910,8 @@ function openGiorno(iso){
   if(imp.length)imp.sort((a,b)=>(a.ora||'').localeCompare(b.ora||'')).forEach(x=>{
     sez+=`<div class="row" onclick="openImpegno('${iso}','${x.id}')"><div class="tag" style="background:var(--rol)"></div><div class="main"><div class="t1">${x.titolo}</div><div class="t2">${x.ora?'🕒 '+x.ora+(x.note?' · ':''):''}${x.note||''}</div></div><div class="amt" style="color:var(--rol)">›</div></div>`;});
   else sez+='<div class="empty" style="padding:14px"><span class="em">🗓️</span>Nessun impegno</div>';
-  openSheet(`<h3>${fmtData(iso)} ${parseDay(iso).getFullYear()}</h3>${sez}
+  const _fn=festivoNome(iso);
+  openSheet(`<h3>${fmtData(iso)} ${parseDay(iso).getFullYear()}</h3>${_fn?'<div class="sub" style="margin:-4px 0 8px">🎌 '+escH(_fn)+' · festività, non è un giorno di lavoro</div>':''}${sez}
     <button class="btn btn-go btn-block" style="margin-top:14px" onclick="openImpegno('${iso}')">+ Aggiungi impegno</button>
     <button class="btn btn-ghost btn-block btn-sm" style="margin-top:8px" onclick="openTimbra('${iso}')">+ Aggiungi giornata di lavoro</button>`);
 }
@@ -2013,7 +2164,7 @@ function registroBody(){
   var last=new Date(y,m+1,0).getDate();
   var totMs=0,giorni=0,attese=0;
   Object.keys(D.giornate).forEach(function(k){var d=parseDay(k);if(d.getFullYear()===y&&d.getMonth()===m){totMs+=D.giornate[k].sessioni.reduce(function(a,s){return a+sessDurMs(s);},0);giorni++;}});
-  for(var dd=1;dd<=last;dd++){var isoo=y+'-'+pad(m+1)+'-'+pad(dd);if(isLavorativo(isoo))attese+=D.settings.oreGiornaliere;}
+  attese=attesePeriodo(y+'-'+pad(m+1)+'-01',y+'-'+pad(m+1)+'-'+pad(last));
   var over=totMs/3600000-attese;
   var sum='<div class="sumline">Ore lavorate: <b>'+oreStr(totMs/3600000)+'h</b> · Straordinario: <b>'+(over>=0?'+':'')+oreStr(over)+'h</b> · Giorni lavorati: <b>'+giorni+'</b></div>';
   var rows='';
@@ -2042,9 +2193,9 @@ function printRegistro(){ gwPrintHTML(gwShell(regTitle(),'',registroBody())); }
 function riepBody(){
   var perMese=Array(12).fill(0);var tot=0,attese=0;
   Object.keys(D.giornate).forEach(function(k){var d=parseDay(k);if(d.getFullYear()===riepYear){var ms=D.giornate[k].sessioni.reduce(function(a,s){return a+sessDurMs(s);},0);perMese[d.getMonth()]+=ms/3600000;tot+=ms/3600000;}});
-  for(var m=0;m<12;m++){var last=new Date(riepYear,m+1,0).getDate();for(var dd=1;dd<=last;dd++){var iso=riepYear+'-'+pad(m+1)+'-'+pad(dd);if(isLavorativo(iso))attese+=D.settings.oreGiornaliere;}}
+  attese=attesePeriodo(riepYear+'-01-01',riepYear+'-12-31');
   var over=tot-attese;
-  var sum='<div class="sumline">Ore totali: <b>'+oreStr(tot)+'h</b> · Straordinario: <b>'+(over>=0?'+':'')+oreStr(over)+'h</b> · Ore previste: <b>'+oreStr(attese)+'h</b></div>';
+  var sum='<div class="sumline">Ore totali: <b>'+oreStr(tot)+'h</b> · Straordinario: <b>'+(over>=0?'+':'')+oreStr(over)+'h</b> · Ore previste: <b>'+oreStr(attese)+'h</b>'+(riepYear===new Date().getFullYear()?' (fino a oggi)':'')+'</div>';
   var rowsM='';
   for(var i=0;i<12;i++){ if(perMese[i]>0) rowsM+='<tr><td>'+MESI[i]+'</td><td class="n">'+oreStr(perMese[i])+' h</td></tr>'; }
   if(!rowsM)rowsM='<tr><td colspan="2" style="color:#999;font-style:italic">Nessuna ora registrata</td></tr>';
@@ -2190,7 +2341,7 @@ function renderRiep(){
   const perMese=Array(12).fill(0);let tot=0,attese=0;
   Object.keys(D.giornate).forEach(k=>{const d=parseDay(k);if(d.getFullYear()===riepYear){const ms=D.giornate[k].sessioni.reduce((a,s)=>a+sessDurMs(s),0);perMese[d.getMonth()]+=ms/3600000;tot+=ms/3600000;}});
   // attese annue
-  for(let m=0;m<12;m++){const last=new Date(riepYear,m+1,0).getDate();for(let d=1;d<=last;d++){const iso=riepYear+'-'+pad(m+1)+'-'+pad(d);if(isLavorativo(iso))attese+=D.settings.oreGiornaliere;}}
+  attese=attesePeriodo(riepYear+'-01-01',riepYear+'-12-31');
   document.getElementById('rTot').textContent=oreStr(tot)+'h';
   const over=tot-attese;const ov=document.getElementById('rOver');ov.textContent=(over>=0?'+':'')+oreStr(over)+'h';ov.className='v mono '+(over>=0?'pos':'neg');
   // chart
@@ -2490,6 +2641,8 @@ function renderSettings(){
   buildDateSel('setInizioLavSel','setInizioLav',p.dataInizioLavoro||'');
   document.getElementById('setOreGg').value=s.oreGiornaliere;
   document.getElementById('setOreSett').value=s.oreSettimanali;
+  document.getElementById('setFestIT').classList.toggle('on',s.festiviIT!==false);
+  document.getElementById('setPatrono').value=s.patrono||'';
   document.getElementById('setFerieIni').value=s.ferieIniziali;
   document.getElementById('setFerieMese').value=s.ferieMese;
   document.getElementById('setRolIni').value=s.rolIniziali;
@@ -2521,6 +2674,7 @@ function toggleDay(d,btn){
   btn.className=arr.includes(d)?'on ferie':'';
   save();renderOggi();
 }
+function toggleFestIT(el){el.classList.toggle('on');collectSettings();renderOggi();}
 function collectSettings(){
   const s=D.settings,p=D.profile;
   p.nome=document.getElementById('setNome').value;
@@ -2540,7 +2694,13 @@ function collectSettings(){
   s.rolIniziali=parseFloat(document.getElementById('setRolIni').value)||0;
   s.rolMese=parseFloat(document.getElementById('setRolMese').value)||0;
   s.permessiRetr=parseFloat(document.getElementById('setPermr').value)||0;
+  // v318: festività italiane e festa del patrono (se la data non è valida resta quella di prima e il campo si colora)
+  s.festiviIT=document.getElementById('setFestIT').classList.contains('on');
+  const _pv=document.getElementById('setPatrono'), _pt=(_pv.value||'').trim(), _pn=gwNormPatrono(_pt);
+  if(!_pt)s.patrono=''; else if(_pn)s.patrono=_pn;
+  _pv.style.borderColor=(_pt&&!_pn)?'var(--permr)':'';
   save();
+  try{refreshTick();}catch(e){}
   // aggiorno il nome mostrato nella card account, se serve
   const an=document.getElementById('accName');if(an&&currentUser)an.textContent=currentUser.name||p.nome||'Profilo';
 }
