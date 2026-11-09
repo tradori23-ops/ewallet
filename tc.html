@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261108-v320-giorno-ipad';
+  var BUILD = '20261109-v321-rimanenza';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -10292,6 +10292,7 @@ function showSection(id, el) {
   if(id==='aggiungiSpesa') { setTimeout(renderBudgetCard, 50); setTimeout(renderSpeseSuggerite, 80); }
   if(id==='documenti') { renderAllDocLists(); initDocDragDrop(); }
   if(id==='entrate') updateRimanenza();
+  if(id==='dashboard') { try { if(window.EWRIM) EWRIM.onDashboard(); } catch(e) { } }   // v321
   if(id==='librietto') { setTimeout(() => renderLibrietto(), 50); }
   if(id==='contocorrente') { setTimeout(() => renderCC(), 50); }
   if(id==='ricorrenti') { /* legacy - sezione rimossa */ }
@@ -11201,6 +11202,10 @@ function openRimAlertSettings() {
 }
 
 function updateRimanenza() {
+  try { updateRimanenzaCore(); } catch (e) { if (window.EWRIM) { try { EWRIM.fail(e); } catch (x) { } return; } throw e; }   // v321
+  try { if (window.EWRIM) EWRIM.after(); } catch (e) { }
+}
+function updateRimanenzaCore() {
   const yr = parseInt(document.getElementById('globalYear')?.value || new Date().getFullYear());
   const mo = parseInt(document.getElementById('globalMonth')?.value || new Date().getMonth()+1);
   const allIncome = getIncome();
@@ -11391,7 +11396,7 @@ function updateRimanenza() {
     el('dash-rim-box').style.borderColor = rimanenza >= 0 ? 'rgba(74,232,122,0.35)' : 'rgba(224,92,92,0.35)';
   }
   // Grafico categorie mensile
-  renderDashCatChart(yr, mo);
+  try { renderDashCatChart(yr, mo); } catch (e) { try { console.warn('[rimanenza] grafico categorie non ridisegnato:', e); } catch (x) { } }   // v321: un grafico che non si disegna non ferma il resto del ricalcolo
   // Dettaglio entrate: mostra stipendio mese prec - spese fine mese se non c'è stipendio corrente
   const sumDetail = el('sum-income-detail');
   if(sumDetail) {
@@ -11985,6 +11990,7 @@ function renderDashboard() {
 
   // Chiama updateRimanenza per calcolare e mostrare la rimanenza reale corretta
   updateRimanenza();
+  try { if(window.EWRIM) EWRIM.stamp(); } catch(e) { }   // v321
 
   const crEl = document.getElementById('creditoRimanente');
   if(crEl) { crEl.textContent = '€'+inc.toFixed(2).replace('.',','); crEl.className = 'positive'; }
@@ -21991,6 +21997,7 @@ function vsAddQuickIncome() {
   vsToggleAddIncome();
   renderVSBudget();
   renderVSWeek();
+  try { if (window.EWRIM) EWRIM.refresh(); } catch (e) { }   // v321: Dashboard e rimanenza subito aggiornate (anche se il grafico non si carica)
   showConfirmAnim('income', amount);
   showToast('\u2705 +\u20ac' + amount.toFixed(2) + ' da "' + desc + '" salvata');
   const dayLabel = d.toLocaleDateString('it-IT',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
@@ -33997,6 +34004,8 @@ body.light{
 :is(html,#_) body #weekDetailStats>div{padding:10px 4px!important;min-width:0}
 :is(html,#_) body #weekDetailStats>div>div:first-child{font-size:16px!important;overflow-wrap:anywhere}
 :is(html,#_) body #weekDetailStats>div>div:last-child{letter-spacing:.3px!important;font-size:9.5px!important}}
+:is(html,#_) body .ew-rim-fail{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:9px 13px;border:0;border-radius:14px;background:var(--tint-r);color:var(--red);font:600 12.5px/1.35 var(--font);text-align:left;cursor:pointer}
+:is(html,#_) body .ew-rim-fail[hidden]{display:none}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -35954,7 +35963,8 @@ var EWBUD = (function () {
     var cur = String(c.value.toFixed(2)).replace('.', ',');
     var html = '<div class="ew-pop-hd"><span class="ew-pop-ic" aria-hidden="true">💰</span><div><div class="ew-pop-ttl" id="ewPopT">Rimanenza reale ad oggi</div><div class="ew-pop-sub">Scrivi quanto hai davvero adesso</div></div></div>' +
       '<form class="ew-pop-bd ew-rim-form" novalidate>' +
-      '<p>L’app aggiorna subito budget e avvisi. Calcolata dai movimenti: <b>' + eur(calc) + '</b>.</p>' +
+      '<p>Calcolata dai movimenti: <b>' + eur(calc) + '</b>' + (hasAdj ? ' · tua correzione <b style="white-space:nowrap">' + (+adj.delta > 0 ? '+' : '') + eur(+adj.delta) + '</b>' : '') + '.<br>' +
+      (hasAdj ? 'Da ora' : 'Dopo la correzione') + ' le entrate e le spese che aggiungi si sommano e si tolgono da sole.</p>' +
       '<label for="ewRimInp">Rimanenza reale (€)</label>' +
       '<input id="ewRimInp" data-focus type="text" inputmode="decimal" autocomplete="off" value="' + cur + '" aria-label="Rimanenza reale in euro">' +
       '<label for="ewThInp">Avvisami («modera») sotto (€)</label>' +
@@ -36659,10 +36669,10 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v321', d: '9 nov 2026', t: 'Rimanenza sempre aggiornata', x: 'Quando aggiungi un’entrata o una spesa, l’avviso dice anche di quanto cambia la rimanenza (▲ +€200,00 → €357,00). La Dashboard è sempre aggiornata quando la apri, anche dopo l’entrata rapida di Spese Settimanali.' },
     { v: 'v320', d: '8 nov 2026', t: 'Spese dal telefono e iPad', x: 'Nel dettaglio del giorno il modulo «Aggiungi spesa» ha sempre Annulla e Salva raggiungibili sul telefono. Impostazioni a tutto schermo anche su iPad in verticale.' },
     { v: 'v319', d: '8 nov 2026', t: 'Impostazioni su schermo largo', x: 'Barra laterale con le schede, pannelli dai bordi tondi, stato dei dati sempre in vista, scorciatoie da tastiera (Esc, 1–6, Ctrl+S), statistiche con grafici, esportazione CSV delle spese e tema Notte/Giorno.' },
-    { v: 'v318', d: '8 nov 2026', t: 'Controllo contabile', x: 'Import Revolut quadrato sui saldi, «Controllo dati», rimanenza senza doppi conteggi, rate e salvadanaio corretti, GoWork v55 con festivi e ore previste.' },
-    { v: 'v317', d: '7 nov 2026', t: 'Viaggi e rimanenza', x: 'Le spese dei viaggi scalano sempre dalla rimanenza, senza doppioni con la banca.' }
+    { v: 'v318', d: '8 nov 2026', t: 'Controllo contabile', x: 'Import Revolut quadrato sui saldi, «Controllo dati», rimanenza senza doppi conteggi, rate e salvadanaio corretti, GoWork v55 con festivi e ore previste.' }
   ];
 
   var cur = 'info', timer = 0, bound = false;
@@ -36963,6 +36973,144 @@ var EWPW = (function () {
 
   return { setTheme: setTheme, setChkAuto: setChkAuto, exportCsv: exportCsv, renderStats: renderStats, collect: collect, buildCsv: buildCsv, build: tcBuild, onTab: onTab, onOpen: onOpen, refresh: refresh, markBg: markBg };
 })();
+
+</script>
+<script id="rim-js">
+/* ═══════════════════════════════════════════════════════════════
+   EWRIM — v321 · La rimanenza si aggiorna sempre e dice di quanto cambia
+   · Quando apri la Dashboard i numeri sono quelli di adesso, anche se l'entrata (o la spesa) l'hai inserita da un'altra schermata.
+   · Dopo ogni entrata o spesa l'avviso di conferma dice anche di quanto cambia la rimanenza («· rimanenza ▲ +€200,00 → €357,00»).
+   · Se il ricalcolo non riesce lo dice, con il motivo (prima il numero grande restava fermo senza avvisare).
+   Motore puro (testabile in Node) + adattatore DOM. Nessun dato nuovo da salvare.
+   ═══════════════════════════════════════════════════════════════ */
+var EWRIM = (function () {
+  'use strict';
+
+  var WIN = 1500;            // ms: la variazione si accoda all'avviso di conferma solo se questo arriva subito dopo il ricalcolo
+  var BOOT = 5000;           // ms: niente annunci durante il caricamento e la prima sincronizzazione
+  var LONG = 4800;           // ms: l'avviso con la variazione resta un po' di più in vista
+
+  function r2(v) { return Math.round((+v || 0) * 100) / 100; }
+
+  /* ───────────────────────── motore puro ───────────────────────── */
+  // Variazione da annunciare: serve un valore precedente dello stesso mese, e la correzione a mano non deve essere stata toccata
+  // nel frattempo (se l'hai appena corretta tu, non è una «variazione» da annunciare).
+  function changeOf(prev, next, adjNow) {
+    if (!prev || !isFinite(+prev.v) || next === null || next === undefined || !isFinite(+next)) return 0;
+    if (String(prev.a || '') !== String(adjNow || '')) return 0;
+    var d = r2(+next - +prev.v);
+    return Math.abs(d) >= 0.01 ? d : 0;
+  }
+
+  function eurTxt(v) { v = r2(v); return (v < 0 ? '−' : '') + '€' + Math.abs(v).toFixed(2).replace('.', ','); }
+  // spazi unificanti dentro i due pezzi («rimanenza ▲ +€200,00» e «→ €357,00»): su telefono l'avviso va a capo prima della nota, non nel mezzo
+  function nb(t) { return String(t).replace(/ /g, '\u00A0'); }
+  function noteText(d, value) { return nb('rimanenza ' + (d > 0 ? '▲ +' : '▼ −') + '€' + Math.abs(r2(d)).toFixed(2).replace('.', ',')) + ' ' + nb('→ ' + eurTxt(value)); }
+
+  // Accoda la nota all'avviso di conferma («✅ …») solo se il ricalcolo è appena avvenuto; restituisce il testo da mostrare
+  function withNote(msg, note, now) {
+    msg = String(msg == null ? '' : msg);
+    if (!note || now - note.at > WIN || !/^\s*✅/.test(msg) || /rimanenza\s+[▲▼]/.test(msg)) return { text: msg, used: false };
+    return { text: msg + ' · ' + note.text, used: true };
+  }
+
+  var core = { changeOf: changeOf, noteText: noteText, withNote: withNote, eurTxt: eurTxt, r2: r2, CONST: { WIN: WIN, BOOT: BOOT, LONG: LONG } };
+
+  /* ───────────────────────── adattatore DOM ───────────────────────── */
+  var hasDom = typeof document !== 'undefined' && typeof window !== 'undefined';
+  if (!hasDom) return core;
+
+  var last = {}, curK = '', note = null, stampV = null, bootUntil = Date.now() + BOOT;
+
+  function $(id) { return document.getElementById(id); }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+  function period() {
+    var y = parseInt(($('globalYear') || {}).value, 10) || new Date().getFullYear();
+    var m = parseInt(($('globalMonth') || {}).value, 10) || (new Date().getMonth() + 1);
+    return { y: y, m: m, k: y + '_' + m };
+  }
+  function adjRaw(p) { try { return localStorage.getItem(getKey('rim_adj_' + p.k)) || ''; } catch (e) { return ''; } }
+  function verNow() { try { return getVersion(); } catch (e) { return null; } }
+
+  /* ── avviso di conferma: «✅ Entrata aggiunta! · rimanenza ▲ +€200,00 → €357,00» ── */
+  function hookToast() {
+    try {
+      if (typeof showToast !== 'function' || showToast.__ewRim) return;
+      var orig = showToast;
+      var w = function (msg, duration) {
+        try {
+          var r = withNote(msg, note, Date.now());
+          if (r.used) { msg = r.text; note = null; if (duration === undefined || duration < LONG) duration = LONG; }
+        } catch (e) { }
+        return orig.call(this, msg, duration);
+      };
+      w.__ewRim = true; window.showToast = w;
+    } catch (e) { }
+  }
+
+  /* ── ricalcolo non riuscito: si vede, con il motivo ── */
+  function clearFail() { var n = $('ewRimFail'); if (n) n.hidden = true; try { window.__ewRimErr = null; } catch (e) { } }
+  function fail(e) {
+    var msg = String((e && e.message) || e || 'errore'), box = $('dash-rim-box');
+    try { console.error('[rimanenza] ricalcolo non riuscito:', e); } catch (x) { }
+    try { window.__ewRimErr = { msg: msg, at: new Date().toISOString() }; } catch (x) { }
+    if (!box) return;
+    var n = $('ewRimFail');
+    if (!n) {
+      n = document.createElement('button'); n.type = 'button'; n.id = 'ewRimFail'; n.className = 'ew-rim-fail';
+      n.addEventListener('click', function () { try { updateRimanenza(); } catch (x) { } });
+      var anchor = $('dash-al-giorno-info');
+      if (anchor && anchor.parentNode) anchor.parentNode.insertBefore(n, anchor.nextSibling); else box.appendChild(n);
+    }
+    n.innerHTML = '<span aria-hidden="true">⚠️</span><span>Rimanenza non aggiornata (' + esc(msg.slice(0, 70)) + '). Tocca per riprovare.</span>';
+    n.hidden = false;
+  }
+
+  // chiamata da updateRimanenza() dopo ogni calcolo riuscito
+  function after() {
+    clearFail();
+    var v = window._creditoRimanente, p = period(), now = Date.now();
+    if (typeof v !== 'number' || !isFinite(v)) return;
+    if (p.k !== curK) { curK = p.k; last = {}; }          // cambio mese: si riparte da zero, nessuna «variazione»
+    var a = adjRaw(p), d = changeOf(last[p.k], v, a);
+    last[p.k] = { v: v, a: a };
+    if (!d || now < bootUntil) return;
+    note = { text: noteText(d, v), at: now, d: d, v: v };
+    hookToast();
+  }
+
+  // esegue un pezzo dell'aggiornamento senza fermare gli altri: se non riesce (es. il grafico non si è caricato) lo scrive in console e si va avanti
+  function safe(name, fn) {
+    try { fn(); return true; }
+    catch (e) { try { console.warn('[rimanenza] ' + name + ' non ridisegnato:', e); } catch (x) { } return false; }
+  }
+
+  // chiamata da showSection('dashboard'): numeri sempre aggiornati
+  function onDashboard() {
+    var stale = stampV === null || verNow() !== stampV, ok = false;
+    if (stale && typeof renderDashboard === 'function') ok = safe('dashboard', function () { renderDashboard(); });
+    // Dashboard già allineata, oppure disegno non riuscito (grafico non caricato): la rimanenza si ricalcola comunque, e se non riesce lo dice
+    if (!ok && typeof updateRimanenza === 'function') updateRimanenza();
+  }
+
+  // chiamata da schermate che salvano un'entrata ma non ridisegnano tutto da sole (entrata rapida di «Spese Settimanali»)
+  function refresh() {
+    var ok = false;
+    if (typeof renderIncome === 'function') safe('entrate', function () { renderIncome(); });
+    if (typeof renderDashboard === 'function') ok = safe('dashboard', function () { renderDashboard(); });
+    if (typeof renderWeek === 'function') safe('settimana', function () { renderWeek(); });
+    if (typeof renderCalendar === 'function') safe('calendario', function () { renderCalendar(); });
+    if (!ok && typeof updateRimanenza === 'function') updateRimanenza();
+  }
+  // chiamata da renderDashboard() dopo il ricalcolo: la Dashboard è allineata ai dati di questo momento
+  function stamp() { stampV = verNow(); }
+
+  hookToast();
+  core.after = after; core.fail = fail; core.onDashboard = onDashboard; core.refresh = refresh; core.stamp = stamp;
+  core._state = function () { return { last: last, note: note, stampV: stampV, curK: curK }; };
+  return core;
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = EWRIM;
 
 </script>
 <script>try{if(window.parent&&window.parent!==window)document.body.classList.add("ew-embed");}catch(e){}</script>
