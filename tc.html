@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261109-v321-rimanenza';
+  var BUILD = '20261114-v322-scontrino';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -5833,6 +5833,13 @@ setTimeout(_updateOfflineBanner, 500);
         </div>
       </div>
 
+      <!-- v322 · scontrino digitale: foto o testo di iOS → spesa + PDF -->
+      <div class="card mb-20 sco-entry" id="scoEntry">
+        <span class="sco-entry-ic" aria-hidden="true">🧾</span>
+        <div class="sco-entry-tx"><b>Hai uno scontrino?</b><span>Fotografalo o incolla il testo: l'app compila la spesa e ne resta una copia digitale in PDF.</span></div>
+        <button type="button" class="sco-go" onclick="try{EWSCO.open()}catch(e){showToast('⚠️ Scontrino non disponibile: riapri l\'app')}">Scontrino</button>
+      </div>
+
       <div class="card mb-20">
         <div class="form-grid">
           <div class="fld">
@@ -7009,6 +7016,7 @@ setTimeout(_updateOfflineBanner, 500);
         <button class="graph-tab active" id="dtab-medica"   onclick="switchDocTab('medica')">🏥 Fatture Mediche</button>
         <button class="graph-tab"        id="dtab-viaggi"   onclick="switchDocTab('viaggi')">✈️ Fatture Viaggi</button>
         <button class="graph-tab"        id="dtab-generica" onclick="switchDocTab('generica')">📄 Fatture Generiche</button>
+        <button class="graph-tab"        id="dtab-scontrini" onclick="switchDocTab('scontrini')">🧾 Scontrini</button>
       </div>
 
       <!-- CATEGORIA: MEDICA -->
@@ -7053,6 +7061,20 @@ setTimeout(_updateOfflineBanner, 500);
           <input type="file" id="docFile-generica" accept=".pdf,.jpg,.jpeg,.png,.webp" style="display:none;" multiple onchange="handleDocUpload(event,'generica')">
           <div id="docList-generica" class="doc-list"></div>
           <div id="docEmpty-generica" class="doc-empty">📭 Nessuna fattura generica archiviata</div>
+        </div>
+      </div>
+
+      <!-- CATEGORIA: SCONTRINI DIGITALI (v322) -->
+      <div id="dtab-content-scontrini" style="display:none;">
+        <div class="card mb-20" id="scoArchive">
+          <div class="card-title">🧾 Scontrini digitali</div>
+          <button type="button" class="sco-go wide" onclick="try{EWSCO.open()}catch(e){showToast('⚠️ Scontrino non disponibile: riapri l\'app')}">📷 Nuovo scontrino</button>
+          <input type="search" id="scoSearch" class="sco-search" placeholder="Cerca negozio, importo, articolo…" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Cerca negli scontrini" hidden>
+          <div id="scoChips" class="sco-chips" hidden></div>
+          <div id="scoCount" class="sco-count"></div>
+          <ul id="scoList" class="sco-list"></ul>
+          <div id="scoEmpty" class="sco-empty">📭 Nessuno scontrino ancora. Fotografane uno: resta una copia digitale in PDF, collegata alla spesa.</div>
+          <div id="scoStore" class="sco-store"></div>
         </div>
       </div>
 
@@ -18714,9 +18736,10 @@ async function dbGetDoc(id) {
 
 function switchDocTab(tab) {
   currentDocTab = tab;
-  ['medica','viaggi','generica'].forEach(t => {
-    document.getElementById('dtab-'+t).classList.toggle('active', t===tab);
-    document.getElementById('dtab-content-'+t).style.display = t===tab ? 'block' : 'none';
+  ['medica','viaggi','generica','scontrini'].forEach(t => {
+    const _b = document.getElementById('dtab-'+t), _c = document.getElementById('dtab-content-'+t);
+    if(_b) _b.classList.toggle('active', t===tab);
+    if(_c) _c.style.display = t===tab ? 'block' : 'none';
   });
   loadAndRenderDocs(tab);
 }
@@ -18830,6 +18853,7 @@ async function uploadToLocal(file, cat) {
 // ─────────────────────────────────────────────────────────
 
 async function loadAndRenderDocs(cat) {
+  if(cat === 'scontrini') { try { if(window.EWSCO) await EWSCO.render(); } catch(e) { console.error('Scontrini', e); } return; }   // v322
   const listEl  = document.getElementById('docList-'+cat);
   const emptyEl = document.getElementById('docEmpty-'+cat);
   if(!listEl) return;
@@ -18934,6 +18958,7 @@ async function updateDocBadges() {
       btn.textContent = labels[cat] + (n > 0 ? ` (${n})` : '');
     } catch(e) { /* ignora */ }
   }
+  try { if(window.EWSCO) EWSCO.badge(); } catch(e) { }   // v322: numero degli scontrini sulla quarta scheda
 }
 
 // ─────────────────────────────────────────────────────────
@@ -26945,7 +26970,12 @@ function updateNavTodayLabel(){
 if(document.readyState!=='loading')updateNavTodayLabel();else document.addEventListener('DOMContentLoaded',updateNavTodayLabel);
 try{setInterval(updateNavTodayLabel,30000);}catch(e){}
 
-function _sbChip(e, flex) { try { return (window.EWSUB && EWSUB.chip) ? EWSUB.chip(e, flex) : ''; } catch(_) { return ''; } }
+function _sbChip(e, flex) {
+  let h = '';
+  try { h = (window.EWSUB && EWSUB.chip) ? EWSUB.chip(e, flex) : ''; } catch(_) { }
+  try { if(e && e.rcpt && window.EWSCO) h += EWSCO.chip(e); } catch(_) { }   // v322: scontrino digitale collegato
+  return h;
+}
 function _sbEmpty(cat) { try { if(window.EWSUB && EWSUB.has(cat)) { EWSUB.bind(document.getElementById('catDetailList')); return EWSUB.moveHtml(cat); } } catch(_) {} return ''; }
 function _expTimeBadge(e) {
   if(!e || !e.createdAt) return '';
@@ -34006,6 +34036,167 @@ body.light{
 :is(html,#_) body #weekDetailStats>div>div:last-child{letter-spacing:.3px!important;font-size:9.5px!important}}
 :is(html,#_) body .ew-rim-fail{display:flex;align-items:center;gap:8px;width:100%;margin-top:10px;padding:9px 13px;border:0;border-radius:14px;background:var(--tint-r);color:var(--red);font:600 12.5px/1.35 var(--font);text-align:left;cursor:pointer}
 :is(html,#_) body .ew-rim-fail[hidden]{display:none}
+:is(html,#_) body .sco-entry{display:flex;align-items:center;gap:12px;padding:14px 16px}
+:is(html,#_) body .sco-entry-ic{flex:none;width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:13px;background:var(--ac-soft);font-size:22px}
+:is(html,#_) body .sco-entry-tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+:is(html,#_) body .sco-entry-tx b{font-size:15.5px;font-weight:650;color:var(--label)}
+:is(html,#_) body .sco-entry-tx span{font-size:12.5px;line-height:1.35;color:var(--label2)}
+:is(html,#_) body .sco-go{flex:none;min-height:42px;padding:9px 16px;border:0;border-radius:13px;background:var(--ac);color:var(--on-ac);font:650 14.5px/1.2 var(--font);cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-go:active{opacity:.85}
+:is(html,#_) body .sco-go.wide{width:100%;margin:0 0 12px}
+@media (max-width:379px){:is(html,#_) body .sco-entry{flex-wrap:wrap}
+:is(html,#_) body .sco-entry .sco-go{width:100%}}
+:is(html,#_) body .sco-search{display:block;width:100%;min-height:44px;margin:0 0 10px;padding:10px 14px;border:1px solid var(--hair2);border-radius:13px;background:var(--fill3);color:var(--label);font:16px/1.3 var(--font);-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-search::placeholder{color:var(--label3)}
+:is(html,#_) body .sco-search:focus{outline:2px solid var(--ac);outline-offset:1px}
+:is(html,#_) body .sco-search[hidden],:is(html,#_) body .sco-chips[hidden],:is(html,#_) body .sco-empty[hidden]{display:none}
+:is(html,#_) body .sco-chips{display:flex;gap:6px;margin:0 0 10px;padding:0 0 2px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+:is(html,#_) body .sco-chips::-webkit-scrollbar{display:none}
+:is(html,#_) body .sco-chip2{flex:none;min-height:34px;padding:6px 12px;border:1px solid var(--hair);border-radius:999px;background:var(--sf2);color:var(--label2);font:600 13px/1.2 var(--font);white-space:nowrap;cursor:pointer;-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-chip2.on{background:var(--ac-soft);border-color:var(--ac-ring);color:var(--act)}
+:is(html,#_) body .sco-count{margin:0 2px 8px;font-size:12px;font-weight:600;letter-spacing:.04em;color:var(--label2)}
+:is(html,#_) body .sco-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+:is(html,#_) body .sco-list li{margin:0;padding:0}
+:is(html,#_) body .sco-arow{display:flex;align-items:center;gap:11px;width:100%;min-height:56px;padding:10px 13px;border:1px solid var(--hair);border-radius:14px;background:var(--sf2);color:var(--label);text-align:left;font:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .sco-arow:active{background:var(--fill3)}
+:is(html,#_) body .sco-dot{flex:none;width:10px;height:10px;border-radius:50%}
+:is(html,#_) body .sco-am{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+:is(html,#_) body .sco-am .m{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(html,#_) body .sco-am .s{font-size:12px;color:var(--label2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(html,#_) body .sco-arow .t{flex:none;font:700 15.5px/1.2 var(--font-num);font-variant-numeric:tabular-nums}
+:is(html,#_) body .sco-none{padding:14px 4px;text-align:center}
+:is(html,#_) body .sco-empty{padding:18px 10px;text-align:center;font-size:13.5px;line-height:1.5;color:var(--label2)}
+:is(html,#_) body .sco-store{margin:12px 2px 0;font-size:12px;line-height:1.45;color:var(--label2)}
+:is(html,#_) body .sco-store:empty{display:none}
+:is(html,#_) body .sco-xchip{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;margin:0 0 0 4px;padding:0;border:0;border-radius:7px;background:var(--ac-soft);font-size:12px;line-height:1;vertical-align:middle;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-xchip:active{opacity:.7}
+:is(html,#_) body .sco-modal{position:fixed;top:0;right:0;bottom:0;left:0;z-index:100010;display:flex;align-items:flex-end;justify-content:center;padding:max(10px,env(safe-area-inset-top,0px)) 0 0;background:var(--scrim);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);font-family:var(--font);color:var(--label);-webkit-text-size-adjust:100%}
+:is(html,#_) body .sco-modal[hidden]{display:none}
+:is(html,#_) body .sco-modal *{box-sizing:border-box}
+:is(html,#_) body .sco-modal button,:is(html,#_) body .sco-modal input,:is(html,#_) body .sco-modal select,:is(html,#_) body .sco-modal textarea{font-family:inherit}
+:is(html,#_) body .sco-modal button:focus-visible,:is(html,#_) body .sco-modal summary:focus-visible,:is(html,#_) body .sco-modal [role=button]:focus-visible{outline:2px solid var(--ac);outline-offset:2px}
+:is(html,#_) body .sco-sheet{position:relative;display:flex;flex-direction:column;width:100%;max-width:560px;max-height:100%;min-height:0;background:var(--sheet);border-radius:22px 22px 0 0;box-shadow:0 -10px 44px rgba(0,0,0,.38);outline:0;overflow:hidden}
+@media (min-width:640px){:is(html,#_) body .sco-modal{align-items:center;padding:24px}
+:is(html,#_) body .sco-sheet{border-radius:22px;max-height:min(92vh,900px)}}
+:is(html,#_) body.ew-embed .sco-modal{padding-top:max(52px,calc(env(safe-area-inset-top,0px) + 46px))}
+@media (min-width:640px){:is(html,#_) body.ew-embed .sco-modal{padding-top:24px}}
+:is(html,#_) body .sco-hd{flex:none;display:flex;align-items:center;gap:8px;min-height:56px;padding:8px 12px 8px 16px;border-bottom:1px solid var(--sep)}
+:is(html,#_) body .sco-title{flex:1 1 auto;min-width:0;font:650 17px/1.25 var(--font-disp);letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+:is(html,#_) body .sco-back,:is(html,#_) body .sco-x{flex:none;min-width:36px;height:36px;padding:0 10px;border:0;border-radius:18px;background:var(--fill);color:var(--label);font:600 18px/1 var(--font);cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-back[hidden]{display:none}
+:is(html,#_) body .sco-back{font-size:24px;padding:0 12px 3px}
+:is(html,#_) body .sco-x{font-size:15px}
+:is(html,#_) body .sco-x.warn{background:var(--tint-r);color:var(--red);font-size:13px}
+:is(html,#_) body .sco-bd{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding:14px max(16px,env(safe-area-inset-left,0px)) 20px max(16px,env(safe-area-inset-right,0px))}
+:is(html,#_) body .sco-ft{flex:none;padding:10px max(16px,env(safe-area-inset-left,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));border-top:1px solid var(--sep);background:var(--sheet)}
+:is(html,#_) body .sco-ft[hidden]{display:none}
+:is(html,#_) body .sco-busy{position:absolute;top:0;right:0;bottom:0;left:0;z-index:3;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:var(--scrim);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px);font-weight:600;font-size:15px;text-align:center;padding:20px}
+:is(html,#_) body .sco-busy[hidden]{display:none}
+:is(html,#_) body .sco-spin{width:30px;height:30px;border:3px solid var(--hair2);border-top-color:var(--ac);border-radius:50%;animation:sco-rot .8s linear infinite}
+@keyframes sco-rot{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){:is(html,#_) body .sco-spin{animation-duration:2.4s}}
+:is(html,#_) body .sco-toast{position:absolute;left:16px;right:16px;bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:4;padding:11px 14px;border:1px solid var(--hair2);border-radius:14px;background:var(--menu-bg);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);color:var(--label);font-size:14px;font-weight:600;line-height:1.35;text-align:center;box-shadow:var(--sf-sh)}
+:is(html,#_) body .sco-toast[hidden]{display:none}
+:is(html,#_) body .sco-lead{margin:0 0 14px;font-size:15px;line-height:1.45;color:var(--label2)}
+:is(html,#_) body .sco-fine{margin:8px 0 0;font-size:12.5px;line-height:1.45;color:var(--label2)}
+:is(html,#_) body .sco-eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--label2)}
+:is(html,#_) body .sco-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:10px 16px;border:0;border-radius:14px;background:var(--fill);color:var(--label);font:600 15px/1.2 var(--font);text-align:center;cursor:pointer;-webkit-tap-highlight-color:transparent;-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-btn:active{opacity:.8}
+:is(html,#_) body .sco-btn.pri{background:var(--ac);color:var(--on-ac)}
+:is(html,#_) body .sco-btn.sm{min-height:38px;padding:7px 12px;border-radius:11px;font-size:13.5px}
+:is(html,#_) body .sco-btn.quiet{background:transparent;color:var(--label2)}
+:is(html,#_) body .sco-btn.dng{background:var(--tint-r);color:var(--red)}
+:is(html,#_) body .sco-btn.dngtx{color:var(--red)}
+:is(html,#_) body .sco-btn:disabled{opacity:.5;cursor:default}
+:is(html,#_) body .sco-ft .sco-btn{width:100%}
+:is(html,#_) body .sco-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 0}
+:is(html,#_) body .sco-acts{display:flex;flex-direction:column;gap:8px;margin:14px 0 0}
+:is(html,#_) body .sco-acts .sco-btn{width:100%}
+:is(html,#_) body .sco-more{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 0}
+:is(html,#_) body .sco-del{margin:6px 0 0}
+:is(html,#_) body .sco-pdfbar{display:flex;gap:8px;margin:0 0 10px}
+:is(html,#_) body .sco-tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
+:is(html,#_) body .sco-tile{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-height:108px;padding:14px;border:1px solid var(--hair);border-radius:var(--r2);background:var(--sf2);color:var(--label);text-align:left;cursor:pointer;-webkit-appearance:none;appearance:none;-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .sco-tile:active{background:var(--fill3)}
+:is(html,#_) body .sco-ti{font-size:26px;line-height:1;margin:0 0 6px}
+:is(html,#_) body .sco-tile b{font-size:15px;font-weight:650;line-height:1.25}
+:is(html,#_) body .sco-tile i{font-style:normal;font-size:12.5px;line-height:1.35;color:var(--label2)}
+:is(html,#_) body .sco-sec{margin:0 0 14px}
+:is(html,#_) body .sco-photo{margin:0 0 8px}
+:is(html,#_) body .sco-photo img{display:block;width:100%;max-height:240px;object-fit:contain;border-radius:12px;background:var(--fill3)}
+:is(html,#_) body .sco-photo figcaption{margin:4px 2px 0;font-size:12px;color:var(--label2)}
+:is(html,#_) body .sco-note{margin:0 0 14px;padding:10px 12px;border-radius:12px;background:var(--tint-b);color:var(--label);font-size:13.5px;line-height:1.4}
+:is(html,#_) body .sco-fld{margin:0 0 12px;min-width:0}
+:is(html,#_) body .sco-g2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+@media (max-width:339px){:is(html,#_) body .sco-g2{grid-template-columns:minmax(0,1fr)}}
+:is(html,#_) body .sco-lr{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 5px;min-height:22px}
+:is(html,#_) body .sco-lr label{font-size:13px;font-weight:600;color:var(--label2)}
+:is(html,#_) body .sco-fld input,:is(html,#_) body .sco-fld select,:is(html,#_) body .sco-det textarea{display:block;width:100%;min-width:0;min-height:46px;padding:10px 12px;border:1px solid var(--hair2);border-radius:12px;background:var(--fill3);color:var(--label);font:16px/1.3 var(--font);-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-fld select{padding-right:34px;background-image:linear-gradient(45deg,transparent 50%,var(--label2) 50%),linear-gradient(135deg,var(--label2) 50%,transparent 50%);background-position:calc(100% - 19px) 50%,calc(100% - 14px) 50%;background-size:5px 5px,5px 5px;background-repeat:no-repeat}
+:is(html,#_) body .sco-fld input[type=date],:is(html,#_) body .sco-fld input[type=time]{min-height:46px}
+:is(html,#_) body .sco-fld input.big{font:700 24px/1.2 var(--font-num);letter-spacing:-.3px}
+:is(html,#_) body .sco-fld input:focus,:is(html,#_) body .sco-fld select:focus,:is(html,#_) body .sco-det textarea:focus{outline:2px solid var(--ac);outline-offset:1px}
+:is(html,#_) body .sco-fld.is-check input{border-color:var(--bd-o)}
+:is(html,#_) body .sco-fld.is-warn input{border-color:var(--bd-r)}
+:is(html,#_) body .sco-fld.has-err input{border-color:var(--red);outline:0;box-shadow:0 0 0 1px var(--red)}
+:is(html,#_) body .sco-err{margin:4px 2px 0;font-size:12.5px;line-height:1.35;color:var(--bad)}
+:is(html,#_) body .sco-err:empty{display:none}
+:is(html,#_) body .sco-badge{flex:none;padding:2px 9px;border-radius:999px;background:var(--fill);color:var(--label2);font-size:11px;font-weight:700;line-height:1.5;white-space:nowrap}
+:is(html,#_) body .sco-badge.ok{background:var(--tint-g);color:var(--good)}
+:is(html,#_) body .sco-badge.check{background:var(--tint-o);color:var(--warn)}
+:is(html,#_) body .sco-badge.warn{background:var(--tint-r);color:var(--bad)}
+:is(html,#_) body .sco-badge.you{background:var(--tint-b);color:var(--t-blue)}
+:is(html,#_) body .sco-warns{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+:is(html,#_) body .sco-warns:empty{display:none}
+:is(html,#_) body .sco-warns li{padding:8px 12px;border-radius:11px;background:var(--tint-o);color:var(--label);font-size:13px;line-height:1.4}
+:is(html,#_) body .sco-items{list-style:none;margin:0;padding:0}
+:is(html,#_) body .sco-items li{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--hair);font-size:14px;line-height:1.35}
+:is(html,#_) body .sco-items li:last-child{border-bottom:0}
+:is(html,#_) body .sco-items li span{flex:1 1 auto;min-width:0;overflow-wrap:anywhere}
+:is(html,#_) body .sco-items li b{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
+:is(html,#_) body .sco-items li.neg b{color:var(--good)}
+:is(html,#_) body .sco-rm{flex:none;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:var(--fill3);color:var(--label2);font-size:12px;cursor:pointer;-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-sumline{margin:0 0 12px;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.4}
+:is(html,#_) body .sco-sumline:empty{display:none}
+:is(html,#_) body .sco-sumline.ok{background:var(--tint-g);color:var(--good)}
+:is(html,#_) body .sco-sumline.warn{background:var(--tint-o);color:var(--warn)}
+:is(html,#_) body .sco-dup{display:flex;flex-direction:column;gap:6px;margin:0 0 12px;padding:12px;border:1px solid var(--bd-o);border-radius:14px;background:var(--tint-o)}
+:is(html,#_) body .sco-dup.warn{border-color:var(--bd-r);background:var(--tint-r)}
+:is(html,#_) body .sco-dup b{font-size:14.5px;font-weight:650}
+:is(html,#_) body .sco-dup>span{font-size:13px;line-height:1.4;color:var(--label2)}
+:is(html,#_) body .sco-opt{display:flex;align-items:flex-start;gap:11px;margin:0;padding:8px 0;font-size:14.5px;line-height:1.35;cursor:pointer}
+:is(html,#_) body .sco-opt input{flex:none;width:22px;height:22px;margin:1px 0 0;accent-color:var(--ac)}
+:is(html,#_) body .sco-opt span{min-width:0;overflow-wrap:anywhere}
+:is(html,#_) body .sco-opt small{display:block;margin-top:2px;font-size:12px;color:var(--label2)}
+:is(html,#_) body .sco-det{margin:0 0 14px;padding:0}
+:is(html,#_) body .sco-det>summary{min-height:44px;display:flex;align-items:center;font-size:14.5px;font-weight:600;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .sco-det>summary::-webkit-details-marker{display:none}
+:is(html,#_) body .sco-det>summary::after{content:"›";margin-left:auto;font-size:20px;color:var(--label2);transform:rotate(90deg);transition:transform .15s}
+:is(html,#_) body .sco-det[open]>summary::after{transform:rotate(-90deg)}
+:is(html,#_) body .sco-how{margin:0 0 10px;padding:0 0 0 20px;font-size:13.5px;line-height:1.5;color:var(--label2)}
+:is(html,#_) body .sco-det textarea{min-height:120px;font:15px/1.4 var(--font-mono);resize:vertical}
+:is(html,#_) body .sco-prev{margin:0 0 6px;padding:14px 12px;overflow-x:auto;border-radius:6px;background:#fbfaf4;color:#25241f;font:12px/1.4 var(--font-mono);white-space:pre;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+:is(html,#_) body .sco-ok{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;margin:2px 0 12px;font-size:19px}
+:is(html,#_) body .sco-ok code,:is(html,#_) body .sco-dl code,:is(html,#_) body .sco-res code{font:600 13px/1.4 var(--font-mono);padding:2px 7px;border-radius:7px;background:var(--fill3);color:var(--label);overflow-wrap:anywhere}
+:is(html,#_) body .sco-res{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+:is(html,#_) body .sco-res li{padding:10px 12px;border-radius:12px;background:var(--sf2);font-size:14px;line-height:1.45;overflow-wrap:anywhere}
+:is(html,#_) body .sco-dhead{display:flex;align-items:center;gap:11px;margin:0 0 12px}
+:is(html,#_) body .sco-dhead>div{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px}
+:is(html,#_) body .sco-dhead b{font-size:17px;font-weight:650;overflow-wrap:anywhere}
+:is(html,#_) body .sco-dhead span:not(.sco-dot){font-size:13px;color:var(--label2)}
+:is(html,#_) body .sco-dhead strong{flex:none;font:700 21px/1.1 var(--font-num);font-variant-numeric:tabular-nums}
+:is(html,#_) body .sco-dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:7px 14px;margin:0 0 12px;padding:12px 14px;border-radius:14px;background:var(--sf2);font-size:14px}
+:is(html,#_) body .sco-dl dt{color:var(--label2)}
+:is(html,#_) body .sco-dl dd{margin:0;text-align:right;overflow-wrap:anywhere}
+:is(html,#_) body .sco-links{list-style:none;margin:0 0 12px;padding:0;display:flex;flex-direction:column;gap:6px}
+:is(html,#_) body .sco-links li{display:flex;flex-wrap:wrap;gap:2px 10px;justify-content:space-between;padding:9px 12px;border-radius:12px;background:var(--sf2);font-size:13.5px;line-height:1.4}
+:is(html,#_) body .sco-links li b{font-weight:650}
+:is(html,#_) body .sco-links li span{color:var(--label2);text-align:right;overflow-wrap:anywhere}
+@media (max-width:430px){:is(html,#_) body .sco-links li{flex-direction:column;gap:2px}
+:is(html,#_) body .sco-links li span{text-align:left}}
+:is(html,#_) body .sco-frame{display:block;width:100%;height:min(66vh,620px);border:1px solid var(--hair);border-radius:12px;background:#fff}
+:is(html,#_) body .sco-bigimg{display:block;max-width:100%;height:auto;margin:0 auto;border-radius:10px}
+@media (min-width:640px){:is(html,#_) body .sco-modal .sco-sheet{max-width:600px}}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -36669,10 +36860,10 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v322', d: '14 nov 2026', t: 'Scontrino digitale', x: 'Fotografa uno scontrino (o incolla il testo di «Scansiona testo» di iOS): controlli i dati e l’app crea la spesa in GoBank e un PDF con lo scontrino riscritto più la foto. Lo trovi in Documenti, scheda Scontrini.' },
     { v: 'v321', d: '9 nov 2026', t: 'Rimanenza sempre aggiornata', x: 'Quando aggiungi un’entrata o una spesa, l’avviso dice anche di quanto cambia la rimanenza (▲ +€200,00 → €357,00). La Dashboard è sempre aggiornata quando la apri, anche dopo l’entrata rapida di Spese Settimanali.' },
     { v: 'v320', d: '8 nov 2026', t: 'Spese dal telefono e iPad', x: 'Nel dettaglio del giorno il modulo «Aggiungi spesa» ha sempre Annulla e Salva raggiungibili sul telefono. Impostazioni a tutto schermo anche su iPad in verticale.' },
-    { v: 'v319', d: '8 nov 2026', t: 'Impostazioni su schermo largo', x: 'Barra laterale con le schede, pannelli dai bordi tondi, stato dei dati sempre in vista, scorciatoie da tastiera (Esc, 1–6, Ctrl+S), statistiche con grafici, esportazione CSV delle spese e tema Notte/Giorno.' },
-    { v: 'v318', d: '8 nov 2026', t: 'Controllo contabile', x: 'Import Revolut quadrato sui saldi, «Controllo dati», rimanenza senza doppi conteggi, rate e salvadanaio corretti, GoWork v55 con festivi e ore previste.' }
+    { v: 'v319', d: '8 nov 2026', t: 'Impostazioni su schermo largo', x: 'Barra laterale con le schede, pannelli dai bordi tondi, stato dei dati sempre in vista, scorciatoie da tastiera (Esc, 1–6, Ctrl+S), statistiche con grafici, esportazione CSV delle spese e tema Notte/Giorno.' }
   ];
 
   var cur = 'info', timer = 0, bound = false;
@@ -37111,6 +37302,1741 @@ var EWRIM = (function () {
   return core;
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = EWRIM;
+
+</script>
+<script id="sco-lib">
+/*! qrcode-generator 1.4 · (c) 2009 Kazuhiko Arase · MIT license · http://www.d-project.com/ · «QR Code» is a registered trademark of DENSO WAVE INCORPORATED */
+var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],f={},c=function(t,r){o=function(t){for(var r=new Array(t),e=0;e<t;e+=1){r[e]=new Array(t);for(var n=0;n<t;n+=1)r[e][n]=null}return r}(i=4*e+17),l(0,0),l(i-7,0),l(0,i-7),s(),h(),d(t,r),e>=7&&v(t),null==a&&(a=p(e,n,u)),w(a,r)},l=function(t,r){for(var e=-1;e<=7;e+=1)if(!(t+e<=-1||i<=t+e))for(var n=-1;n<=7;n+=1)r+n<=-1||i<=r+n||(o[t+e][r+n]=0<=e&&e<=6&&(0==n||6==n)||0<=n&&n<=6&&(0==e||6==e)||2<=e&&e<=4&&2<=n&&n<=4)},h=function(){for(var t=8;t<i-8;t+=1)null==o[t][6]&&(o[t][6]=t%2==0);for(var r=8;r<i-8;r+=1)null==o[6][r]&&(o[6][r]=r%2==0)},s=function(){for(var t=B.getPatternPosition(e),r=0;r<t.length;r+=1)for(var n=0;n<t.length;n+=1){var i=t[r],a=t[n];if(null==o[i][a])for(var u=-2;u<=2;u+=1)for(var f=-2;f<=2;f+=1)o[i+u][a+f]=-2==u||2==u||-2==f||2==f||0==u&&0==f}},v=function(t){for(var r=B.getBCHTypeNumber(e),n=0;n<18;n+=1){var a=!t&&1==(r>>n&1);o[Math.floor(n/3)][n%3+i-8-3]=a}for(n=0;n<18;n+=1){a=!t&&1==(r>>n&1);o[n%3+i-8-3][Math.floor(n/3)]=a}},d=function(t,r){for(var e=n<<3|r,a=B.getBCHTypeInfo(e),u=0;u<15;u+=1){var f=!t&&1==(a>>u&1);u<6?o[u][8]=f:u<8?o[u+1][8]=f:o[i-15+u][8]=f}for(u=0;u<15;u+=1){f=!t&&1==(a>>u&1);u<8?o[8][i-u-1]=f:u<9?o[8][15-u-1+1]=f:o[8][15-u-1]=f}o[i-8][8]=!t},w=function(t,r){for(var e=-1,n=i-1,a=7,u=0,f=B.getMaskFunction(r),c=i-1;c>0;c-=2)for(6==c&&(c-=1);;){for(var g=0;g<2;g+=1)if(null==o[n][c-g]){var l=!1;u<t.length&&(l=1==(t[u]>>>a&1)),f(n,c-g)&&(l=!l),o[n][c-g]=l,-1==(a-=1)&&(u+=1,a=7)}if((n+=e)<0||i<=n){n-=e,e=-e;break}}},p=function(t,r,e){for(var n=A.getRSBlocks(t,r),o=b(),i=0;i<e.length;i+=1){var a=e[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var u=0;for(i=0;i<n.length;i+=1)u+=n[i].dataCount;if(o.getLengthInBits()>8*u)throw"code length overflow. ("+o.getLengthInBits()+">"+8*u+")";for(o.getLengthInBits()+4<=8*u&&o.put(0,4);o.getLengthInBits()%8!=0;)o.putBit(!1);for(;!(o.getLengthInBits()>=8*u||(o.put(236,8),o.getLengthInBits()>=8*u));)o.put(17,8);return function(t,r){for(var e=0,n=0,o=0,i=new Array(r.length),a=new Array(r.length),u=0;u<r.length;u+=1){var f=r[u].dataCount,c=r[u].totalCount-f;n=Math.max(n,f),o=Math.max(o,c),i[u]=new Array(f);for(var g=0;g<i[u].length;g+=1)i[u][g]=255&t.getBuffer()[g+e];e+=f;var l=B.getErrorCorrectPolynomial(c),h=k(i[u],l.getLength()-1).mod(l);for(a[u]=new Array(l.getLength()-1),g=0;g<a[u].length;g+=1){var s=g+h.getLength()-a[u].length;a[u][g]=s>=0?h.getAt(s):0}}var v=0;for(g=0;g<r.length;g+=1)v+=r[g].totalCount;var d=new Array(v),w=0;for(g=0;g<n;g+=1)for(u=0;u<r.length;u+=1)g<i[u].length&&(d[w]=i[u][g],w+=1);for(g=0;g<o;g+=1)for(u=0;u<r.length;u+=1)g<a[u].length&&(d[w]=a[u][g],w+=1);return d}(o,n)};f.addData=function(t,r){var e=null;switch(r=r||"Byte"){case"Numeric":e=M(t);break;case"Alphanumeric":e=x(t);break;case"Byte":e=m(t);break;case"Kanji":e=L(t);break;default:throw"mode:"+r}u.push(e),a=null},f.isDark=function(t,r){if(t<0||i<=t||r<0||i<=r)throw t+","+r;return o[t][r]},f.getModuleCount=function(){return i},f.make=function(){if(e<1){for(var t=1;t<40;t++){for(var r=A.getRSBlocks(t,n),o=b(),i=0;i<u.length;i++){var a=u[i];o.put(a.getMode(),4),o.put(a.getLength(),B.getLengthInBits(a.getMode(),t)),a.write(o)}var g=0;for(i=0;i<r.length;i++)g+=r[i].dataCount;if(o.getLengthInBits()<=8*g)break}e=t}c(!1,function(){for(var t=0,r=0,e=0;e<8;e+=1){c(!0,e);var n=B.getLostPoint(f);(0==e||t>n)&&(t=n,r=e)}return r}())},f.createTableTag=function(t,r){t=t||2;var e="";e+='<table style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: "+(r=void 0===r?4*t:r)+"px;",e+='">',e+="<tbody>";for(var n=0;n<f.getModuleCount();n+=1){e+="<tr>";for(var o=0;o<f.getModuleCount();o+=1)e+='<td style="',e+=" border-width: 0px; border-style: none;",e+=" border-collapse: collapse;",e+=" padding: 0px; margin: 0px;",e+=" width: "+t+"px;",e+=" height: "+t+"px;",e+=" background-color: ",e+=f.isDark(n,o)?"#000000":"#ffffff",e+=";",e+='"/>';e+="</tr>"}return e+="</tbody>",e+="</table>"},f.createSvgTag=function(t,r,e,n){var o={};"object"==typeof arguments[0]&&(t=(o=arguments[0]).cellSize,r=o.margin,e=o.alt,n=o.title),t=t||2,r=void 0===r?4*t:r,(e="string"==typeof e?{text:e}:e||{}).text=e.text||null,e.id=e.text?e.id||"qrcode-description":null,(n="string"==typeof n?{text:n}:n||{}).text=n.text||null,n.id=n.text?n.id||"qrcode-title":null;var i,a,u,c,g=f.getModuleCount()*t+2*r,l="";for(c="l"+t+",0 0,"+t+" -"+t+",0 0,-"+t+"z ",l+='<svg version="1.1" xmlns="http://www.w3.org/2000/svg"',l+=o.scalable?"":' width="'+g+'px" height="'+g+'px"',l+=' viewBox="0 0 '+g+" "+g+'" ',l+=' preserveAspectRatio="xMinYMin meet"',l+=n.text||e.text?' role="img" aria-labelledby="'+y([n.id,e.id].join(" ").trim())+'"':"",l+=">",l+=n.text?'<title id="'+y(n.id)+'">'+y(n.text)+"</title>":"",l+=e.text?'<description id="'+y(e.id)+'">'+y(e.text)+"</description>":"",l+='<rect width="100%" height="100%" fill="white" cx="0" cy="0"/>',l+='<path d="',a=0;a<f.getModuleCount();a+=1)for(u=a*t+r,i=0;i<f.getModuleCount();i+=1)f.isDark(a,i)&&(l+="M"+(i*t+r)+","+u+c);return l+='" stroke="transparent" fill="black"/>',l+="</svg>"},f.createDataURL=function(t,r){t=t||2,r=void 0===r?4*t:r;var e=f.getModuleCount()*t+2*r,n=r,o=e-r;return I(e,e,(function(r,e){if(n<=r&&r<o&&n<=e&&e<o){var i=Math.floor((r-n)/t),a=Math.floor((e-n)/t);return f.isDark(a,i)?0:1}return 1}))},f.createImgTag=function(t,r,e){t=t||2,r=void 0===r?4*t:r;var n=f.getModuleCount()*t+2*r,o="";return o+="<img",o+=' src="',o+=f.createDataURL(t,r),o+='"',o+=' width="',o+=n,o+='"',o+=' height="',o+=n,o+='"',e&&(o+=' alt="',o+=y(e),o+='"'),o+="/>"};var y=function(t){for(var r="",e=0;e<t.length;e+=1){var n=t.charAt(e);switch(n){case"<":r+="&lt;";break;case">":r+="&gt;";break;case"&":r+="&amp;";break;case'"':r+="&quot;";break;default:r+=n}}return r};return f.createASCII=function(t,r){if((t=t||1)<2)return function(t){t=void 0===t?2:t;var r,e,n,o,i,a=1*f.getModuleCount()+2*t,u=t,c=a-t,g={"██":"█","█ ":"▀"," █":"▄","  ":" "},l={"██":"▀","█ ":"▀"," █":" ","  ":" "},h="";for(r=0;r<a;r+=2){for(n=Math.floor((r-u)/1),o=Math.floor((r+1-u)/1),e=0;e<a;e+=1)i="█",u<=e&&e<c&&u<=r&&r<c&&f.isDark(n,Math.floor((e-u)/1))&&(i=" "),u<=e&&e<c&&u<=r+1&&r+1<c&&f.isDark(o,Math.floor((e-u)/1))?i+=" ":i+="█",h+=t<1&&r+1>=c?l[i]:g[i];h+="\n"}return a%2&&t>0?h.substring(0,h.length-a-1)+Array(a+1).join("▀"):h.substring(0,h.length-1)}(r);t-=1,r=void 0===r?2*t:r;var e,n,o,i,a=f.getModuleCount()*t+2*r,u=r,c=a-r,g=Array(t+1).join("██"),l=Array(t+1).join("  "),h="",s="";for(e=0;e<a;e+=1){for(o=Math.floor((e-u)/t),s="",n=0;n<a;n+=1)i=1,u<=n&&n<c&&u<=e&&e<c&&f.isDark(o,Math.floor((n-u)/t))&&(i=0),s+=i?g:l;for(o=0;o<t;o+=1)h+=s+"\n"}return h.substring(0,h.length-1)},f.renderTo2dContext=function(t,r){r=r||2;for(var e=f.getModuleCount(),n=0;n<e;n++)for(var o=0;o<e;o++)t.fillStyle=f.isDark(n,o)?"black":"white",t.fillRect(o*r,n*r,r,r)},f};t.stringToBytes=(t.stringToBytesFuncs={default:function(t){for(var r=[],e=0;e<t.length;e+=1){var n=t.charCodeAt(e);r.push(255&n)}return r}}).default,t.createStringToBytes=function(t,r){var e=function(){for(var e=S(t),n=function(){var t=e.read();if(-1==t)throw"eof";return t},o=0,i={};;){var a=e.read();if(-1==a)break;var u=n(),f=n()<<8|n();i[String.fromCharCode(a<<8|u)]=f,o+=1}if(o!=r)throw o+" != "+r;return i}(),n="?".charCodeAt(0);return function(t){for(var r=[],o=0;o<t.length;o+=1){var i=t.charCodeAt(o);if(i<128)r.push(i);else{var a=e[t.charAt(o)];"number"==typeof a?(255&a)==a?r.push(a):(r.push(a>>>8),r.push(255&a)):r.push(n)}}return r}};var r,e,n,o,i,a=1,u=2,f=4,c=8,g={L:1,M:0,Q:3,H:2},l=0,h=1,s=2,v=3,d=4,w=5,p=6,y=7,B=(r=[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],e=1335,n=7973,i=function(t){for(var r=0;0!=t;)r+=1,t>>>=1;return r},(o={}).getBCHTypeInfo=function(t){for(var r=t<<10;i(r)-i(e)>=0;)r^=e<<i(r)-i(e);return 21522^(t<<10|r)},o.getBCHTypeNumber=function(t){for(var r=t<<12;i(r)-i(n)>=0;)r^=n<<i(r)-i(n);return t<<12|r},o.getPatternPosition=function(t){return r[t-1]},o.getMaskFunction=function(t){switch(t){case l:return function(t,r){return(t+r)%2==0};case h:return function(t,r){return t%2==0};case s:return function(t,r){return r%3==0};case v:return function(t,r){return(t+r)%3==0};case d:return function(t,r){return(Math.floor(t/2)+Math.floor(r/3))%2==0};case w:return function(t,r){return t*r%2+t*r%3==0};case p:return function(t,r){return(t*r%2+t*r%3)%2==0};case y:return function(t,r){return(t*r%3+(t+r)%2)%2==0};default:throw"bad maskPattern:"+t}},o.getErrorCorrectPolynomial=function(t){for(var r=k([1],0),e=0;e<t;e+=1)r=r.multiply(k([1,C.gexp(e)],0));return r},o.getLengthInBits=function(t,r){if(1<=r&&r<10)switch(t){case a:return 10;case u:return 9;case f:case c:return 8;default:throw"mode:"+t}else if(r<27)switch(t){case a:return 12;case u:return 11;case f:return 16;case c:return 10;default:throw"mode:"+t}else{if(!(r<41))throw"type:"+r;switch(t){case a:return 14;case u:return 13;case f:return 16;case c:return 12;default:throw"mode:"+t}}},o.getLostPoint=function(t){for(var r=t.getModuleCount(),e=0,n=0;n<r;n+=1)for(var o=0;o<r;o+=1){for(var i=0,a=t.isDark(n,o),u=-1;u<=1;u+=1)if(!(n+u<0||r<=n+u))for(var f=-1;f<=1;f+=1)o+f<0||r<=o+f||0==u&&0==f||a==t.isDark(n+u,o+f)&&(i+=1);i>5&&(e+=3+i-5)}for(n=0;n<r-1;n+=1)for(o=0;o<r-1;o+=1){var c=0;t.isDark(n,o)&&(c+=1),t.isDark(n+1,o)&&(c+=1),t.isDark(n,o+1)&&(c+=1),t.isDark(n+1,o+1)&&(c+=1),0!=c&&4!=c||(e+=3)}for(n=0;n<r;n+=1)for(o=0;o<r-6;o+=1)t.isDark(n,o)&&!t.isDark(n,o+1)&&t.isDark(n,o+2)&&t.isDark(n,o+3)&&t.isDark(n,o+4)&&!t.isDark(n,o+5)&&t.isDark(n,o+6)&&(e+=40);for(o=0;o<r;o+=1)for(n=0;n<r-6;n+=1)t.isDark(n,o)&&!t.isDark(n+1,o)&&t.isDark(n+2,o)&&t.isDark(n+3,o)&&t.isDark(n+4,o)&&!t.isDark(n+5,o)&&t.isDark(n+6,o)&&(e+=40);var g=0;for(o=0;o<r;o+=1)for(n=0;n<r;n+=1)t.isDark(n,o)&&(g+=1);return e+=Math.abs(100*g/r/r-50)/5*10},o),C=function(){for(var t=new Array(256),r=new Array(256),e=0;e<8;e+=1)t[e]=1<<e;for(e=8;e<256;e+=1)t[e]=t[e-4]^t[e-5]^t[e-6]^t[e-8];for(e=0;e<255;e+=1)r[t[e]]=e;var n={glog:function(t){if(t<1)throw"glog("+t+")";return r[t]},gexp:function(r){for(;r<0;)r+=255;for(;r>=256;)r-=255;return t[r]}};return n}();function k(t,r){if(void 0===t.length)throw t.length+"/"+r;var e=function(){for(var e=0;e<t.length&&0==t[e];)e+=1;for(var n=new Array(t.length-e+r),o=0;o<t.length-e;o+=1)n[o]=t[o+e];return n}(),n={getAt:function(t){return e[t]},getLength:function(){return e.length},multiply:function(t){for(var r=new Array(n.getLength()+t.getLength()-1),e=0;e<n.getLength();e+=1)for(var o=0;o<t.getLength();o+=1)r[e+o]^=C.gexp(C.glog(n.getAt(e))+C.glog(t.getAt(o)));return k(r,0)},mod:function(t){if(n.getLength()-t.getLength()<0)return n;for(var r=C.glog(n.getAt(0))-C.glog(t.getAt(0)),e=new Array(n.getLength()),o=0;o<n.getLength();o+=1)e[o]=n.getAt(o);for(o=0;o<t.getLength();o+=1)e[o]^=C.gexp(C.glog(t.getAt(o))+r);return k(e,0).mod(t)}};return n}var A=function(){var t=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12,7,37,13],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],r=function(t,r){var e={};return e.totalCount=t,e.dataCount=r,e},e={};return e.getRSBlocks=function(e,n){var o=function(r,e){switch(e){case g.L:return t[4*(r-1)+0];case g.M:return t[4*(r-1)+1];case g.Q:return t[4*(r-1)+2];case g.H:return t[4*(r-1)+3];default:return}}(e,n);if(void 0===o)throw"bad rs block @ typeNumber:"+e+"/errorCorrectionLevel:"+n;for(var i=o.length/3,a=[],u=0;u<i;u+=1)for(var f=o[3*u+0],c=o[3*u+1],l=o[3*u+2],h=0;h<f;h+=1)a.push(r(c,l));return a},e}(),b=function(){var t=[],r=0,e={getBuffer:function(){return t},getAt:function(r){var e=Math.floor(r/8);return 1==(t[e]>>>7-r%8&1)},put:function(t,r){for(var n=0;n<r;n+=1)e.putBit(1==(t>>>r-n-1&1))},getLengthInBits:function(){return r},putBit:function(e){var n=Math.floor(r/8);t.length<=n&&t.push(0),e&&(t[n]|=128>>>r%8),r+=1}};return e},M=function(t){var r=a,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+2<r.length;)t.put(o(r.substring(n,n+3)),10),n+=3;n<r.length&&(r.length-n==1?t.put(o(r.substring(n,n+1)),4):r.length-n==2&&t.put(o(r.substring(n,n+2)),7))}},o=function(t){for(var r=0,e=0;e<t.length;e+=1)r=10*r+i(t.charAt(e));return r},i=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);throw"illegal char :"+t};return n},x=function(t){var r=u,e=t,n={getMode:function(){return r},getLength:function(t){return e.length},write:function(t){for(var r=e,n=0;n+1<r.length;)t.put(45*o(r.charAt(n))+o(r.charAt(n+1)),11),n+=2;n<r.length&&t.put(o(r.charAt(n)),6)}},o=function(t){if("0"<=t&&t<="9")return t.charCodeAt(0)-"0".charCodeAt(0);if("A"<=t&&t<="Z")return t.charCodeAt(0)-"A".charCodeAt(0)+10;switch(t){case" ":return 36;case"$":return 37;case"%":return 38;case"*":return 39;case"+":return 40;case"-":return 41;case".":return 42;case"/":return 43;case":":return 44;default:throw"illegal char :"+t}};return n},m=function(r){var e=f,n=t.stringToBytes(r),o={getMode:function(){return e},getLength:function(t){return n.length},write:function(t){for(var r=0;r<n.length;r+=1)t.put(n[r],8)}};return o},L=function(r){var e=c,n=t.stringToBytesFuncs.SJIS;if(!n)throw"sjis not supported.";!function(){var t=n("友");if(2!=t.length||38726!=(t[0]<<8|t[1]))throw"sjis not supported."}();var o=n(r),i={getMode:function(){return e},getLength:function(t){return~~(o.length/2)},write:function(t){for(var r=o,e=0;e+1<r.length;){var n=(255&r[e])<<8|255&r[e+1];if(33088<=n&&n<=40956)n-=33088;else{if(!(57408<=n&&n<=60351))throw"illegal char at "+(e+1)+"/"+n;n-=49472}n=192*(n>>>8&255)+(255&n),t.put(n,13),e+=2}if(e<r.length)throw"illegal char at "+(e+1)}};return i},D=function(){var t=[],r={writeByte:function(r){t.push(255&r)},writeShort:function(t){r.writeByte(t),r.writeByte(t>>>8)},writeBytes:function(t,e,n){e=e||0,n=n||t.length;for(var o=0;o<n;o+=1)r.writeByte(t[o+e])},writeString:function(t){for(var e=0;e<t.length;e+=1)r.writeByte(t.charCodeAt(e))},toByteArray:function(){return t},toString:function(){var r="";r+="[";for(var e=0;e<t.length;e+=1)e>0&&(r+=","),r+=t[e];return r+="]"}};return r},S=function(t){var r=t,e=0,n=0,o=0,i={read:function(){for(;o<8;){if(e>=r.length){if(0==o)return-1;throw"unexpected end of file./"+o}var t=r.charAt(e);if(e+=1,"="==t)return o=0,-1;t.match(/^\s$/)||(n=n<<6|a(t.charCodeAt(0)),o+=6)}var i=n>>>o-8&255;return o-=8,i}},a=function(t){if(65<=t&&t<=90)return t-65;if(97<=t&&t<=122)return t-97+26;if(48<=t&&t<=57)return t-48+52;if(43==t)return 62;if(47==t)return 63;throw"c:"+t};return i},I=function(t,r,e){for(var n=function(t,r){var e=t,n=r,o=new Array(t*r),i={setPixel:function(t,r,n){o[r*e+t]=n},write:function(t){t.writeString("GIF87a"),t.writeShort(e),t.writeShort(n),t.writeByte(128),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(0),t.writeByte(255),t.writeByte(255),t.writeByte(255),t.writeString(","),t.writeShort(0),t.writeShort(0),t.writeShort(e),t.writeShort(n),t.writeByte(0);var r=a(2);t.writeByte(2);for(var o=0;r.length-o>255;)t.writeByte(255),t.writeBytes(r,o,255),o+=255;t.writeByte(r.length-o),t.writeBytes(r,o,r.length-o),t.writeByte(0),t.writeString(";")}},a=function(t){for(var r=1<<t,e=1+(1<<t),n=t+1,i=u(),a=0;a<r;a+=1)i.add(String.fromCharCode(a));i.add(String.fromCharCode(r)),i.add(String.fromCharCode(e));var f,c,g,l=D(),h=(f=l,c=0,g=0,{write:function(t,r){if(t>>>r!=0)throw"length over";for(;c+r>=8;)f.writeByte(255&(t<<c|g)),r-=8-c,t>>>=8-c,g=0,c=0;g|=t<<c,c+=r},flush:function(){c>0&&f.writeByte(g)}});h.write(r,n);var s=0,v=String.fromCharCode(o[s]);for(s+=1;s<o.length;){var d=String.fromCharCode(o[s]);s+=1,i.contains(v+d)?v+=d:(h.write(i.indexOf(v),n),i.size()<4095&&(i.size()==1<<n&&(n+=1),i.add(v+d)),v=d)}return h.write(i.indexOf(v),n),h.write(e,n),h.flush(),l.toByteArray()},u=function(){var t={},r=0,e={add:function(n){if(e.contains(n))throw"dup key:"+n;t[n]=r,r+=1},size:function(){return r},indexOf:function(r){return t[r]},contains:function(r){return void 0!==t[r]}};return e};return i}(t,r),o=0;o<r;o+=1)for(var i=0;i<t;i+=1)n.setPixel(i,o,e(i,o));var a=D();n.write(a);for(var u=function(){var t=0,r=0,e=0,n="",o={},i=function(t){n+=String.fromCharCode(a(63&t))},a=function(t){if(t<0);else{if(t<26)return 65+t;if(t<52)return t-26+97;if(t<62)return t-52+48;if(62==t)return 43;if(63==t)return 47}throw"n:"+t};return o.writeByte=function(n){for(t=t<<8|255&n,r+=8,e+=1;r>=6;)i(t>>>r-6),r-=6},o.flush=function(){if(r>0&&(i(t<<6-r),t=0,r=0),e%3!=0)for(var o=3-e%3,a=0;a<o;a+=1)n+="="},o.toString=function(){return n},o}(),f=a.toByteArray(),c=0;c<f.length;c+=1)u.writeByte(f[c]);return u.flush(),"data:image/gif;base64,"+u};return t}();qrcode.stringToBytesFuncs["UTF-8"]=function(t){return function(t){for(var r=[],e=0;e<t.length;e++){var n=t.charCodeAt(e);n<128?r.push(n):n<2048?r.push(192|n>>6,128|63&n):n<55296||n>=57344?r.push(224|n>>12,128|n>>6&63,128|63&n):(e++,n=65536+((1023&n)<<10|1023&t.charCodeAt(e)),r.push(240|n>>18,128|n>>12&63,128|n>>6&63,128|63&n))}return r}(t)};
+
+/* ═══════════════════════════════════════════════════════════════
+   EWRCPT — legge il testo di uno scontrino italiano e lo trasforma in dati.
+   Puro (niente DOM, niente rete): gira in Node per i collaudi e nel browser dentro l'app.
+   Ingresso: testo grezzo (da OCR, da «Scansiona testo» di iOS, o incollato). Uscita: negozio, P.IVA, data/ora,
+   articoli, totale, IVA, pagamento, categoria suggerita + un grado di fiducia per ogni campo.
+   ═══════════════════════════════════════════════════════════════ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api; else root.EWRCPT = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var LET = 'A-Za-zÀ-ÿ';
+  function r2(v) { return Math.round((+v || 0) * 100) / 100; }
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+
+  /* ───────────── pulizia del testo (rumore tipico dell'OCR) ───────────── */
+  function normalize(text) {
+    var t = String(text == null ? '' : text).replace(/\r\n?/g, '\n').replace(/\t/g, '  ').replace(/ /g, ' ');
+    t = t.replace(/[‚﹐，]/g, ',').replace(/[−–—]/g, '-').replace(/[‘’´`]/g, "'");
+    return t.split('\n').map(function (l) { return fixLine(l).replace(/\s+$/, ''); });
+  }
+  // «2O,45» → «20,45», «23 ,45» → «23,45», «l,29» → «1,29» (solo dentro a gettoni che sembrano importi o date)
+  function fixLine(l) {
+    l = l.replace(/([0-9OoIl|SB]{1,6})\s?([,.])\s?([0-9OoIl|SB]{2})(?![0-9A-Za-z])/g, function (m, a, sep, b) {
+      var digits = (a + b).replace(/[^0-9]/g, '').length;
+      if (digits < 2) return m;
+      return (a + sep + b).replace(/[Oo]/g, '0').replace(/[Il|]/g, '1').replace(/S/g, '5').replace(/B/g, '8');
+    });
+    l = l.replace(/([0-9OoIl]{1,2})([\/\-.])([0-9OoIl]{1,2})\2([0-9OoIl]{2,4})(?![0-9A-Za-z])/g, function (m) {
+      return m.replace(/[Oo]/g, '0').replace(/[Il]/g, '1');
+    });
+    l = l.replace(/(\d)\s+([,.])(\d{2})(?!\d)/g, '$1$2$3').replace(/(\d[,.])\s+(\d{2})(?!\d)/g, '$1$2');
+    return l;
+  }
+
+  /* ───────────── importi ───────────── */
+  var AMT_RX = /(\d{1,3}(?:\.\d{3})+|\d+)[,.](\d{2})(?!\d)/g;
+  function amounts(s) {
+    var out = [], m; AMT_RX.lastIndex = 0;
+    while ((m = AMT_RX.exec(s))) {
+      var prev = m.index > 0 ? s.charAt(m.index - 1) : '';
+      if (/[\d.,]/.test(prev)) continue;
+      // un orario scritto con il punto («17.41») non è un importo
+      if (/^\d{1,2}$/.test(m[1]) && /[:]/.test(s.charAt(m.index + m[0].length) || '')) continue;
+      var v = parseFloat(m[1].replace(/\./g, '') + '.' + m[2]);
+      var neg = prev === '-' || (m.index > 1 && /-\s$/.test(s.slice(0, m.index))) || s.charAt(m.index + m[0].length) === '-';
+      out.push({ v: neg ? -v : v, i: m.index, end: m.index + m[0].length, raw: m[0] });
+    }
+    return out;
+  }
+
+  /* ───────────── partita IVA ───────────── */
+  function validPiva(p) {
+    p = String(p || '');
+    if (!/^\d{11}$/.test(p)) return false;
+    var s = 0;
+    for (var i = 0; i < 10; i++) { var d = +p.charAt(i); if (i % 2) { d *= 2; if (d > 9) d -= 9; } s += d; }
+    return ((10 - s % 10) % 10) === +p.charAt(10);
+  }
+  var CONFUSE = { '0': '8689', '1': '7', '2': '7', '3': '85', '4': '9', '5': '683', '6': '580', '7': '12', '8': '03659', '9': '48' };
+  // una sola cifra letta male: tra le 11 correzioni possibili si accetta solo quella che scambia cifre davvero confondibili
+  function fixPiva(p) {
+    if (validPiva(p)) return { value: p, fixed: false };
+    if (!/^\d{11}$/.test(p)) return null;
+    var hits = [];
+    for (var pos = 0; pos < 11; pos++) {
+      for (var d = 0; d <= 9; d++) {
+        if (String(d) === p.charAt(pos)) continue;
+        var q = p.slice(0, pos) + d + p.slice(pos + 1);
+        if (validPiva(q) && (CONFUSE[p.charAt(pos)] || '').indexOf(String(d)) >= 0) hits.push(q);
+      }
+    }
+    return hits.length === 1 ? { value: hits[0], fixed: true } : null;
+  }
+  function findPiva(lines) {
+    var cand = null;
+    for (var i = 0; i < lines.length; i++) {
+      var s = lines[i], m = /(?:P\.?\s?IVA|PARTITA\s+IVA|P\.\s?I\.|VAT)\s*[:.\-]?\s*(?:IT)?\s*([0-9OoIlSB][0-9OoIlSB \-]{9,14}[0-9OoIlSB])/i.exec(s);
+      var raw = m ? m[1] : null;
+      if (!raw) { var m2 = /(?:^|[^\d])(\d{11})(?!\d)/.exec(s); if (m2 && !/C\.?F\.?|CODICE\s+FISCALE|TEL|FAX/i.test(s)) raw = m2[1]; }
+      if (!raw) continue;
+      var digits = raw.replace(/[ \-]/g, '').replace(/[Oo]/g, '0').replace(/[Il]/g, '1').replace(/S/g, '5').replace(/B/g, '8');
+      if (digits.length !== 11) continue;
+      var f = fixPiva(digits);
+      var hit = { line: i, value: f ? f.value : digits, valid: !!f, fixed: !!(f && f.fixed) };
+      if (hit.valid) return hit;
+      if (!cand) cand = hit;
+    }
+    return cand;
+  }
+
+  /* ───────────── data e ora ───────────── */
+  var MESI = { gen: 1, feb: 2, mar: 3, apr: 4, mag: 5, giu: 6, lug: 7, ago: 8, set: 9, ott: 10, nov: 11, dic: 12 };
+  function validDate(y, mo, d) {
+    if (y < 2000 || y > 2099 || mo < 1 || mo > 12 || d < 1) return false;
+    return d <= new Date(y, mo, 0).getDate();
+  }
+  function findTime(s) {
+    var m = /(?:^|[^\d])([01]?\d|2[0-3])\s*[:.]\s*([0-5]\d)(?:\s*[:.]\s*[0-5]\d)?(?![\d])/.exec(s);
+    return m ? pad(+m[1]) + ':' + m[2] : '';
+  }
+  function findDate(lines) {
+    var best = null;
+    for (var i = 0; i < lines.length; i++) {
+      var s = lines[i], m, re = /(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{4}|\d{2})(?!\d)/g, found = [];
+      while ((m = re.exec(s))) {
+        if (m.index > 0 && /\d/.test(s.charAt(m.index - 1))) continue;
+        var y = +m[3]; if (y < 100) y += 2000;
+        if (validDate(y, +m[2], +m[1])) found.push({ y: y, mo: +m[2], d: +m[1], at: m.index, len: m[0].length });
+      }
+      var re2 = new RegExp('(\\d{1,2})\\s+(gen|feb|mar|apr|mag|giu|lug|ago|set|ott|nov|dic)[' + LET + ']*\\.?\\s+(\\d{4}|\\d{2})(?!\\d)', 'ig');
+      while ((m = re2.exec(s))) {
+        var y2 = +m[3]; if (y2 < 100) y2 += 2000;
+        if (validDate(y2, MESI[m[2].toLowerCase()], +m[1])) found.push({ y: y2, mo: MESI[m[2].toLowerCase()], d: +m[1], at: m.index, len: m[0].length });
+      }
+      var re3 = /(?:^|[^\d])(20\d{2})-(\d{2})-(\d{2})(?!\d)/g;
+      while ((m = re3.exec(s))) if (validDate(+m[1], +m[2], +m[3])) found.push({ y: +m[1], mo: +m[2], d: +m[3], at: m.index, len: m[0].length });
+      for (var k = 0; k < found.length; k++) {
+        var f = found[k], rest = s.slice(0, f.at) + ' ' + s.slice(f.at + f.len);
+        var time = findTime(rest);
+        if (!time && i + 1 < lines.length && /^\s*(ORA\s*[:.]?\s*)?\d{1,2}\s*[:.]\s*\d{2}\s*$/i.test(lines[i + 1])) time = findTime(lines[i + 1]);
+        var score = (/DATA|DEL\b|ORA|DOC|EMESS/i.test(s) ? 2 : 0) + (time ? 1 : 0);
+        if (!best || score > best.score) best = { iso: f.y + '-' + pad(f.mo) + '-' + pad(f.d), time: time, line: i, score: score };
+      }
+    }
+    return best;
+  }
+
+  /* ───────────── parole chiave (tolleranti al rumore) ───────────── */
+  var RX = {
+    tot: /T[O0]T[A4][L1I|][E3F]/i,
+    totBad: /SUB\s?-?\s?TOT|TOTALE\s+(IVA|IMPOSTA|SCONTO|SCONTI|ARTICOL|PEZZI|ART\b|IMPONIBILE|NON\s+PAGATO|NON\s+RISC)|N\.?\s*ART|TOT\.?\s*(ART|PEZZ)/i,
+    compl: /C[O0]MPLESSIV/i,
+    pay: /^(PAGAMENT|CARTA\s+DI\s+(CRED|DEB)|CARTA\s+(CRED|DEB)|BANCOMAT|PAGOBANCOMAT|POS\b|CONTANT|RESTO|ELETTRONIC|TICKET|BUON[OI]|SATISPAY|VISA|MASTERCARD|MAESTRO|AMEX|CREDIT|DEBIT|CARTA\s*\*|PAGATO|DA\s+PAGARE|IMPORTO)/i,
+    head: /^(DOCUMENTO|DOC\b|SCONTRINO|COMMERCIALE|FISCALE|RICEVUTA|COPIA|CASSA|OP(ERATORE)?\b|DATA|ORA\b|TEL|FAX|WWW|HTTP|P\.?\s?IVA|PARTITA|C\.?F\.?\b|CODICE|ARTICOLI|PEZZI|N\.?\s*ART|PUNTI|SALDO|TESSERA|CARD|RT\b|MATR|ARROTOND|GRAZIE|ARRIVEDERCI|LOTTERIA|IVA\b|IMPONIBILE|ALIQUOTA|DI\s+CUI|CODICE)/i,
+    addr: /^(VIA|VIALE|V\.LE|V\.\s|PIAZZA|P\.ZZA|P\.ZA|CORSO|C\.SO|LARGO|LOC\b|LOC\.|LOCALIT|STRADA|S\.S\.|SS\s?\d|VICOLO|BORGO|CONTRADA|FRAZ)/i,
+    legal: /(S\.?\s?R\.?\s?L\.?S?|S\.?\s?P\.?\s?A\.?|S\.?\s?N\.?\s?C\.?|S\.?\s?A\.?\s?S\.?|S\.?\s?S\.?)\s*$/i
+  };
+
+  /* ───────────── negozio ───────────── */
+  function cleanName(s) { return s.replace(/^[\s*=\-_#.~]+|[\s*=\-_#~]+$/g, '').replace(/\s{2,}/g, ' ').trim(); }
+  // un nome letto bene ha lettere vere: quasi niente simboli, parole di lunghezza normale, vocali nelle parole lunghe
+  function plausibleName(s) {
+    var t = String(s || '').replace(/\s+/g, ' ').trim(), letters = (t.match(new RegExp('[' + LET + ']', 'g')) || []).length, nonsp = t.replace(/\s/g, '').length;
+    if (!nonsp || letters / nonsp < 0.85 || /["“”<>|_\[\]{}\\]/.test(t)) return false;
+    var toks = t.split(' ').map(function (x) { return x.replace(new RegExp('[^' + LET + ']', 'g'), ''); }).filter(Boolean);
+    if (!toks.length) return false;
+    var mean = toks.reduce(function (a, x) { return a + x.length; }, 0) / toks.length;
+    return mean >= 3.2 && toks.some(function (x) { return x.length >= 4 && /[AEIOUaeiouÀ-ÿ]/.test(x); });
+  }
+  function findMerchant(lines, pivaLine) {
+    var end = Math.min(lines.length, pivaLine >= 0 ? Math.max(pivaLine + 1, 3) : 8, 10), name = '', ni = -1, legal = '', address = '', city = '', plausible = false, first = null;
+    for (var i = 0; i < end; i++) {
+      var s = cleanName(lines[i]).replace(new RegExp('^[' + LET + '][\\s|_.:;\'"“”\\-]+(?=[' + LET + ']{3})'), '');
+      if (!s || (s.match(new RegExp('[' + LET + ']', 'g')) || []).length < 3) continue;
+      if (RX.head.test(s) || RX.addr.test(s) || /ESEMPIO|@|\d{5}\s/.test(s)) continue;
+      if ((s.match(/\d/g) || []).length > s.length / 3) continue;
+      if (/^di\s/i.test(s) || RX.legal.test(s)) { if (ni >= 0 && i === ni + 1 && !legal) legal = s; continue; }
+      if (!first) first = { s: s, i: i };
+      if (!name && plausibleName(s)) { name = s; ni = i; plausible = true; }
+    }
+    if (!name && first) { name = first.s; ni = first.i; }
+    for (var j = Math.max(ni, 0); j < Math.min(lines.length, (ni < 0 ? 0 : ni) + 7); j++) {
+      var a = cleanName(lines[j]);
+      if (!address && RX.addr.test(a)) address = a;
+      var cm = new RegExp('(?:\\d{5}\\s+)?([' + LET + "' ]{3,}?)\\s*\\(([A-Z]{2})\\)").exec(a);
+      if (!city && cm) city = cleanName(cm[1]).replace(/^[\-–,\s]+/, '') + ' (' + cm[2] + ')';
+      else if (!city) { var cm2 = new RegExp('\\b\\d{5}\\s+([' + LET + "' ]{3,})$").exec(a); if (cm2) city = cleanName(cm2[1]); }
+    }
+    return { name: name, legal: legal, address: address, city: city, line: ni, plausible: plausible };
+  }
+  function titleCase(s) {
+    return s.toLowerCase().replace(new RegExp('(^|[\\s\\-\'/.])([' + LET + '])', 'g'), function (m, a, b) { return a + b.toUpperCase(); })
+      .replace(/\b(S\.?r\.?l|S\.?p\.?a|S\.?n\.?c|S\.?a\.?s)\b/gi, function (m) { return m.toUpperCase(); });
+  }
+
+  /* ───────────── totale ───────────── */
+  function lineTotalCandidates(lines) {
+    var out = [];
+    for (var i = 0; i < lines.length; i++) {
+      var s = lines[i], kind = 0;
+      if (RX.tot.test(s) && !RX.totBad.test(s)) kind = RX.compl.test(s) ? 5 : 4;
+      else if (/DA\s+PAGARE/i.test(s)) kind = 3;
+      else if (/IMPORTO\s+PAGATO|TOTALE\s+PAGATO|^\s*PAGATO\b/i.test(s)) kind = 2;
+      else if (/^\s*IMPORTO\b/i.test(s)) kind = 1;
+      if (!kind) continue;
+      var a = amounts(s), broken = /\d[,.](?:\s|$)/.test(s);
+      if (!a.length && !broken && i + 1 < lines.length && /^\s*(?:€|EUR)?\s*\d[\d.]*[,.]\d{2}\s*(?:€|EUR)?\s*$/.test(lines[i + 1])) a = amounts(lines[i + 1]).slice(0, 1);
+      if (!a.length) continue;
+      out.push({ v: Math.abs(a[a.length - 1].v), kind: kind, line: i });
+    }
+    return out;
+  }
+
+  /* ───────────── articoli ───────────── */
+  function itemOf(s) {
+    var m = new RegExp('^(.*?[' + LET + '].*?)\\s+(?:-\\s?)?(\\d{1,3}(?:\\.\\d{3})+|\\d+)[,.](\\d{2})(-?)\\s*(?:EUR|€|E)?\\s*([A-F]|\\d{1,2}(?:[,.]\\d+)?\\s?%|\\*)?\\s*$').exec(s);
+    if (!m) return null;
+    var all = amounts(s); if (!all.length) return null;
+    var last = all[all.length - 1], desc = m[1].replace(/[\s.…_\-]+$/g, '').trim(), qty = 1, unit = null;
+    // «2 X ARANCE», «3 PZ ...»
+    var q = /^(\d{1,3})\s*(?:[xX*]|PZ\.?)\s+(.*)$/.exec(desc);
+    if (q) { qty = +q[1]; desc = q[2]; }
+    // «ARANCE 2 x 0,89 1,78» (prezzo unitario e totale sulla stessa riga)
+    var u = /^(.*?)\s+(\d+(?:[,.]\d{1,3})?)\s*[xX*]\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2})\s*$/.exec(desc);
+    if (u) { desc = u[1]; qty = parseFloat(u[2].replace(',', '.')); unit = parseFloat(u[3].replace(/\./g, '').replace(',', '.')); }
+    if ((desc.match(new RegExp('[' + LET + ']', 'g')) || []).length < 2) return null;
+    return { desc: desc, qty: qty, unit: unit, total: last.v, vat: (m[5] || '').replace(/\s/g, '') };
+  }
+  var RX_QTYLINE = /^\s*(\d+(?:[,.]\d{1,3})?)\s*(?:KG|HG|G|L|LT|PZ)?\s*[xX*]\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2,3})(?:\s*(?:€|EUR))?(?:\s*\/\s*(?:KG|HG|L|LT|PZ))?\s*(?:=?\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2}))?\s*([A-F])?\s*$/i;
+  var RX_AMTONLY = /^\s*(-\s?)?(\d{1,3}(?:\.\d{3})+|\d+)[,.](\d{2})(-?)\s*(?:EUR|€)?\s*([A-F])?\s*$/;
+  function findItems(lines, from, to) {
+    var items = [], pending = null;
+    for (var i = from; i < to; i++) {
+      var s = lines[i].trim(); if (!s) { pending = null; continue; }
+      if (RX.head.test(s) || RX.pay.test(s) || (RX.tot.test(s) && !/\d,\d{2}/.test(s) && false)) { pending = null; continue; }
+      if (RX.tot.test(s)) { pending = null; continue; }
+      if (/^\s*(DATA|ORA)\b|\d{1,2}\s*[\/\-]\s*\d{1,2}\s*[\/\-]\s*\d{2,4}/i.test(s)) { pending = null; continue; }
+      var ql = RX_QTYLINE.exec(s);
+      if (ql && pending) {
+        var qty = parseFloat(ql[1].replace(',', '.')), unit = parseFloat(ql[2].replace(/\./g, '').replace(',', '.')), tot = ql[3] ? parseFloat(ql[3].replace(/\./g, '').replace(',', '.')) : r2(qty * unit);
+        items.push({ desc: pending, qty: qty, unit: unit, total: tot, vat: ql[4] || '' }); pending = null; continue;
+      }
+      var ao = RX_AMTONLY.exec(s);
+      if (ao && pending) {   // «2 X ACQUA 1,5L» sulla riga sopra, «1,18 C» su questa
+        var pv = parseFloat(ao[2].replace(/\./g, '') + '.' + ao[3]), pq = /^(\d{1,3})\s*(?:[xX*]|PZ\.?)\s+(.*)$/.exec(pending);
+        items.push({ desc: pq ? pq[2] : pending, qty: pq ? +pq[1] : 1, unit: null, total: (ao[1] || ao[4]) ? -pv : pv, vat: ao[5] || '' }); pending = null; continue;
+      }
+      var it = itemOf(s);
+      if (it) { items.push(it); pending = null; continue; }
+      // riga di sola descrizione: il prezzo arriva sulla riga dopo («2 x 1,20  2,40»)
+      if (new RegExp('^[' + LET + '0-9][^\\n]{2,}$').test(s) && !/\d[,.]\d{2}\s*$/.test(s)) pending = s.replace(/\s+/g, ' '); else pending = null;
+    }
+    return items;
+  }
+
+  /* ───────────── pagamento, IVA, numeri documento ───────────── */
+  function findPayment(lines, total) {
+    var res = { method: '', last4: '', paid: null, change: null, line: -1, cardAmount: null }, cash = false, card = false;
+    for (var i = lines.length - 1; i >= 0; i--) {
+      var s = lines[i], a = amounts(s);
+      if (/RESTO|CAMBIO/i.test(s) && a.length && res.change === null) { res.change = Math.abs(a[a.length - 1].v); continue; }
+      if (/CONTANT|\bCASH\b|\bCONT\.?\b/i.test(s)) { cash = true; if (a.length && res.paid === null) res.paid = Math.abs(a[a.length - 1].v); if (res.line < 0) res.line = i; }
+      if (/SATISPAY/i.test(s)) { res.method = 'satispay'; res.line = i; }
+      if (/TICKET|BUON[OI]\s+PAST|BUONO\s+PASTO|EDENRED|DAY\s+SPA|PLUXEE|REPAS/i.test(s)) { res.method = res.method || 'ticket'; res.line = i; }
+      if (/KLARNA/i.test(s)) res.method = res.method || 'klarna';
+      if (/SCALAPAY/i.test(s)) res.method = res.method || 'scalapay';
+      if (/BANCOMAT|PAGOBANCOMAT|MAESTRO|V\s?PAY|DEBIT|CARTA\s+DI\s+(CRED|DEB)|CARTA\s+(CRED|DEB)|VISA|MASTERCARD|AMEX|\bPOS\b|ELETTRONIC|CARTA\s*[*X#]/i.test(s)) { card = true; if (res.line < 0) res.line = i; if (a.length && res.cardAmount === null) res.cardAmount = Math.abs(a[a.length - 1].v); }
+      var l4 = /(?:[*xX#•]{3,}|[*xX#•]\s?){2,}\s*(\d{4})(?!\d)/.exec(s) || /(?:CARTA|CARD|PAN)[^\n]{0,12}?(\d{4})\s*$/i.exec(s);
+      if (l4 && !res.last4) res.last4 = l4[1];
+    }
+    if (!res.method) res.method = cash && !card ? 'contanti' : card ? 'carta' : (cash ? 'contanti' : '');
+    if (res.method === 'contanti' && res.paid !== null && res.change !== null && total != null && Math.abs(res.paid - res.change - total) > 0.015) res.paid = r2(total + res.change);
+    return res;
+  }
+  function findIva(lines) {
+    var rates = [], total = null;
+    for (var i = 0; i < lines.length; i++) {
+      var s = lines[i];
+      if (!/IVA|IMPOSTA|%/i.test(s) || /P\.?\s?IVA|PARTITA/i.test(s)) continue;
+      var a = amounts(s), rm = /(\d{1,2}(?:[,.]\d{1,2})?)\s?%/.exec(s);
+      if (rm && a.length) {
+        var rate = parseFloat(rm[1].replace(',', '.'));
+        if (!(rate > 0 && rate <= 30)) continue;
+        var vals = a.map(function (x) { return Math.abs(x.v); });
+        var e = { rate: rate, tax: null, base: null };
+        if (vals.length === 1) e.tax = vals[0]; else { e.base = Math.max(vals[0], vals[1]); e.tax = Math.min(vals[0], vals[1]); }
+        rates.push(e);
+      } else if (/(DI\s+CUI\s+IVA|TOTALE\s+IVA|IMPOSTA)/i.test(s) && a.length) total = Math.abs(a[a.length - 1].v);
+    }
+    if (total === null && rates.length && rates.every(function (x) { return x.tax !== null; })) total = r2(rates.reduce(function (t, x) { return t + x.tax; }, 0));
+    return { rates: rates, total: total };
+  }
+  function findDocNumber(lines) {
+    var out = { number: '', rt: '' };
+    for (var i = 0; i < lines.length; i++) {
+      var s = lines[i];
+      var m = /(?:DOC(?:UMENTO)?\.?(?:\s+COMM(?:ERCIALE)?\.?)?|SCONTRINO|N\.?\s*DOC|N[°º.]|NUMERO)\s*(?:N[°º.]?|NR\.?|#)?\s*[:.]?\s*(\d{1,5}\s?[\-\/]\s?\d{1,7}|\d{3,10})(?![\d\/\-])/i.exec(s);
+      if (m && !out.number && !/P\.?\s?IVA/i.test(s)) out.number = m[1].replace(/\s/g, '');
+      var r = /(?:\bRT\b|MATR(?:ICOLA)?\.?|\bM\.?F\.?\b)\s*[:.]?\s*([A-Z0-9]{8,12})\b/i.exec(s);
+      if (r && !out.rt && /\d/.test(r[1])) out.rt = r[1].toUpperCase();
+    }
+    return out;
+  }
+
+  /* ───────────── categoria suggerita (stesse categorie di GoBank) ───────────── */
+  var CATS = [
+    ['supermercato', /SUPERMERCAT|ALIMENTARI|COOP\b|CONAD|ESSELUNGA|LIDL|EUROSPIN|CARREFOUR|\bPAM\b|\bMD\b|IPER|DESPAR|PENNY|ALDI|TODIS|BENNET|NATURASI|MACELLERIA|FRUTTA|ORTOFRUTT|PANETTERIA|PANIFICIO|FORNO\b|SALUMERIA|PESCHERIA/i],
+    ['ristorante', /RISTORANT|TRATTORIA|PIZZERIA|OSTERIA|PIZZA|SUSHI|HAMBURGER|BRACERIA|TAVOLA\s+CALDA|ENOTECA|AGRITURISMO|COPERTO/i],
+    ['bar', /\bBAR\b|CAFF[EÈ]|PASTICCERIA|GELATERIA|BIRRERIA|PUB\b|CAFETERIA|CORNETTO|CAPPUCCINO|APERITIVO/i],
+    ['hotel', /HOTEL|ALBERGO|B\s?&\s?B|BED\s?(AND|&)\s?BREAKFAST|RESIDENCE|AFFITTACAMERE|CASA\s+VACANZE|PERNOTT/i],
+    ['viaggi', /AUTOGRILL|\bENI\b|\bQ8\b|\bIP\b|TAMOIL|AGIP|ESSO|SHELL|API\b|BENZINA|GASOLIO|CARBURANT|DISTRIBUTORE|AUTOSTRAD|TELEPASS|TRENITALIA|ITALO|BIGLIETT|PARCHEGGIO|TAXI|FLIXBUS|PEDAGGIO|AREA\s+DI\s+SERVIZIO/i],
+    ['musei', /MUSEO|MOSTRA|GALLERIA|PINACOTECA|SCAVI|CASTELLO|MONUMENT/i],
+    ['svago', /CINEMA|TEATRO|CONCERTO|PARCO|BOWLING|LUDOTECA|DISCOTECA|LIBRERIA|GIOCHI|STADIO|PALESTRA|SPETTACOLO/i]
+  ];
+  function guessCategory(text) {
+    for (var i = 0; i < CATS.length; i++) if (CATS[i][1].test(text)) return CATS[i][0];
+    return 'extra';
+  }
+  var APP_PAY = { contanti: 'contanti', carta: 'bancomat', satispay: 'satispay', ticket: 'tickets', klarna: 'klarna', scalapay: 'scalapay' };
+
+  /* ───────────── funzione principale ───────────── */
+  function parse(text) {
+    var lines = normalize(text), warnings = [], conf = {};
+    var piva = findPiva(lines);
+    var merch = findMerchant(lines, piva ? piva.line : -1);
+    var date = findDate(lines);
+    var cands = lineTotalCandidates(lines);
+
+    // zona articoli: dopo l'intestazione, fino alla prima riga di totale
+    var firstTot = cands.length ? Math.min.apply(null, cands.map(function (c) { return c.line; })) : lines.length;
+    var start = 0;
+    [merch.line, piva ? piva.line : -1].forEach(function (x) { if (x >= 0 && x < firstTot) start = Math.max(start, x + 1); });
+    for (var h = start; h < Math.min(firstTot, start + 6); h++) if (/DOCUMENTO\s+COMMERCIALE|DI\s+VENDITA|PRESTAZIONE|SCONTRINO\s+FISCALE|^\s*FATTURA|ESEMPIO/i.test(lines[h]) || (RX.addr.test(lines[h].trim()) && h === start) || /\(\s?[A-Z]{2}\s?\)\s*$/.test(lines[h])) start = h + 1;
+    var items = findItems(lines, start, firstTot);
+    var sum = r2(items.reduce(function (t, x) { return t + x.total; }, 0));
+
+    // totale: la riga più autorevole, confermata dalla somma degli articoli quando c'è
+    var total = null, totalKind = '', best = -1;
+    cands.forEach(function (c) {
+      var score = c.kind + (items.length && Math.abs(c.v - sum) < 0.015 ? 3 : 0) + (cands.filter(function (d) { return Math.abs(d.v - c.v) < 0.005; }).length > 1 ? 1 : 0) + c.line / 1000;
+      if (score > best) { best = score; total = c.v; totalKind = c.kind >= 4 ? 'totale' : 'altra riga'; }
+    });
+    if (total === null && items.length) { total = sum; totalKind = 'somma articoli'; }
+    if (total === null) {
+      var all = []; lines.forEach(function (l, i) { if (!/IVA|CONTANT|RESTO|P\.?\s?IVA/i.test(l)) amounts(l).forEach(function (a) { all.push({ v: Math.abs(a.v), i: i }); }); });
+      if (all.length) { var mx = all.reduce(function (m, x) { return x.v > m.v ? x : m; }); total = mx.v; totalKind = 'importo più alto'; }
+    }
+
+    var pay = findPayment(lines, total);
+    var iva = findIva(lines);
+    var doc = findDocNumber(lines);
+    var type = /FATTURA/i.test(text) ? 'fattura' : /RICEVUTA/i.test(text) && !/DOCUMENTO\s+COMMERCIALE/i.test(text) ? 'ricevuta' : 'scontrino';
+
+    // fiducia per campo (0–1). Il totale è tanto più sicuro quante fonti indipendenti dicono lo stesso numero:
+    // riga «TOTALE», somma degli articoli, importo del pagamento (carta, oppure contanti meno resto), altre righe di totale
+    var sumOk = items.length > 1 && total !== null && Math.abs(sum - total) < 0.015, src = 0, near = function (x) { return x !== null && total !== null && Math.abs(x - total) < 0.015; };
+    if (total !== null) {
+      if (totalKind === 'totale') src++;
+      if (sumOk) src++;
+      if (near(pay.cardAmount) || (pay.paid !== null && pay.change !== null && near(r2(pay.paid - pay.change)))) src++;
+      if (cands.filter(function (c) { return c.kind < 4 && near(c.v); }).length) src++;
+    }
+    conf.total = total === null ? 0 : totalKind === 'importo più alto' ? 0.35 : totalKind === 'somma articoli' ? 0.55 : src >= 3 ? 0.99 : src === 2 ? 0.93 : 0.7;
+    conf.date = date ? (date.score >= 2 ? 0.97 : date.time ? 0.9 : 0.8) : 0;
+    conf.merchant = merch.name ? (merch.plausible ? (merch.line <= 1 ? 0.8 : 0.7) : 0.35) : 0;
+    conf.piva = piva ? (piva.valid ? (piva.fixed ? 0.75 : 1) : 0.3) : 0;
+    conf.items = items.length ? (sumOk ? 1 : 0.5) : 0;
+    conf.payment = pay.method ? 0.85 : 0;
+    if (items.length && total !== null && !sumOk) warnings.push('La somma degli articoli (' + sum.toFixed(2).replace('.', ',') + ') non coincide con il totale (' + total.toFixed(2).replace('.', ',') + '): controlla le righe.');
+    if (piva && !piva.valid) warnings.push('La partita IVA letta non passa il controllo: ricontrollala.');
+    if (piva && piva.fixed) warnings.push('Una cifra della partita IVA era dubbia ed è stata corretta con il controllo automatico.');
+    if (!date) warnings.push('Data non trovata.');
+    if (total === null) warnings.push('Totale non trovato.');
+
+    var review = ['total', 'date', 'merchant'].filter(function (k) { return conf[k] < 0.75; });
+    var name = merch.name ? titleCase(merch.name) : '';
+    if (!merch.plausible && merch.name) warnings.push('Il nome del negozio non è leggibile: controllalo.');
+    var catText = (merch.name + ' ' + merch.legal + ' ' + items.map(function (x) { return x.desc; }).join(' ') + ' ' + lines.slice(0, 40).join(' '));
+    return {
+      type: type,
+      merchant: { name: name, plausible: !!merch.plausible, raw: merch.name, legal: merch.legal, address: merch.address, city: merch.city, piva: piva ? piva.value : '', pivaValid: !!(piva && piva.valid), pivaFixed: !!(piva && piva.fixed) },
+      date: date ? date.iso : '', time: date ? date.time : '',
+      doc: doc,
+      items: items, itemsSum: sum,
+      total: total, totalKind: totalKind,
+      iva: iva,
+      payment: pay,
+      category: guessCategory(catText),
+      appPay: APP_PAY[pay.method] || '',
+      conf: conf, review: review, warnings: warnings,
+      ready: review.length === 0 && total !== null
+    };
+  }
+
+  // «Negozi già visti»: se la P.IVA letta è sbagliata di una sola cifra (o manca) ma il negozio è già in archivio, si usano i dati dell'archivio
+  function hamming(a, b) { if (a.length !== b.length) return 99; var d = 0; for (var i = 0; i < a.length; i++) if (a.charAt(i) !== b.charAt(i)) d++; return d; }
+  function applyHistory(r, known) {
+    known = known || []; var m = r.merchant, hit = null, why = '';
+    if (m.piva) {
+      var exact = known.filter(function (k) { return k.piva === m.piva; });
+      if (exact.length === 1) { hit = exact[0]; why = 'piva'; }
+      else if (!m.pivaValid) { var near = known.filter(function (k) { return hamming(k.piva || '', m.piva) <= 1; }); if (near.length === 1) { hit = near[0]; why = 'piva-vicina'; } }
+    }
+    if (!hit && m.name) { var byName = known.filter(function (k) { return k.name && k.name.toLowerCase() === m.name.toLowerCase(); }); if (byName.length === 1) { hit = byName[0]; why = 'nome'; } }
+    if (!hit) return r;
+    if (why === 'piva-vicina' && hit.piva) { m.piva = hit.piva; m.pivaValid = validPiva(hit.piva); r.conf.piva = 0.9; r.warnings = r.warnings.filter(function (w) { return !/partita IVA/.test(w); }); }
+    if (hit.name && (why === 'piva' || why === 'piva-vicina')) { m.name = hit.name; r.conf.merchant = 0.97; r.warnings = r.warnings.filter(function (w) { return !/nome del negozio/.test(w); }); }
+    if (hit.cat) r.category = hit.cat;
+    if (hit.pay && !r.appPay) r.appPay = hit.pay;
+    r.fromHistory = why;
+    r.review = ['total', 'date', 'merchant'].filter(function (k) { return r.conf[k] < 0.75; });
+    r.ready = r.review.length === 0 && r.total !== null;
+    return r;
+  }
+
+  // punteggio di qualità di una lettura: serve a scegliere il tentativo migliore quando la foto è stata letta più volte
+  function quality(r) {
+    var q = 0;
+    if (r.total !== null) q += 3 + (r.totalKind === 'totale' ? 1 : 0);
+    if (r.items.length && r.total !== null && Math.abs(r.itemsSum - r.total) < 0.015) q += 3;
+    if (r.date) q += 2 + (r.time ? 0.5 : 0);
+    if (r.merchant.name) q += 1;
+    if (r.merchant.pivaValid) q += 1.5;
+    if (r.payment.method) q += 0.5;
+    q += (r.conf.total || 0) * 2 + (r.conf.merchant >= 0.7 ? 1 : 0);
+    return q + Math.min(r.items.length, 6) * 0.1;
+  }
+
+  function toExpense(r) {
+    return { desc: r.merchant.name || 'Scontrino', amount: r.total, date: r.date, cat: r.category, pay: r.appPay };
+  }
+
+  return { parse: parse, quality: quality, applyHistory: applyHistory, normalize: normalize, amounts: amounts, validPiva: validPiva, fixPiva: fixPiva, findDate: findDate, guessCategory: guessCategory, toExpense: toExpense, titleCase: titleCase };
+});
+
+/* ═══════════════════════════════════════════════════════════════
+   EWRCPTPDF — «scontrino digitale» in PDF (jsPDF). Tre impaginazioni: A scontrino riscritto, B copia con foto, C scheda spesa.
+   Stesso codice nel browser (jsPDF già presente nell'app) e in Node (esempi). Solo font PDF standard: niente da scaricare.
+   ═══════════════════════════════════════════════════════════════ */
+(function (root, factory) {
+  var api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api; else root.EWRCPTPDF = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
+
+  var C = { ink: [29, 29, 31], mute: [110, 110, 115], line: [214, 214, 220], soft: [245, 245, 247], blue: [0, 122, 255], green: [31, 157, 70], red: [224, 53, 43], orange: [224, 134, 0], white: [255, 255, 255] };
+  var CAT = { supermercato: 'Supermercato', ristorante: 'Ristorante', bar: 'Bar', viaggi: 'Viaggi', hotel: 'Hotel', svago: 'Svago', musei: 'Musei', extra: 'Extra', rata: 'Rata' };
+  var PAY = { contanti: 'Contanti', carta: 'Carta', bancomat: 'Bancomat', sella: 'Sella', satispay: 'Satispay', ticket: 'Ticket', tickets: 'Ticket', klarna: 'Klarna', scalapay: 'Scalapay', bonifico: 'Bonifico' };
+  var CAT_COL = { supermercato: [48, 209, 88], ristorante: [255, 159, 10], bar: [191, 90, 242], viaggi: [10, 132, 255], hotel: [255, 69, 58], svago: [255, 55, 95], musei: [100, 210, 255], extra: [142, 142, 147], rata: [94, 92, 230] };
+
+  function money(v) { return (Math.round((+v || 0) * 100) / 100).toFixed(2).replace('.', ','); }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function dmy(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || ''); }
+  function nowTxt(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})[T ](\d{2}):(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] + ' ' + m[4] + ':' + m[5] : ''; }
+  function group4(h) { return String(h || '').toUpperCase().replace(/[^0-9A-F]/g, '').slice(0, 16).replace(/(.{4})(?=.)/g, '$1-'); }
+  function pivaTxt(p) { return p ? 'P.IVA ' + p : ''; }
+
+  // testo canonico su cui si calcola l'impronta (SHA-256): cambia una virgola e l'impronta cambia
+  function canonical(d) {
+    return ['EWSC1', d.id, d.date, d.time || '', (d.merchant && d.merchant.name) || '', (d.merchant && d.merchant.piva) || '', money(d.total)]
+      .concat((d.items || []).map(function (x) { return [x.desc, x.qty, money(x.total)].join('~'); })).join('|');
+  }
+  function qrText(d) { return ['EWSC1', d.id, d.date, money(d.total), String(d.fingerprint || '').slice(0, 16).toUpperCase()].join('|'); }
+
+  /* ───────── mattoncini comuni ───────── */
+  function drawQR(doc, matrix, x, y, size, ink) {
+    var n = matrix.length, cell = size / (n + 2); doc.setFillColor.apply(doc, ink || C.ink);
+    for (var r = 0; r < n; r++) for (var c = 0; c < n; c++) if (matrix[r][c]) doc.rect(x + (c + 1) * cell, y + (r + 1) * cell, cell + 0.02, cell + 0.02, 'F');
+  }
+  function setCol(doc, k, col) { doc[k].apply(doc, col); }
+  function watermark(doc, w, h, text) {
+    if (!text) return;
+    try {
+      var gs = new doc.GState({ opacity: 0.10 }); doc.saveGraphicsState(); doc.setGState(gs);
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(Math.min(w, h) * 0.30); doc.setTextColor(120, 120, 125);
+      doc.text(text, w / 2, h / 2, { align: 'center', angle: 52 }); doc.restoreGraphicsState();
+    } catch (e) { }
+  }
+  function setMeta(doc, d, style) {
+    try {
+      doc.setProperties({ title: 'Scontrino digitale ' + d.id + ' - ' + ((d.merchant && d.merchant.name) || ''), subject: 'Copia personale di uno scontrino (' + dmy(d.date) + ', EUR ' + money(d.total) + ')',
+        author: 'E-Wallet Hub · TRAD.CLAB', keywords: ['scontrino', d.id, d.category || '', 'impronta ' + group4(d.fingerprint)].join(', '), creator: 'E-Wallet Hub (stile ' + style + ')' });
+    } catch (e) { }
+  }
+  function wrap(doc, text, maxW) { return doc.splitTextToSize(String(text || ''), maxW); }
+
+  /* ───────── A · scontrino riscritto (80 mm, un foglio lungo, font da cassa) ───────── */
+  function buildA(J, d, o) {
+    var COLS = 38, W = 80, MX = 5, LH = 3.55;
+    function center(s) { s = String(s); return s.length >= COLS ? s : ' '.repeat(Math.floor((COLS - s.length) / 2)) + s; }
+    function row(l, r, w) { w = w || COLS; l = String(l); r = String(r); var room = w - r.length - 1; if (l.length > room) l = l.slice(0, room); return l + ' '.repeat(Math.max(1, w - l.length - r.length)) + r; }
+    var rule = '-'.repeat(COLS), L = [], m = d.merchant || {};
+    L.push({ t: center('COPIA DIGITALE'), b: 1 });
+    if (d.sample) L.push({ t: center('** ESEMPIO - DATI INVENTATI **') });
+    L.push({ t: rule });
+    L.push({ t: center(String(m.name || 'SCONTRINO').toUpperCase()), b: 1, size: 10.5, lh: 4.6 });
+    [m.legal, m.address, m.city, pivaTxt(m.piva)].forEach(function (s) { if (s) wrap0(s).forEach(function (x) { L.push({ t: center(x) }); }); });
+    function wrap0(s) { var out = [], cur = ''; String(s).split(' ').forEach(function (w) { if ((cur + ' ' + w).trim().length > COLS) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }); if (cur) out.push(cur); return out; }
+    L.push({ t: rule });
+    L.push({ t: row(dmy(d.date) + (d.time ? '  ' + d.time : ''), d.doc && d.doc.number ? 'DOC ' + d.doc.number : '') });
+    L.push({ t: rule });
+    (d.items || []).forEach(function (x) {
+      var amt = money(x.total) + (x.vat ? ' ' + x.vat : ''), desc = String(x.desc || ''), room = COLS - amt.length - 1;
+      var parts = []; while (desc.length > room) { var cut = desc.lastIndexOf(' ', room); if (cut < 6) cut = room; parts.push(desc.slice(0, cut)); desc = desc.slice(cut).trim(); }
+      parts.push(desc);
+      parts.forEach(function (p, i) { L.push({ t: i === parts.length - 1 && !(x.qty !== 1 && x.unit) ? row(p, amt) : p }); });
+      if (x.qty !== 1 && x.unit) L.push({ t: row('  ' + (x.qty % 1 ? String(x.qty).replace('.', ',') : x.qty) + ' x ' + money(x.unit).replace(/,00$/, ',00'), amt) });
+    });
+    L.push({ t: rule });
+    L.push({ t: row('TOTALE EURO', money(d.total), 28), b: 1, size: 11, lh: 5, w28: 1 });
+    var p = d.payment || {}, pm = PAY[p.method] || p.method || '';
+    if (pm) L.push({ t: row('PAGAMENTO', pm + (p.last4 ? ' ****' + p.last4 : '')) });
+    if (p.paid != null && p.method === 'contanti') { L.push({ t: row('CONTANTI', money(p.paid)) }); if (p.change != null) L.push({ t: row('RESTO', money(p.change)) }); }
+    var iva = d.iva || {};
+    if (iva.rates && iva.rates.length) iva.rates.forEach(function (r) { L.push({ t: row('IVA ' + String(r.rate).replace('.', ',') + '%' + (r.base != null ? '  imp. ' + money(r.base) : ''), money(r.tax)) }); });
+    if (iva.total != null) L.push({ t: row('DI CUI IVA', money(iva.total)) });
+    L.push({ t: rule });
+    var qrSize = 24, H0 = 8 + L.reduce(function (t, l) { return t + (l.lh || LH); }, 0);
+    var info = ['ID  ' + d.id, 'Impronta', group4(d.fingerprint), (CAT[d.category] || d.category || ''), nowTxt(d.createdAt) ? 'Reg. ' + nowTxt(d.createdAt) : ''].filter(Boolean);
+    var foot = ['Copia digitale personale creata da', 'E-Wallet Hub: non sostituisce il', 'documento fiscale originale.'];
+    var H = H0 + Math.max(qrSize, info.length * 4.1) + 4 + foot.length * 3.4 + 8;
+    var doc = new J({ unit: 'mm', format: [W, H] }); setMeta(doc, d, 'A');
+    var y = 6; doc.setFont('courier', 'normal'); doc.setTextColor.apply(doc, C.ink);
+    L.forEach(function (l) {
+      doc.setFont('courier', l.b ? 'bold' : 'normal'); doc.setFontSize(l.size || 8.4);
+      var x = MX; if (l.w28) { doc.text(l.t, x, y + 3); } else doc.text(l.t, x, y + 3);
+      y += l.lh || LH;
+    });
+    y += 3;
+    if (o.qr) drawQR(doc, o.qr(qrText(d)), MX - 1, y - 1, qrSize + 2);
+    doc.setFont('courier', 'normal'); doc.setFontSize(7.4);
+    info.forEach(function (s, i) { doc.setFont('courier', i === 0 || i === 2 ? 'bold' : 'normal'); doc.text(s, MX + qrSize + 3, y + 3 + i * 4.1); });
+    y += Math.max(qrSize, info.length * 4.1) + 4;
+    doc.setFont('courier', 'normal'); doc.setFontSize(6.8); doc.setTextColor.apply(doc, C.mute);
+    foot.forEach(function (s, i) { doc.text(s, W / 2, y + i * 3.4, { align: 'center' }); });
+    watermark(doc, W, H, d.sample ? 'ESEMPIO' : '');
+    return doc;
+  }
+
+  /* ───────── B · copia con foto (A4: scheda + foto originale) ───────── */
+  function buildB(J, d, o) {
+    var doc = new J({ unit: 'mm', format: 'a4' }), W = 210, H = 297, MX = 16, CW = W - 2 * MX, m = d.merchant || {}; setMeta(doc, d, 'B');
+    var y = 16;
+    // banda
+    setCol(doc, 'setFillColor', C.blue); doc.rect(0, 0, W, 3.2, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); setCol(doc, 'setTextColor', C.mute); doc.text('SCONTRINO DIGITALE  ·  COPIA PERSONALE', MX, y);
+    doc.setFont('helvetica', 'normal'); doc.text(d.id, W - MX, y, { align: 'right' });
+    y += 11;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(21); setCol(doc, 'setTextColor', C.ink);
+    var nm = wrap(doc, m.name || 'Scontrino', CW * 0.62); nm.slice(0, 2).forEach(function (s, i) { doc.text(s, MX, y + i * 8.2); });
+    var yn = y + (Math.min(nm.length, 2) - 1) * 8.2;
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); setCol(doc, 'setTextColor', C.mute);
+    [m.legal, [m.address, m.city].filter(Boolean).join(' · '), pivaTxt(m.piva)].filter(Boolean).forEach(function (s, i) { doc.text(s, MX, yn + 6.2 + i * 4.6); });
+    // totale a destra
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.text('TOTALE', W - MX, y - 4, { align: 'right' });
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(27); setCol(doc, 'setTextColor', C.ink); doc.text('€ ' + money(d.total), W - MX, y + 6, { align: 'right' });
+    y = yn + 6.2 + 4.6 * 3 + 6;
+    // dati essenziali
+    var meta = [['DATA E ORA', dmy(d.date) + (d.time ? '  ' + d.time : '')], ['DOCUMENTO', (d.doc && d.doc.number) || '—'], ['PAGAMENTO', ((PAY[(d.payment || {}).method] || (d.payment || {}).method || '—')) + ((d.payment || {}).last4 ? ' ****' + d.payment.last4 : '')], ['CATEGORIA', CAT[d.category] || d.category || '—']];
+    var cw = CW / 4; setCol(doc, 'setDrawColor', C.line); doc.setLineWidth(0.25); doc.line(MX, y, W - MX, y); doc.line(MX, y + 15, W - MX, y + 15);
+    meta.forEach(function (k, i) { doc.setFont('helvetica', 'bold'); doc.setFontSize(7); setCol(doc, 'setTextColor', C.mute); doc.text(k[0], MX + i * cw, y + 5.5); doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); setCol(doc, 'setTextColor', C.ink); doc.text(wrap(doc, k[1], cw - 3)[0] || '', MX + i * cw, y + 11.2); });
+    y += 24;
+    // articoli
+    var cx = { d: MX, q: MX + CW * 0.60, u: MX + CW * 0.76, t: W - MX - 14, v: W - MX };
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); setCol(doc, 'setTextColor', C.mute);
+    var hasUnit = (d.items || []).some(function (x) { return x.unit; }), hasQty = (d.items || []).some(function (x) { return x.qty !== 1; }), hasVat = (d.items || []).some(function (x) { return x.vat; });
+    doc.text('ARTICOLO', cx.d, y); if (hasQty) doc.text('Q.TÀ', cx.q, y, { align: 'right' }); if (hasUnit) doc.text('PREZZO', cx.u, y, { align: 'right' }); doc.text('IMPORTO', hasVat ? cx.t : cx.v, y, { align: 'right' }); if (hasVat) doc.text('IVA', cx.v, y, { align: 'right' });
+    y += 2.4; doc.line(MX, y, W - MX, y); y += 1;
+    var maxRows = Math.floor((H - 100 - y) / 7.2); var items = (d.items || []).slice(0, Math.max(maxRows, 8));
+    items.forEach(function (x, i) {
+      if (i % 2 === 0) { setCol(doc, 'setFillColor', C.soft); doc.rect(MX - 1.5, y, CW + 3, 7.2, 'F'); }
+      var neg = x.total < 0; doc.setFont('helvetica', 'normal'); doc.setFontSize(10); setCol(doc, 'setTextColor', neg ? C.green : C.ink);
+      doc.text(wrap(doc, x.desc, CW * 0.56)[0], cx.d, y + 5);
+      setCol(doc, 'setTextColor', C.mute); doc.setFontSize(9.5);
+      if (x.qty !== 1) doc.text(x.qty % 1 ? String(x.qty).replace('.', ',') : String(x.qty), cx.q, y + 5, { align: 'right' });
+      if (x.unit) doc.text(money(x.unit), cx.u, y + 5, { align: 'right' });
+      setCol(doc, 'setTextColor', neg ? C.green : C.ink); doc.setFont('helvetica', 'bold'); doc.text(money(x.total), hasVat ? cx.t : cx.v, y + 5, { align: 'right' });
+      doc.setFont('helvetica', 'normal'); setCol(doc, 'setTextColor', C.mute); if (hasVat) doc.text(x.vat || '', cx.v, y + 5, { align: 'right' });
+      y += 7.2;
+    });
+    if ((d.items || []).length > items.length) { doc.setFontSize(8.5); setCol(doc, 'setTextColor', C.mute); doc.text('… e altre ' + (d.items.length - items.length) + ' righe (vedi la foto a pagina 2)', MX, y + 5); y += 7.2; }
+    y += 2; doc.line(MX, y, W - MX, y); y += 8;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(12); setCol(doc, 'setTextColor', C.ink); doc.text('Totale pagato', MX, y); doc.text('€ ' + money(d.total), W - MX, y, { align: 'right' });
+    var iva = d.iva || {};
+    if (iva.rates && iva.rates.length) {
+      y += 9; doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); setCol(doc, 'setTextColor', C.mute); var hasBase = iva.rates.some(function (r) { return r.base != null; }); doc.text('ALIQUOTA IVA', MX, y); if (hasBase) doc.text('IMPONIBILE', MX + CW * 0.5, y, { align: 'right' }); doc.text('IMPOSTA', MX + CW * 0.75, y, { align: 'right' });
+      iva.rates.forEach(function (r) { y += 5.4; doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); setCol(doc, 'setTextColor', C.ink); doc.text(String(r.rate).replace('.', ',') + '%', MX, y); if (r.base != null) doc.text(money(r.base), MX + CW * 0.5, y, { align: 'right' }); doc.text(money(r.tax), MX + CW * 0.75, y, { align: 'right' }); });
+    } else if (iva.total != null) { y += 8; doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); setCol(doc, 'setTextColor', C.mute); doc.text('Di cui IVA € ' + money(iva.total), MX, y); }
+    // verifica
+    var vy = H - 58; setCol(doc, 'setDrawColor', C.line); doc.line(MX, vy, W - MX, vy);
+    if (o.qr) drawQR(doc, o.qr(qrText(d)), MX - 1.5, vy + 4, 30);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); setCol(doc, 'setTextColor', C.mute); doc.text('VERIFICA', MX + 32, vy + 10);
+    doc.setFont('courier', 'bold'); doc.setFontSize(11); setCol(doc, 'setTextColor', C.ink); doc.text(group4(d.fingerprint), MX + 32, vy + 16.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); setCol(doc, 'setTextColor', C.mute);
+    wrap(doc, 'Impronta SHA-256 dei dati e della foto originale. Se anche un solo carattere cambia, l\'impronta non coincide più: il QR contiene ID, data, totale e impronta per un controllo veloce.', CW - 34).forEach(function (s, i) { doc.text(s, MX + 32, vy + 22.5 + i * 4); });
+    if (nowTxt(d.createdAt)) doc.text('Registrato il ' + nowTxt(d.createdAt) + (o.photo ? ' · foto originale a pagina 2' : ''), MX + 32, vy + 40);
+    doc.setFontSize(7.5); doc.text('Copia personale creata da E-Wallet Hub. Non sostituisce il documento fiscale originale.', MX, H - 9); doc.text(o.photo ? '1/2' : '1/1', W - MX, H - 9, { align: 'right' });
+    watermark(doc, W, H, d.sample ? 'ESEMPIO' : '');
+    // pagina 2: foto
+    if (o.photo) {
+      doc.addPage('a4', 'portrait');
+      setCol(doc, 'setFillColor', C.blue); doc.rect(0, 0, W, 3.2, 'F');
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(8); setCol(doc, 'setTextColor', C.mute); doc.text('FOTO ORIGINALE  ·  ' + d.id, MX, 16);
+      var maxW = CW, maxH = H - 50, ip = doc.getImageProperties(o.photo), s = Math.min(maxW / ip.width, maxH / ip.height), iw = ip.width * s, ih = ip.height * s;
+      setCol(doc, 'setDrawColor', C.line); doc.rect(MX + (maxW - iw) / 2 - 0.6, 24 - 0.6, iw + 1.2, ih + 1.2);
+      doc.addImage(o.photo, 'JPEG', MX + (maxW - iw) / 2, 24, iw, ih, undefined, 'FAST');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); setCol(doc, 'setTextColor', C.mute);
+      doc.text('Foto acquisita' + (nowTxt(d.createdAt) ? ' il ' + nowTxt(d.createdAt) : '') + ' · file non modificato · ' + group4(d.fingerprint), MX, 24 + ih + 8);
+      doc.setFontSize(7.5); doc.text('2/2', W - MX, H - 9, { align: 'right' });
+      watermark(doc, W, H, d.sample ? 'ESEMPIO' : '');
+    }
+    return doc;
+  }
+
+  /* ───────── C · scheda spesa (per la contabilità personale) ───────── */
+  function buildC(J, d, o) {
+    var doc = new J({ unit: 'mm', format: 'a4' }), W = 210, H = 297, MX = 16, CW = W - 2 * MX, m = d.merchant || {}; setMeta(doc, d, 'C');
+    var cat = d.category || 'extra', col = CAT_COL[cat] || CAT_COL.extra, y = 18;
+    setCol(doc, 'setFillColor', C.soft); doc.rect(0, 0, W, 82, 'F');
+    // etichetta categoria
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8.5); var lab = (CAT[cat] || cat).toUpperCase(), lw = doc.getTextWidth(lab) + 12;
+    setCol(doc, 'setFillColor', col); doc.roundedRect(MX, y - 5, lw, 8, 4, 4, 'F'); setCol(doc, 'setTextColor', C.white); doc.text(lab, MX + 6, y + 0.4);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); setCol(doc, 'setTextColor', C.mute); doc.text('SCHEDA SPESA  ·  ' + d.id, W - MX, y + 0.4, { align: 'right' });
+    y += 20; doc.setFont('helvetica', 'bold'); doc.setFontSize(19); setCol(doc, 'setTextColor', C.ink);
+    wrap(doc, m.name || 'Scontrino', CW).slice(0, 2).forEach(function (s, i) { doc.text(s, MX, y + i * 8); });
+    y += 12; doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); setCol(doc, 'setTextColor', C.mute);
+    doc.text([dmy(d.date) + (d.time ? ' alle ' + d.time : ''), [m.city].filter(Boolean).join('')].filter(Boolean).join('  ·  '), MX, y);
+    y += 22; doc.setFont('helvetica', 'bold'); doc.setFontSize(46); setCol(doc, 'setTextColor', C.ink); doc.text('€ ' + money(d.total), MX, y);
+    // tessere
+    var ty = 94, tw = (CW - 8) / 3, tiles = [['Pagamento', (PAY[(d.payment || {}).method] || (d.payment || {}).method || '—') + ((d.payment || {}).last4 ? ' ****' + d.payment.last4 : '')], ['IVA inclusa', (d.iva && d.iva.total != null) ? '€ ' + money(d.iva.total) : '—'], ['Articoli', String((d.items || []).length)]];
+    tiles.forEach(function (t, i) { var x = MX + i * (tw + 4); setCol(doc, 'setDrawColor', C.line); doc.setLineWidth(0.3); doc.roundedRect(x, ty, tw, 22, 3, 3, 'S'); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.2); setCol(doc, 'setTextColor', C.mute); doc.text(t[0].toUpperCase(), x + 5, ty + 7.5); doc.setFont('helvetica', 'bold'); doc.setFontSize(13); setCol(doc, 'setTextColor', C.ink); doc.text(wrap(doc, t[1], tw - 8)[0], x + 5, ty + 16); });
+    // articoli (compatti, con puntino di categoria)
+    y = ty + 34; doc.setFont('helvetica', 'bold'); doc.setFontSize(9); setCol(doc, 'setTextColor', C.ink); doc.text('Cosa hai comprato', MX, y); y += 5;
+    var rowH = 7.4, limit = (o.context ? H - 90 : H - 70) - 5, maxRows = Math.max(3, Math.floor((limit - y) / rowH)), all = d.items || [], items = all.length > maxRows ? all.slice(0, maxRows - 1) : all;
+    items.forEach(function (x, i) {
+      y += 7.4; setCol(doc, 'setFillColor', x.total < 0 ? C.green : col); doc.circle(MX + 1.4, y - 1.2, 1.1, 'F');
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10); setCol(doc, 'setTextColor', C.ink); doc.text(wrap(doc, (x.qty && x.qty !== 1 ? (x.qty % 1 ? String(x.qty).replace('.', ',') : x.qty) + ' × ' : '') + x.desc, CW * 0.72)[0], MX + 6, y);
+      doc.setFont('helvetica', 'bold'); setCol(doc, 'setTextColor', x.total < 0 ? C.green : C.ink); doc.text(money(x.total), W - MX, y, { align: 'right' });
+      setCol(doc, 'setDrawColor', C.soft); doc.line(MX + 6, y + 2.4, W - MX, y + 2.4);
+    });
+    if (all.length > items.length) { y += rowH; doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); setCol(doc, 'setTextColor', C.mute); doc.text('… e altre ' + (all.length - items.length) + ' righe', MX + 6, y); }
+    // nel mese
+    var by = H - 90;
+    if (o.context) {
+      setCol(doc, 'setFillColor', C.soft); doc.roundedRect(MX, by, CW, 22, 3, 3, 'F'); doc.setFont('helvetica', 'bold'); doc.setFontSize(7.2); setCol(doc, 'setTextColor', C.mute); doc.text('NEL MESE', MX + 6, by + 7);
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); setCol(doc, 'setTextColor', C.ink); wrap(doc, o.context, CW - 12).slice(0, 2).forEach(function (s, i) { doc.text(s, MX + 6, by + 13 + i * 5); });
+    }
+    // collegamento + verifica
+    var vy = H - 64; setCol(doc, 'setDrawColor', C.line); doc.line(MX, vy, W - MX, vy);
+    if (o.qr) drawQR(doc, o.qr(qrText(d)), MX - 1.5, vy + 5, 28);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.2); setCol(doc, 'setTextColor', C.mute); doc.text('COLLEGATA ALLA SPESA', MX + 31, vy + 10);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); setCol(doc, 'setTextColor', C.ink); doc.text(d.expenseId ? 'GoBank · spesa #' + String(d.expenseId).slice(-6) : 'GoBank', MX + 31, vy + 16);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.2); setCol(doc, 'setTextColor', C.mute); doc.text('IMPRONTA', MX + 31, vy + 25);
+    doc.setFont('courier', 'bold'); doc.setFontSize(10.5); setCol(doc, 'setTextColor', C.ink); doc.text(group4(d.fingerprint), MX + 31, vy + 31);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(7.5); setCol(doc, 'setTextColor', C.mute); doc.text(['Registrata il ' + nowTxt(d.createdAt), pivaTxt(m.piva)].filter(Boolean).join('  ·  '), MX + 31, vy + 38);
+    doc.text('Copia personale creata da E-Wallet Hub. Non sostituisce il documento fiscale originale.', MX, H - 9);
+    watermark(doc, W, H, d.sample ? 'ESEMPIO' : '');
+    return doc;
+  }
+
+  /* ───────── M · mix A+B: scontrino riscritto (A) + scheda e foto originale (B) su A4 ───────── */
+  // righe dello scontrino riscritto (font da cassa, 38 colonne). Se gli articoli sono troppi per la pagina ne mostra solo una parte.
+  function ticketLines(d, COLS, maxItems) {
+    function center(s) { s = String(s); return s.length >= COLS ? s : ' '.repeat(Math.floor((COLS - s.length) / 2)) + s; }
+    function row(l, r, w) { w = w || COLS; l = String(l); r = String(r); var room = w - r.length - 1; if (l.length > room) l = l.slice(0, room); return l + ' '.repeat(Math.max(1, w - l.length - r.length)) + r; }
+    function wrap0(s) { var out = [], cur = ''; String(s).split(' ').forEach(function (w) { if ((cur + ' ' + w).trim().length > COLS) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }); if (cur) out.push(cur); return out; }
+    var rule = '-'.repeat(COLS), L = [], m = d.merchant || {}, all = d.items || [];
+    L.push({ t: center('COPIA DIGITALE'), b: 1 });
+    if (d.sample) L.push({ t: center('** ESEMPIO - DATI INVENTATI **') });
+    L.push({ t: rule });
+    L.push({ t: center(String(m.name || 'SCONTRINO').toUpperCase()), b: 1, size: 10.5, lh: 4.6 });
+    [m.legal, m.address, m.city, pivaTxt(m.piva)].forEach(function (s) { if (s) wrap0(s).forEach(function (x) { L.push({ t: center(x) }); }); });
+    L.push({ t: rule });
+    L.push({ t: row(dmy(d.date) + (d.time ? '  ' + d.time : ''), d.doc && d.doc.number ? 'DOC ' + d.doc.number : '') });
+    L.push({ t: rule });
+    var cut = maxItems != null && all.length > maxItems, shown = cut ? all.slice(0, Math.max(1, maxItems - 1)) : all;
+    shown.forEach(function (x) {
+      var amt = money(x.total) + (x.vat ? ' ' + x.vat : ''), desc = String(x.desc || ''), room = COLS - amt.length - 1;
+      var parts = []; while (desc.length > room) { var c = desc.lastIndexOf(' ', room); if (c < 6) c = room; parts.push(desc.slice(0, c)); desc = desc.slice(c).trim(); }
+      parts.push(desc);
+      parts.forEach(function (p, i) { L.push({ t: i === parts.length - 1 && !(x.qty !== 1 && x.unit) ? row(p, amt) : p }); });
+      if (x.qty !== 1 && x.unit) L.push({ t: row('  ' + (x.qty % 1 ? String(x.qty).replace('.', ',') : x.qty) + ' x ' + money(x.unit), amt) });
+    });
+    if (cut) L.push({ t: center('... e altre ' + (all.length - shown.length) + ' righe (vedi la foto)'), mute: 1 });
+    L.push({ t: rule });
+    L.push({ t: row('TOTALE EURO', money(d.total), 28), b: 1, size: 11, lh: 5 });
+    var p = d.payment || {}, pm = PAY[p.method] || p.method || '';
+    if (pm) L.push({ t: row('PAGAMENTO', pm + (p.last4 ? ' ****' + p.last4 : '')) });
+    if (p.paid != null && p.method === 'contanti') { L.push({ t: row('CONTANTI', money(p.paid)) }); if (p.change != null) L.push({ t: row('RESTO', money(p.change)) }); }
+    var iva = d.iva || {};
+    if (iva.rates && iva.rates.length) iva.rates.forEach(function (r) { L.push({ t: row('IVA ' + String(r.rate).replace('.', ',') + '%' + (r.base != null ? '  imp. ' + money(r.base) : ''), money(r.tax)) }); });
+    if (iva.total != null) L.push({ t: row('DI CUI IVA', money(iva.total)) });
+    L.push({ t: rule });
+    L.push({ t: center(d.id), mute: 1, size: 7.4 });
+    return L;
+  }
+  // foglio con il bordo inferiore a denti, come lo strappo di uno scontrino
+  function tornPaper(doc, x, y, w, h) {
+    var tw = 3.2, th = 1.7, n = Math.max(1, Math.round(w / tw)), dx = w / n, seg = [[w, 0], [0, h]], i;
+    for (i = 0; i < n; i++) { seg.push([-dx / 2, th]); seg.push([-dx / 2, -th]); }
+    seg.push([0, -h]);
+    setCol(doc, 'setFillColor', [247, 245, 236]); setCol(doc, 'setDrawColor', [214, 210, 196]); doc.setLineWidth(0.25);
+    doc.lines(seg, x, y, [1, 1], 'FD', true);
+  }
+  function photoPage(doc, d, o, W, H, MX, CW) {
+    doc.addPage('a4', 'portrait');
+    setCol(doc, 'setFillColor', C.blue); doc.rect(0, 0, W, 3.2, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); setCol(doc, 'setTextColor', C.mute); doc.text('FOTO ORIGINALE  ·  ' + d.id, MX, 16);
+    var maxW = CW, maxH = H - 50, ip = doc.getImageProperties(o.photo), s = Math.min(maxW / ip.width, maxH / ip.height), iw = ip.width * s, ih = ip.height * s;
+    setCol(doc, 'setDrawColor', C.line); doc.setLineWidth(0.25); doc.rect(MX + (maxW - iw) / 2 - 0.6, 24 - 0.6, iw + 1.2, ih + 1.2);
+    doc.addImage(o.photo, 'JPEG', MX + (maxW - iw) / 2, 24, iw, ih, undefined, 'FAST');
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); setCol(doc, 'setTextColor', C.mute);
+    doc.text('Foto acquisita' + (nowTxt(d.createdAt) ? ' il ' + nowTxt(d.createdAt) : '') + ' · file non modificato · ' + group4(d.fingerprint), MX, 24 + ih + 8);
+    doc.setFontSize(7.5); doc.text('2/2', W - MX, H - 9, { align: 'right' });
+    watermark(doc, W, H, d.sample ? 'ESEMPIO' : '');
+  }
+  function buildM(J, d, o) {
+    var doc = new J({ unit: 'mm', format: 'a4' }), W = 210, H = 297, MX = 14, CW = W - 2 * MX, m = d.merchant || {}; setMeta(doc, d, 'M');
+    var TOP = 25, TW = 80, TX = MX, RX = MX + TW + 12, RW = W - MX - RX, VY = H - 58, COLS = 38, LH = 3.55, hasPhoto = !!o.photo;
+    // intestazione
+    setCol(doc, 'setFillColor', C.blue); doc.rect(0, 0, W, 3.2, 'F');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); setCol(doc, 'setTextColor', C.mute); doc.text('SCONTRINO DIGITALE  ·  COPIA PERSONALE', MX, 14);
+    doc.setFont('helvetica', 'normal'); doc.text(d.id, W - MX, 14, { align: 'right' });
+
+    /* colonna sinistra: lo scontrino riscritto */
+    var usable = VY - 8 - TOP - 14, L = ticketLines(d, COLS), keep = (d.items || []).length, need = function (l) { return l.reduce(function (t, x) { return t + (x.lh || LH); }, 0); };
+    while (need(L) * 0.74 > usable && keep > 4) { keep--; L = ticketLines(d, COLS, keep); }
+    var sc = Math.min(1, usable / need(L)), ph = need(L) * sc + 14;
+    tornPaper(doc, TX, TOP, TW, ph);
+    var y = TOP + 6; setCol(doc, 'setTextColor', C.ink);
+    L.forEach(function (l) {
+      doc.setFont('courier', l.b ? 'bold' : 'normal'); doc.setFontSize((l.size || 8.4) * sc);
+      if (l.mute) setCol(doc, 'setTextColor', C.mute); else setCol(doc, 'setTextColor', C.ink);
+      doc.text(l.t, TX + 6.2, y + 3 * sc); y += (l.lh || LH) * sc;
+    });
+
+    /* colonna destra: la scheda */
+    var ry = TOP;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7.5); setCol(doc, 'setTextColor', C.mute); doc.text('TOTALE', RX, ry + 2.5);
+    doc.setFontSize(30); setCol(doc, 'setTextColor', C.ink); doc.text('€ ' + money(d.total), RX, ry + 14);
+    ry += 22; doc.setFontSize(14); wrap(doc, m.name || 'Scontrino', RW).slice(0, 2).forEach(function (s) { doc.text(s, RX, ry); ry += 6.2; });
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); setCol(doc, 'setTextColor', C.mute);
+    [m.legal, [m.address, m.city].filter(Boolean).join(' · '), pivaTxt(m.piva)].filter(Boolean).forEach(function (s) { wrap(doc, s, RW).slice(0, 1).forEach(function (x) { doc.text(x, RX, ry); ry += 4.5; }); });
+    ry += 4; setCol(doc, 'setDrawColor', C.line); doc.setLineWidth(0.25); doc.line(RX, ry, RX + RW, ry); ry += 3;
+    var pay = d.payment || {}, cat = d.category || 'extra', cw2 = RW / 2;
+    var cells = [['DATA E ORA', dmy(d.date) + (d.time ? '  ' + d.time : '')], ['DOCUMENTO', (d.doc && d.doc.number) || '—'], ['PAGAMENTO', (PAY[pay.method] || pay.method || '—') + (pay.last4 ? ' ****' + pay.last4 : '')], ['CATEGORIA', '']];
+    cells.forEach(function (k, i) {
+      var cx = RX + (i % 2) * cw2, cy = ry + Math.floor(i / 2) * 14;
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); setCol(doc, 'setTextColor', C.mute); doc.text(k[0], cx, cy + 4);
+      if (k[0] === 'CATEGORIA') {
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(8.2); var lab = (CAT[cat] || cat).toUpperCase(), lw = doc.getTextWidth(lab) + 8, col = CAT_COL[cat] || CAT_COL.extra;
+        setCol(doc, 'setFillColor', col); doc.roundedRect(cx, cy + 6, lw, 6.4, 3.2, 3.2, 'F'); setCol(doc, 'setTextColor', C.white); doc.text(lab, cx + 4, cy + 10.4);
+      } else { doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); setCol(doc, 'setTextColor', C.ink); doc.text(wrap(doc, k[1], cw2 - 3)[0] || '', cx, cy + 10.2); }
+    });
+    ry += 30; doc.line(RX, ry, RX + RW, ry); ry += 7;
+    var iva = d.iva || {};
+    if (iva.rates && iva.rates.length) {
+      var hasBase = iva.rates.some(function (r) { return r.base != null; });
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(7); setCol(doc, 'setTextColor', C.mute); doc.text('IVA', RX, ry); if (hasBase) doc.text('IMPONIBILE', RX + RW * 0.62, ry, { align: 'right' }); doc.text('IMPOSTA', RX + RW, ry, { align: 'right' });
+      iva.rates.forEach(function (r) { ry += 5.2; doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); setCol(doc, 'setTextColor', C.ink); doc.text(String(r.rate).replace('.', ',') + '%', RX, ry); if (r.base != null) doc.text(money(r.base), RX + RW * 0.62, ry, { align: 'right' }); doc.text(money(r.tax), RX + RW, ry, { align: 'right' }); });
+      ry += 4; doc.setFont('helvetica', 'bold'); doc.setFontSize(9.5); doc.text('Di cui IVA', RX, ry + 1.2); doc.text('€ ' + money(iva.total != null ? iva.total : iva.rates.reduce(function (t, r) { return t + r.tax; }, 0)), RX + RW, ry + 1.2, { align: 'right' }); ry += 7;
+    } else if (iva.total != null) { doc.setFont('helvetica', 'normal'); doc.setFontSize(9.5); setCol(doc, 'setTextColor', C.mute); doc.text('Di cui IVA € ' + money(iva.total), RX, ry); ry += 7; }
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(7); setCol(doc, 'setTextColor', C.mute); doc.text('COLLEGATO ALLA SPESA', RX, ry);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(10.5); setCol(doc, 'setTextColor', C.ink); doc.text(d.expenseId ? 'GoBank · spesa #' + String(d.expenseId).slice(-6) : 'GoBank', RX, ry + 5.6); ry += 13;
+    // foto in miniatura: il collegamento con la pagina 2
+    if (hasPhoto) {
+      var room = VY - 8 - ry;
+      if (room > 26) {
+        var ip = doc.getImageProperties(o.photo), th = Math.min(84, room), tw = th * ip.width / ip.height; if (tw > 46) { tw = 46; th = tw * ip.height / ip.width; }
+        setCol(doc, 'setDrawColor', C.line); doc.rect(RX - 0.4, ry - 0.4, tw + 0.8, th + 0.8); doc.addImage(o.photo, 'JPEG', RX, ry, tw, th, undefined, 'FAST');
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(7); setCol(doc, 'setTextColor', C.mute); doc.text('FOTO ORIGINALE', RX + tw + 6, ry + 4);
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(9); wrap(doc, 'Allegata senza modifiche e ingrandita a pagina 2. Fa fede come prova dell\'acquisto.', RW - tw - 6).forEach(function (s, i) { doc.text(s, RX + tw + 6, ry + 9.5 + i * 4.1); });
+      }
+    }
+    // verifica
+    setCol(doc, 'setDrawColor', C.line); doc.setLineWidth(0.25); doc.line(MX, VY, W - MX, VY);
+    if (o.qr) drawQR(doc, o.qr(qrText(d)), MX - 1.5, VY + 4, 30);
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(8); setCol(doc, 'setTextColor', C.mute); doc.text('VERIFICA', MX + 32, VY + 10);
+    doc.setFont('courier', 'bold'); doc.setFontSize(11); setCol(doc, 'setTextColor', C.ink); doc.text(group4(d.fingerprint), MX + 32, VY + 16.5);
+    doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); setCol(doc, 'setTextColor', C.mute);
+    wrap(doc, 'Impronta SHA-256 dei dati' + (hasPhoto ? ' e della foto originale' : '') + '. Se anche un solo carattere cambia, l\'impronta non coincide più: il QR contiene ID, data, totale e impronta per un controllo veloce.', CW - 34).forEach(function (s, i) { doc.text(s, MX + 32, VY + 22.5 + i * 4); });
+    if (nowTxt(d.createdAt)) doc.text('Registrato il ' + nowTxt(d.createdAt) + (hasPhoto ? ' · foto originale a pagina 2' : ''), MX + 32, VY + 33.2);
+    doc.setFontSize(7.5); doc.text('Copia personale creata da E-Wallet Hub. Non sostituisce il documento fiscale originale.', MX, H - 9); doc.text(hasPhoto ? '1/2' : '1/1', W - MX, H - 9, { align: 'right' });
+    watermark(doc, W, H, d.sample ? 'ESEMPIO' : '');
+    if (hasPhoto) photoPage(doc, d, o, W, H, MX, CW);
+    return doc;
+  }
+
+  function build(J, style, d, o) { o = o || {}; return (style === 'A' ? buildA : style === 'B' ? buildB : style === 'M' ? buildM : buildC)(J, d, o); }
+  return { build: build, canonical: canonical, qrText: qrText, group4: group4, money: money };
+});
+
+</script>
+<script id="sco-js">
+/* ═══════════════════════════════════════════════════════════════
+   EWSCO — v322 · Scontrino digitale
+   · Foto dello scontrino (o testo di iOS «Scansiona testo») → scheda di controllo → spesa in GoBank + PDF «mix A+B» + voce in archivio.
+   · Non salva mai senza che tu veda la scheda; i campi letti con poca fiducia sono segnati.
+   · Archivio nella scheda «Scontrini» di Documenti & Fatture; dall'elenco delle spese il segno 🧾 apre lo scontrino.
+   Motore puro (testabile in Node) + adattatore DOM.
+   Dati: l'elenco (negozio, data, totale, articoli, impronta…) sta in localStorage con la chiave «receipts» e viaggia con il backup come il resto;
+   il PDF e la foto stanno in IndexedDB (stesso archivio dei documenti, categoria «scontrini») e restano sul dispositivo.
+   Usa: EWRCPT (lettore del testo), EWRCPTPDF (PDF) e qrcode (QR), inclusi più su nella stessa pagina.
+   ═══════════════════════════════════════════════════════════════ */
+var EWSCO = (function () {
+  'use strict';
+
+  var KEY = 'receipts';          // elenco degli scontrini (localStorage, con il backup)
+  var DOCCAT = 'scontrini';      // categoria nell'archivio dei documenti (IndexedDB, sul dispositivo)
+  var MAXITEMS = 150;            // articoli tenuti per scontrino
+  var MAXSIDE = 1800;            // lato lungo massimo della foto (px)
+  var PHOTO_Q = 0.8;             // qualità JPEG
+  var DUPDAYS = 1;               // una spesa «uguale» può essere del giorno prima o dopo (la banca registra con un po' di ritardo)
+  var JSPDF_URL = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+  var JSPDF_CACHE = 'tradocroods-ios-v163';
+
+  // stessi elenchi del modulo «Aggiungi spesa» dell'app
+  var CATS = [['ristorante', 'Ristorante', '🍽️', '#ff9f0a'], ['bar', 'Bar', '☕', '#bf5af2'], ['viaggi', 'Viaggi', '✈️', '#0a84ff'], ['hotel', 'Hotel', '🏨', '#ff453a'], ['svago', 'Svago', '🎭', '#ff375f'],
+    ['musei', 'Musei', '🏛️', '#64d2ff'], ['extra', 'Extra', '💡', '#8e8e93'], ['supermercato', 'Supermercato', '🛒', '#30d158'], ['rata', 'Rata', '📦', '#5e5ce6']];
+  var PAYS = [['sella', '🏦 Banca Sella'], ['bancomat', '💳 Bancomat'], ['contanti', '💵 Contanti'], ['satispay', '📱 Satispay'], ['tickets', '🎫 Tickets'], ['klarna', '🅺 Klarna'], ['scalapay', '🔷 Scalapay'], ['bonifico', '🏦 Bonifico']];
+  var DAYS_FULL = ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato'];
+  var MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio', 'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre'];
+
+  /* ───────────────────────── attrezzi ───────────────────────── */
+  function r2(v) { return Math.round((+v || 0) * 100) / 100; }
+  function cents(v) { return Math.round((+v || 0) * 100); }
+  function pad(n, w) { n = String(n); while (n.length < (w || 2)) n = '0' + n; return n; }
+  function f2(v) { return r2(v).toFixed(2).replace('.', ','); }
+  function eur(v) { return '€ ' + f2(v); }
+  function esc(t) { return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  function catOf(id) { for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === id) return CATS[i]; return [id, id, '💳', '#8e8e93']; }
+  function payName(id) { for (var i = 0; i < PAYS.length; i++) if (PAYS[i][0] === id) return PAYS[i][1].replace(/^\S+\s/, ''); return id || '—'; }
+  function srcOf(pay) { return pay === 'satispay' ? 'satispay' : pay === 'tickets' ? 'tickets' : (pay === 'bancomat' || pay === 'bonifico') ? 'sella' : 'manuale'; }   // come «Aggiungi spesa»
+
+  // «12,09» · «1.234,56» · «12.09» · «€ 12,09»  →  numero (o null)
+  function num(s) {
+    var t = String(s == null ? '' : s).replace(/[^\d,.\-]/g, '');
+    if (!/\d/.test(t)) return null;
+    var lc = t.lastIndexOf(','), ld = t.lastIndexOf('.');
+    if (lc >= 0 && ld >= 0) t = lc > ld ? t.replace(/\./g, '').replace(',', '.') : t.replace(/,/g, '');
+    else if (lc >= 0) t = t.replace(/\./g, '').replace(',', '.');
+    else if (ld >= 0) { var p = t.split('.'); if (p.length > 2 || p[1].length === 3) t = p.join(''); }   // «1.234» = milleduecentotrentaquattro, «12.5» = dodici e mezzo
+    var v = parseFloat(t);
+    return isFinite(v) ? v : null;
+  }
+  // testo scritto nel campo del totale → messaggio se non è un importo in euro e centesimi (altrimenti ''): «1O,50» non diventa 1,50 in silenzio
+  function moneyIssue(raw) {
+    var t = String(raw == null ? '' : raw).replace(/[€\s\u00A0]/g, '');
+    if (!t) return '';
+    if (!/^-?[\d.,]+$/.test(t) || !/\d/.test(t)) return 'Il totale può avere solo cifre, virgola e punto.';
+    var lc = t.lastIndexOf(','), ld = t.lastIndexOf('.');
+    if ((t.match(/,/g) || []).length > 1 && ld < 0) return 'Il totale ha più di una virgola: controllalo.';
+    var sep = Math.max(lc, ld); if (sep < 0) return '';
+    if (lc > ld && t.length - sep - 1 > 2) return 'Un importo ha al massimo due decimali (i centesimi).';
+    if (ld > lc && lc >= 0 && t.length - sep - 1 > 2) return 'Un importo ha al massimo due decimali (i centesimi).';
+    return '';
+  }
+  function validIso(s) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); if (!m) return false;
+    var y = +m[1], mo = +m[2], d = +m[3];
+    return y >= 2000 && y <= 2100 && mo >= 1 && mo <= 12 && d >= 1 && d <= new Date(y, mo, 0).getDate();
+  }
+  function dmy(iso) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso || ''); return m ? m[3] + '/' + m[2] + '/' + m[1] : (iso || ''); }
+  function todayIso() { var d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function nowIso() { var d = new Date(); return todayIso() + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes()); }
+  function monthKey(iso) { var p = String(iso).split('-'); return p[0] + '_' + (+p[1]); }          // «2026_11»: come le spese del mese (mese senza zero)
+  function addDays(iso, n) { var p = iso.split('-'), d = new Date(+p[0], +p[1] - 1, +p[2] + n, 12); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+  function dayDiff(a, b) { var pa = a.split('-'), pb = b.split('-'); return Math.round((Date.UTC(+pa[0], +pa[1] - 1, +pa[2]) - Date.UTC(+pb[0], +pb[1] - 1, +pb[2])) / 86400000); }
+  function normDate(s) {                                                                           // «aaaa-mm-gg» o «gg/mm/aaaa» → ISO (o '')
+    s = String(s || ''); var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s); if (m) return m[1] + '-' + m[2] + '-' + m[3];
+    m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(s); return m ? m[3] + '-' + pad(m[2]) + '-' + pad(m[1]) : '';
+  }
+  function bytesToB64(u8) { var s = '', CH = 0x8000; for (var i = 0; i < u8.length; i += CH) s += String.fromCharCode.apply(null, u8.subarray(i, i + CH)); return btoa(s); }
+  function b64ToBytes(b64) { var bin = atob(b64), u = new Uint8Array(bin.length); for (var i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u; }
+  function slug(s) { return String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Za-z0-9]+/g, ' ').trim().split(' ').map(function (w) { return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }).join('').slice(0, 24) || 'Negozio'; }
+
+  /* ───────────────────────── SHA-256 (impronta) ───────────────────────── */
+  var K256 = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174,
+    0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967,
+    0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070,
+    0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+  function rotr(x, n) { return (x >>> n) | (x << (32 - n)); }
+  // versione in puro JavaScript: serve dove crypto.subtle non c'è (pagina non sicura) e per provare il risultato in Node
+  function sha256Sync(msg) {
+    var H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    var l = msg.length, nb = ((l + 9 + 63) >> 6) << 6, buf = new Uint8Array(nb), w = new Uint32Array(64), i, off;
+    buf.set(msg); buf[l] = 0x80;
+    var hi = Math.floor(l * 8 / 4294967296), lo = (l * 8) >>> 0;
+    buf[nb - 8] = hi >>> 24; buf[nb - 7] = hi >>> 16; buf[nb - 6] = hi >>> 8; buf[nb - 5] = hi; buf[nb - 4] = lo >>> 24; buf[nb - 3] = lo >>> 16; buf[nb - 2] = lo >>> 8; buf[nb - 1] = lo;
+    for (off = 0; off < nb; off += 64) {
+      for (i = 0; i < 16; i++) w[i] = (buf[off + 4 * i] << 24) | (buf[off + 4 * i + 1] << 16) | (buf[off + 4 * i + 2] << 8) | buf[off + 4 * i + 3];
+      for (i = 16; i < 64; i++) {
+        var s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3), s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      var a = H[0], b = H[1], c = H[2], d = H[3], e = H[4], f = H[5], g = H[6], h = H[7];
+      for (i = 0; i < 64; i++) {
+        var S1 = rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25), ch = (e & f) ^ (~e & g), t1 = (h + S1 + ch + K256[i] + w[i]) | 0;
+        var S0 = rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22), mj = (a & b) ^ (a & c) ^ (b & c), t2 = (S0 + mj) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0; H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+    }
+    return H.map(function (x) { return ('00000000' + (x >>> 0).toString(16)).slice(-8); }).join('');
+  }
+  function hexOf(buf) { return Array.prototype.map.call(new Uint8Array(buf), function (b) { return ('0' + b.toString(16)).slice(-2); }).join(''); }
+  function sha256(data) {          // testo o byte → Promise con l'impronta in esadecimale
+    var u8 = typeof data === 'string' ? new TextEncoder().encode(data) : data;
+    try { if (typeof crypto !== 'undefined' && crypto.subtle && crypto.subtle.digest) return crypto.subtle.digest('SHA-256', u8).then(hexOf, function () { return sha256Sync(u8); }); } catch (e) { }
+    return Promise.resolve(sha256Sync(u8));
+  }
+
+  /* ───────────────────────── elenco ───────────────────────── */
+  function sortRecs(list) { return (list || []).slice().sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : a.id < b.id ? 1 : a.id > b.id ? -1 : 0; }); }
+  function haystack(r) {
+    return [r.n, r.id, f2(r.tot), String(r.tot), dmy(r.d), catOf(r.c)[1], (r.it || []).map(function (x) { return x[0]; }).join(' ')].join(' ').toLowerCase();
+  }
+  // ricerca: ogni parola scritta deve comparire (negozio, importo, codice, categoria, articoli)
+  function search(list, q, cat) {
+    var words = String(q || '').toLowerCase().replace(/€/g, ' ').trim().split(/\s+/).filter(Boolean);
+    return sortRecs(list).filter(function (r) {
+      if (cat && cat !== 'tutte' && r.c !== cat) return false;
+      if (!words.length) return true;
+      var h = haystack(r); return words.every(function (w) { return h.indexOf(w) >= 0; });
+    });
+  }
+  function totalOf(list) { var t = 0; (list || []).forEach(function (r) { t += cents(r.tot); }); return t / 100; }
+  function nextId(list, dateIso) {      // SC-aaaammgg-nnn: la data è quella dello scontrino, nnn il progressivo del giorno
+    var pre = 'SC-' + String(dateIso).replace(/-/g, '') + '-', max = 0;
+    (list || []).forEach(function (x) { if (x && String(x.id).indexOf(pre) === 0) { var n = parseInt(String(x.id).slice(pre.length), 10); if (n > max) max = n; } });
+    return pre + pad(max + 1, 3);
+  }
+  // «negozi già visti», dal più recente: uno per partita IVA (o per nome se manca)
+  function knownFrom(list) {
+    var seen = {}, out = [];
+    sortRecs(list).forEach(function (r) {
+      var k = r.pv ? 'p' + r.pv : 'n' + String(r.n || '').toLowerCase(); if (seen[k] || !r.n) return; seen[k] = 1;
+      out.push({ piva: r.pv || '', name: r.n, cat: r.c, pay: r.p });
+    });
+    return out;
+  }
+  function bankRank(e) { return /^(sella|satispay|revolut|tickets)$/.test(String(e && e.source || '')) ? 1 : 0; }
+  // la spesa potrebbe esserci già (importata dalla banca o inserita a mano): stesso importo al centesimo, stesso giorno o ±1
+  function findDupExpenses(exps, total, dateIso) {
+    var c = cents(total), out = [];
+    (exps || []).forEach(function (e) {
+      if (!e || e.rcpt || cents(e.amount) !== c) return;
+      var ed = normDate(e.date); if (!ed || !dateIso) return;
+      var dd = Math.abs(dayDiff(ed, dateIso)); if (dd > DUPDAYS) return;
+      out.push({ e: e, same: dd === 0 });
+    });
+    out.sort(function (a, b) { return (b.same ? 1 : 0) - (a.same ? 1 : 0) || bankRank(b.e) - bankRank(a.e); });
+    return out;
+  }
+  function findDupReceipt(list, f) {     // stesso negozio, giorno e totale già in archivio
+    var c = cents(f.total), n = String(f.name || '').trim().toLowerCase();
+    return (list || []).filter(function (r) { return r.d === f.date && cents(r.tot) === c && String(r.n || '').toLowerCase() === n && (!f.time || !r.t || r.t === f.time); })[0] || null;
+  }
+
+  /* ───────────────────────── scheda → dati ───────────────────────── */
+  function validate(f, today) {          // errori che bloccano la creazione: [campo, messaggio]
+    var e = [];
+    if (!String(f.name || '').trim()) e.push(['name', 'Scrivi il nome del negozio.']);
+    var mi = f.totalRaw != null ? moneyIssue(f.totalRaw) : '';
+    if (mi) e.push(['total', mi]);
+    else if (f.total == null || !isFinite(f.total) || f.total <= 0) e.push(['total', 'Scrivi il totale (più di zero).']);
+    else if (f.total >= 100000) e.push(['total', 'Il totale sembra troppo alto: controllalo.']);
+    if (!validIso(f.date)) e.push(['date', 'Scegli una data valida.']);
+    else if (today && f.date > today) e.push(['date', 'La data è nel futuro: controllala.']);
+    if (f.time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(f.time)) e.push(['time', 'L\'ora non è valida (hh:mm).']);
+    return e;
+  }
+  function cleanItems(items) {
+    var out = [];
+    (items || []).slice(0, MAXITEMS).forEach(function (x) {
+      if (!x) return;
+      var tot = x.total === '' || x.total == null ? NaN : +x.total, qty = x.qty == null ? 1 : +x.qty, unit = x.unit == null ? null : +x.unit;
+      if (!isFinite(tot) || !isFinite(qty)) return;
+      out.push({ desc: String(x.desc == null ? '' : x.desc).slice(0, 80), qty: qty, unit: unit != null && isFinite(unit) ? unit : null, total: r2(tot), vat: String(x.vat || '').slice(0, 4) });
+    });
+    return out;
+  }
+  // dati nella forma che vuole il costruttore del PDF
+  function buildD(f, c) {
+    var pay = f.pay || '', cash = pay === 'contanti';
+    return {
+      id: c.id, createdAt: c.createdAt, source: f.src || 'mano',
+      merchant: { name: String(f.name || '').trim().slice(0, 80), legal: f.legal || '', address: f.address || '', city: f.city || '', piva: String(f.piva || '').replace(/\D/g, '') },
+      date: f.date, time: f.time || '', doc: { number: (f.doc && f.doc.number) || '', rt: (f.doc && f.doc.rt) || '' },
+      items: cleanItems(f.items), total: r2(f.total), iva: f.iva && ((f.iva.rates && f.iva.rates.length) || f.iva.total != null) ? f.iva : { rates: [], total: null },
+      payment: { method: pay, last4: f.last4 || '', paid: cash && f.paid != null ? f.paid : null, change: cash && f.change != null ? f.change : null },
+      category: f.cat || 'extra', expenseId: c.expenseId || null, fingerprint: c.fingerprint || ''
+    };
+  }
+  // voce dell'elenco (compatta) e ritorno al «d»
+  function toRec(d, x) {
+    var m = d.merchant, p = d.payment, iv = d.iva || {};
+    var r = { id: d.id, ts: d.createdAt, d: d.date, t: d.time || '', n: m.name, tot: d.total, c: d.category, p: p.method || '', fp: d.fingerprint || '', src: d.source || 'mano',
+      it: d.items.map(function (i) { return [i.desc, i.qty, i.unit, i.total, i.vat]; }) };
+    if (m.legal) r.lg = m.legal; if (m.address) r.ad = m.address; if (m.city) r.ci = m.city; if (m.piva) r.pv = m.piva;
+    if (p.last4) r.l4 = p.last4; if (p.paid != null) r.pa = p.paid; if (p.change != null) r.ch = p.change;
+    if (d.doc && d.doc.number) r.dn = d.doc.number; if (d.doc && d.doc.rt) r.rt = d.doc.rt;
+    if (iv.rates && iv.rates.length) r.iv = iv.rates.map(function (q) { return [q.rate, q.base == null ? null : q.base, q.tax == null ? null : q.tax]; });
+    if (iv.total != null) r.ivt = iv.total;
+    r.ex = d.expenseId || null; r.exk = x.exk || ''; r.own = x.own ? 1 : 0;
+    r.pdf = x.pdf ? 1 : 0; r.ph = x.ph ? 1 : 0; r.sz = x.sz || 0; r.psz = x.psz || 0;
+    return r;
+  }
+  function toD(r) {
+    return {
+      id: r.id, createdAt: r.ts, source: r.src || 'mano',
+      merchant: { name: r.n, legal: r.lg || '', address: r.ad || '', city: r.ci || '', piva: r.pv || '' },
+      date: r.d, time: r.t || '', doc: { number: r.dn || '', rt: r.rt || '' },
+      items: (r.it || []).map(function (i) { return { desc: i[0], qty: i[1], unit: i[2], total: i[3], vat: i[4] || '' }; }),
+      total: r.tot, iva: { rates: (r.iv || []).map(function (q) { return { rate: q[0], base: q[1], tax: q[2] }; }), total: r.ivt == null ? null : r.ivt },
+      payment: { method: r.p || '', last4: r.l4 || '', paid: r.pa == null ? null : r.pa, change: r.ch == null ? null : r.ch },
+      category: r.c, expenseId: r.ex || null, fingerprint: r.fp || ''
+    };
+  }
+  // scontrino riscritto in testo (anteprima nella scheda): le stesse righe dell'A, a 36 colonne
+  function ticketText(f, id, fp) {
+    var COLS = 36, L = [], rule = new Array(COLS + 1).join('-');
+    function ctr(s) { s = String(s); return s.length >= COLS ? s.slice(0, COLS) : new Array(Math.floor((COLS - s.length) / 2) + 1).join(' ') + s; }
+    function wrapC(s) {              // nome e indirizzo lunghi: a capo sugli spazi, ogni riga al centro
+      var words = String(s).split(/\s+/).filter(Boolean), lines = [], cur = '';
+      words.forEach(function (w) { while (w.length > COLS) { if (cur) { lines.push(cur); cur = ''; } lines.push(w.slice(0, COLS)); w = w.slice(COLS); } if (!cur) cur = w; else if ((cur + ' ' + w).length <= COLS) cur += ' ' + w; else { lines.push(cur); cur = w; } });
+      if (cur) lines.push(cur); return lines.map(ctr);
+    }
+    function row(l, r) { l = String(l); r = String(r); var room = COLS - r.length - 1; if (l.length > room) l = l.slice(0, room); return l + new Array(Math.max(1, COLS - l.length - r.length) + 1).join(' ') + r; }
+    var items = f.items || [];
+    L.push(ctr('COPIA DIGITALE'), rule);
+    L = L.concat(wrapC(String(f.name || 'SCONTRINO').trim().toUpperCase()));
+    if (f.address) L = L.concat(wrapC(f.address)); if (f.city) L = L.concat(wrapC(f.city)); if (f.piva) L.push(ctr('P.IVA ' + f.piva)); L.push(rule);
+    L.push(row((f.date ? dmy(f.date) : '--/--/----') + (f.time ? '  ' + f.time : ''), f.doc && f.doc.number ? 'DOC ' + f.doc.number : '')); L.push(rule);
+    items.forEach(function (x) {
+      var amt = f2(x.total) + (x.vat ? ' ' + x.vat : ''), d = (x.qty && x.qty !== 1 ? String(x.qty).replace('.', ',') + ' x ' : '') + x.desc, room = COLS - amt.length - 1;
+      if (d.length > room) d = d.slice(0, room - 1) + '.'; L.push(row(d, amt));
+    });
+    if (items.length) L.push(rule);
+    L.push(row('TOTALE EURO', f.total == null ? '--,--' : f2(f.total)), row('PAGAMENTO', payName(f.pay)), rule);
+    L.push(ctr('ID  ' + (id || 'SC-aaaammgg-001')), ctr('Impronta  ' + (fp || '____-____-____-____')));
+    return L.join('\n');
+  }
+  function sumCheck(items, total) {        // {ok, sum, diff} oppure null se non c'è nulla da confrontare
+    if (!items || !items.length || total == null) return null;
+    var sum = 0; items.forEach(function (x) { sum += cents(x.total); }); sum /= 100;
+    var diff = r2(total - sum); return { ok: Math.abs(diff) < 0.015, sum: sum, diff: diff };
+  }
+  function lvl(c) { return !c ? 'none' : c >= 0.9 ? 'ok' : c >= 0.75 ? 'check' : 'warn'; }
+
+  var core = {
+    num: num, moneyIssue: moneyIssue, validIso: validIso, dmy: dmy, f2: f2, r2: r2, monthKey: monthKey, addDays: addDays, dayDiff: dayDiff, normDate: normDate, slug: slug, srcOf: srcOf,
+    sha256: sha256, sha256Sync: sha256Sync, search: search, sortRecs: sortRecs, totalOf: totalOf, nextId: nextId, knownFrom: knownFrom,
+    findDupExpenses: findDupExpenses, findDupReceipt: findDupReceipt, validate: validate, cleanItems: cleanItems, buildD: buildD, toRec: toRec, toD: toD,
+    ticketText: ticketText, sumCheck: sumCheck, lvl: lvl, bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, CATS: CATS, PAYS: PAYS, CONST: { KEY: KEY, DOCCAT: DOCCAT, DUPDAYS: DUPDAYS, MAXITEMS: MAXITEMS }
+  };
+
+  var hasDom = typeof document !== 'undefined' && typeof window !== 'undefined';
+  if (!hasDom) return core;
+
+  /* ═════════════════════════ adattatore DOM ═════════════════════════ */
+  var S = null;                                   // stato del foglio aperto (null = chiuso)
+  var AR = { q: '', cat: 'tutte', wired: false }; // stato dell'archivio
+  var modal = null, toastT = 0, fileInput = null, libInput = null;
+
+  function $(id) { return document.getElementById(id); }
+  function toastApp(m) { try { if (typeof showToast === 'function') showToast(m); } catch (e) { } }
+  function loadList() { try { var v = load(KEY, []); return Array.isArray(v) ? v.filter(function (x) { return x && x.id; }) : []; } catch (e) { return []; } }
+  function saveList(l) { try { return save(KEY, l) !== false; } catch (e) { return false; } }
+  function recOf(id) { var l = loadList(); for (var i = 0; i < l.length; i++) if (l[i].id === id) return l[i]; return null; }
+  function driveOn() { try { return docMode === 'drive' && !!gdriveToken; } catch (e) { return false; } }
+  function docStore() { try { return DOC_STORE; } catch (e) { return 'fatture'; } }
+
+  /* ── spese: lettura/scrittura per mese (quello della data, non quello selezionato) ── */
+  function monthExps(key) { try { var v = load('expenses_' + key, []); return Array.isArray(v) ? v : []; } catch (e) { return []; } }
+  function expensesAround(dateIso) {
+    var keys = {}, out = [];
+    [-DUPDAYS, 0, DUPDAYS].forEach(function (n) { keys[monthKey(addDays(dateIso, n))] = 1; });
+    Object.keys(keys).forEach(function (k) { out = out.concat(monthExps(k)); });
+    return out;
+  }
+  function findExpense(rec) {         // {key, arr, i} della spesa collegata (prima nel mese noto, poi ovunque, come fa l'app per eliminare)
+    if (!rec || !rec.ex) return null;
+    function look(key) { var a = monthExps(key); for (var i = 0; i < a.length; i++) if (String(a[i].id) === String(rec.ex)) return { key: key, arr: a, i: i }; return null; }
+    var hit = (rec.exk && look(rec.exk)) || look(monthKey(rec.d));
+    if (hit) return hit;
+    for (var y = 2023; y <= new Date().getFullYear() + 1; y++) for (var m = 1; m <= 12; m++) { hit = look(y + '_' + m); if (hit) return hit; }
+    return null;
+  }
+  function refreshApp() {
+    ['renderExpenses', 'renderDashboard', 'renderWeek', 'renderCalendar', 'refreshBudgetPlannerIfVisible', 'vsRefreshIfActive'].forEach(function (fn) {
+      try { if (typeof window[fn] === 'function') window[fn](); } catch (e) { }
+    });
+  }
+  function commit() { try { bumpVersion(); } catch (e) { } try { fbPushToCloud(); } catch (e) { } }
+
+  /* ── archivio dei PDF (IndexedDB, quello dei Documenti) ── */
+  function getDoc(id) { return dbGetDoc(id).catch(function () { return null; }); }
+  function localIds() {
+    return initDocDB().then(function (db) {
+      return new Promise(function (res) {
+        try { var rq = db.transaction(docStore(), 'readonly').objectStore(docStore()).index('cat_user').getAllKeys([DOCCAT, docUserKey()]); rq.onsuccess = function () { res(rq.result || []); }; rq.onerror = function () { res([]); }; } catch (e) { res([]); }
+      });
+    }).catch(function () { return []; });
+  }
+
+  /* ── foto ── */
+  function compressImage(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        try {
+          var w = img.naturalWidth, h = img.naturalHeight; if (!w || !h) throw new Error('vuota');
+          var k = Math.min(1, MAXSIDE / Math.max(w, h)), cw = Math.max(1, Math.round(w * k)), ch = Math.max(1, Math.round(h * k));
+          var cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
+          var cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cw, ch); cx.drawImage(img, 0, 0, cw, ch);
+          var du = cv.toDataURL('image/jpeg', PHOTO_Q);
+          if (du.length > 900000) du = cv.toDataURL('image/jpeg', 0.66);                   // oltre ~650 KB: un po' più compressa
+          URL.revokeObjectURL(url); resolve(mkPhoto(b64ToBytes(du.slice(du.indexOf(',') + 1)), cw, ch));
+        } catch (e) { URL.revokeObjectURL(url); reject(e); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('immagine')); };
+      img.src = url;
+    });
+  }
+  function mkPhoto(bytes, w, h) { return { bytes: bytes, w: w, h: h, size: bytes.length, url: URL.createObjectURL(new Blob([bytes], { type: 'image/jpeg' })) }; }
+  function dropPhoto(p) { try { if (p && p.url) URL.revokeObjectURL(p.url); } catch (e) { } }
+  function rotatePhoto(p) {
+    return new Promise(function (resolve, reject) {
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var cv = document.createElement('canvas'); cv.width = img.naturalHeight; cv.height = img.naturalWidth;
+          var cx = cv.getContext('2d'); cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.translate(cv.width, 0); cx.rotate(Math.PI / 2); cx.drawImage(img, 0, 0);
+          var du = cv.toDataURL('image/jpeg', PHOTO_Q); resolve(mkPhoto(b64ToBytes(du.slice(du.indexOf(',') + 1)), cv.width, cv.height));
+        } catch (e) { reject(e); }
+      };
+      img.onerror = function () { reject(new Error('immagine')); };
+      img.src = p.url;
+    });
+  }
+
+  /* ── PDF ── */
+  function loadJsPdf() {
+    if (window.jspdf && window.jspdf.jsPDF) return Promise.resolve(window.jspdf.jsPDF);
+    function fromTag() {
+      return new Promise(function (res, rej) {
+        var s = document.createElement('script'), t = setTimeout(function () { rej(new Error('timeout')); }, 15000);
+        s.src = JSPDF_URL; s.onload = function () { clearTimeout(t); res(); }; s.onerror = function () { clearTimeout(t); rej(new Error('rete')); };
+        document.head.appendChild(s);
+      });
+    }
+    function fromCache() {
+      if (!('caches' in window)) return Promise.reject(new Error('offline'));
+      return caches.open(JSPDF_CACHE).then(function (c) { return c.match(JSPDF_URL); }).then(function (hit) {
+        if (!hit) throw new Error('offline');
+        return hit.text().then(function (code) { var s = document.createElement('script'); s.textContent = code; document.head.appendChild(s); });
+      });
+    }
+    var p = (navigator.onLine === false ? fromCache().catch(fromTag) : fromTag().catch(fromCache))
+      .catch(function () { throw new Error('libreria PDF non raggiungibile: serve internet la prima volta'); });
+    return p.then(function () {
+      if (!(window.jspdf && window.jspdf.jsPDF)) throw new Error('libreria PDF non disponibile');
+      try { if (navigator.onLine !== false && 'caches' in window) caches.open(JSPDF_CACHE).then(function (c) { return fetch(JSPDF_URL, { cache: 'force-cache' }).then(function (r) { if (r.ok) c.put(JSPDF_URL, r); }); }).catch(function () { }); } catch (e) { }
+      return window.jspdf.jsPDF;
+    });
+  }
+  function qrMatrix(text) {
+    var q = qrcode(0, 'M'); q.addData(text); q.make();
+    var n = q.getModuleCount(); return Array.from({ length: n }, function (_, r) { return Array.from({ length: n }, function (_, c) { return q.isDark(r, c); }); });
+  }
+  function makePdf(d, photoBytes) {     // → Promise<ArrayBuffer>
+    return loadJsPdf().then(function (J) {
+      var doc = EWRCPTPDF.build(J, 'M', d, { qr: qrMatrix, photo: photoBytes ? 'data:image/jpeg;base64,' + bytesToB64(photoBytes) : null });
+      return doc.output('arraybuffer');
+    });
+  }
+  function fingerprint(d, photoBytes) {   // impronta = SHA-256 dei dati canonici + dell'impronta della foto
+    return (photoBytes ? sha256(photoBytes) : Promise.resolve('')).then(function (ph) { return sha256(EWRCPTPDF.canonical(d) + '|' + ph); });
+  }
+  function pdfName(d) { return 'Scontrino_' + slug(d.merchant.name) + '_' + d.date + '_' + d.id.slice(-3) + '.pdf'; }
+  function saveDocRec(d, buffer, photoBytes) {
+    return dbPutDoc({ id: d.id, cat: DOCCAT, userKey: docUserKey(), name: pdfName(d), type: 'application/pdf', size: buffer.byteLength, date: dmy(d.date), uploadedAt: Date.now(),
+      buffer: buffer, photo: photoBytes ? photoBytes.buffer.slice(photoBytes.byteOffset, photoBytes.byteOffset + photoBytes.byteLength) : null, sc: 1 });
+  }
+  function download(blob, name) {
+    var url = URL.createObjectURL(blob), a = document.createElement('a'); a.href = url; a.download = name; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 8000);
+  }
+  function sharePdf(blob, name) {          // iOS: foglio «Condividi» → «Salva su File»; altrove scarica
+    var file = null; try { file = new File([blob], name, { type: 'application/pdf' }); } catch (e) { }
+    try {
+      if (file && navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        return navigator.share({ files: [file], title: name }).catch(function (e) { if (e && e.name === 'AbortError') return; download(blob, name); });
+      }
+    } catch (e) { }
+    download(blob, name); return Promise.resolve();
+  }
+
+  /* ── Google Drive (facoltativo, solo se già collegato) ── */
+  function driveUpload(blob, name) {
+    return Promise.resolve().then(function () {
+      var root; return findOrCreateFolder(GDRIVE_FOLDER, 'root').then(function (r) { root = r; return findOrCreateFolder('Scontrini', root); })
+        .then(function (fid) { return driveUploadFile(new File([blob], name, { type: 'application/pdf' }), fid); });
+    });
+  }
+
+  /* ═════════════════════════ foglio (modale) ═════════════════════════ */
+  function fresh() {
+    var last = sortRecs(loadList())[0];
+    return { view: 'start', prev: null, photo: null, text: '', textOpen: false, src: 'mano', busy: '', confirmClose: false, confirmDel: false, known: knownFrom(loadList()),
+      f: blankForm(last && last.p || 'bancomat'), warns: [], note: '', dupExp: [], dupChoice: 0, dupRcpt: null, dupOk: false, dupUpdate: false, usePhoto: true, drive: false,
+      detailId: '', result: null, pdfUrl: '', verify: '', local: null, fileFor: null, errs: {} };
+  }
+  function blankForm(pay) {
+    return { name: '', date: todayIso(), time: '', total: null, totalRaw: null, cat: 'supermercato', pay: pay, piva: '', legal: '', address: '', city: '', doc: null, iva: null, last4: '', paid: null, change: null, items: [],
+      b: { name: 'none', date: 'you', total: 'none', piva: 'none' }, bt: { name: 'scrivilo', date: '✎ oggi', total: 'scrivilo' }, touchedCat: false, touchedPay: false };
+  }
+  var BADGE = { ok: '✓ sicuro', check: '◐ controlla', warn: '! da correggere', none: 'non trovato', you: '✎ confermato da te' };
+
+  function ensureModal() {
+    if (modal) return modal;
+    modal = document.createElement('div'); modal.id = 'scoModal'; modal.className = 'sco-modal'; modal.hidden = true;
+    modal.setAttribute('role', 'dialog'); modal.setAttribute('aria-modal', 'true'); modal.setAttribute('aria-labelledby', 'scoTitle');
+    modal.innerHTML = '<div class="sco-sheet" tabindex="-1"><div class="sco-hd"><button type="button" class="sco-back" data-act="back" aria-label="Indietro" hidden>‹</button><div class="sco-title" id="scoTitle"></div><button type="button" class="sco-x" data-act="close" aria-label="Chiudi">✕</button></div>' +
+      '<div class="sco-bd" id="scoBd"></div><div class="sco-ft" id="scoFt" hidden></div><div class="sco-busy" id="scoBusy" hidden><div class="sco-spin" aria-hidden="true"></div><span id="scoBusyTx"></span></div><div class="sco-toast" id="scoToast" hidden role="status"></div></div>';
+    document.body.appendChild(modal);
+    modal.addEventListener('click', onClick);
+    modal.addEventListener('input', onInput);
+    modal.addEventListener('change', onChange);
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S && !modal.hidden) { e.preventDefault(); askClose(); } });
+    // le due caselle di scelta del file (fotocamera e libreria) restano fuori dal foglio, nel documento
+    fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.setAttribute('capture', 'environment'); fileInput.hidden = true; fileInput.id = 'scoFileCam';
+    libInput = document.createElement('input'); libInput.type = 'file'; libInput.accept = 'image/*'; libInput.hidden = true; libInput.id = 'scoFileLib';
+    [fileInput, libInput].forEach(function (inp) { inp.addEventListener('change', function () { var f = inp.files && inp.files[0]; inp.value = ''; if (f) onPhotoFile(f); }); document.body.appendChild(inp); });
+    return modal;
+  }
+  function openSheet() {
+    ensureModal(); modal.hidden = false; document.body.style.overflow = 'hidden';
+    try { $('scoBd').scrollTop = 0; modal.querySelector('.sco-sheet').focus({ preventScroll: true }); } catch (e) { }
+  }
+  function closeSheet() {
+    if (S) { dropPhoto(S.photo); if (S.pdfUrl) { try { URL.revokeObjectURL(S.pdfUrl); } catch (e) { } } }
+    S = null; if (modal) modal.hidden = true; document.body.style.overflow = '';
+  }
+  function dirty() { var f = S && S.f; return !!(S && S.view === 'sheet' && (S.photo || (f && (f.name || f.total != null || f.items.length)) || S.text)); }
+  function askClose() {
+    if (!S) return;
+    if (dirty() && !S.confirmClose) { S.confirmClose = true; paintChrome(); flash('Tocca ✕ di nuovo per scartare i dati'); return; }
+    closeSheet();
+  }
+  function setBusy(t) { var b = $('scoBusy'); if (!b) return; b.hidden = !t; $('scoBusyTx').textContent = t || ''; if (S) S.busy = t || ''; }
+  function flash(t) { var el = $('scoToast'); if (!el) return; el.textContent = t; el.hidden = false; clearTimeout(toastT); toastT = setTimeout(function () { el.hidden = true; }, 3200); }
+  function go(view, extra) {
+    if (!S) return; S.prev = S.view; S.view = view; S.confirmClose = false; S.confirmDel = false; if (extra) for (var k in extra) S[k] = extra[k];
+    var tz = $('scoToast'); if (tz) { tz.hidden = true; clearTimeout(toastT); }          // l'avviso della schermata di prima non resta sopra la nuova
+    paint(); try { $('scoBd').scrollTop = 0; } catch (e) { }
+  }
+
+  /* ── disegno ── */
+  var TITLES = { start: 'Scontrino digitale', sheet: 'Controlla i dati', done: 'Fatto', detail: 'Scontrino', pdf: 'PDF', photo: 'Foto originale' };
+  function syncBack() {         // «‹» c'è solo se non si butta via nulla: foto/PDF aperti, oppure scheda ancora vuota
+    var back = modal && modal.querySelector('.sco-back'); if (!back || !S) return;
+    back.hidden = !(S.view === 'pdf' || S.view === 'photo' || (S.view === 'sheet' && !S.photo && !S.f.name && S.f.total == null && !S.text));
+  }
+  function paintChrome() {
+    if (!S) return;
+    $('scoTitle').textContent = TITLES[S.view] || 'Scontrino digitale';
+    syncBack();
+    var x = modal.querySelector('.sco-x'); x.classList.toggle('warn', !!S.confirmClose); x.textContent = S.confirmClose ? 'Scarta' : '✕';
+  }
+  function paint() {
+    if (!S) return;
+    var bd = $('scoBd'), ft = $('scoFt'), html = '', foot = '';
+    if (S.view === 'start') html = vStart();
+    else if (S.view === 'sheet') { html = vSheet(); foot = '<button type="button" class="sco-btn pri" data-act="create" id="scoCreate">Crea scontrino digitale</button>'; }
+    else if (S.view === 'done') html = vDone();
+    else if (S.view === 'detail') html = vDetail();
+    else if (S.view === 'pdf') html = vPdf();
+    else if (S.view === 'photo') html = vPhotoView();
+    bd.innerHTML = html; ft.innerHTML = foot; ft.hidden = !foot; paintChrome();
+    if (S.view === 'sheet') { paintSum(); paintDup(); paintPrev(); }
+    if (S.view === 'detail') afterDetail();
+    if (S.view === 'pdf') { var fr = $('scoFrame'); if (fr && S.pdfUrl) fr.src = S.pdfUrl; }
+  }
+  function tile(act, ic, t, s) { return '<button type="button" class="sco-tile" data-act="' + act + '"><span class="sco-ti" aria-hidden="true">' + ic + '</span><b>' + t + '</b><i>' + s + '</i></button>'; }
+  function vStart() {
+    return '<p class="sco-lead">Fotografa lo scontrino: ne resta una copia digitale in PDF, collegata alla spesa. Prima di salvare vedi sempre una scheda con i dati, da controllare.</p>' +
+      '<div class="sco-tiles">' + tile('camera', '📷', 'Scatta la foto', 'Apre la fotocamera') + tile('library', '🖼️', 'Scegli una foto', 'Dalla libreria') +
+      tile('text', '📋', 'Incolla il testo', 'Da «Scansiona testo» di iOS') + tile('manual', '✍️', 'Compila a mano', 'Senza foto') + '</div>' +
+      '<p class="sco-fine">La foto resta su questo dispositivo. I dati dello scontrino viaggiano con il backup, come il resto di GoBank.</p>';
+  }
+  function fbadge(key) {
+    var f = S.f, l = f.b[key] || 'none', t = (f.bt && f.bt[key] && (l === 'none' || l === 'you')) ? f.bt[key] : BADGE[l];
+    return '<span class="sco-badge ' + l + '" id="sco-b-' + key + '">' + esc(t) + '</span>';
+  }
+  function opts(list, cur, labelIdx) {
+    return list.map(function (x) { var lab = labelIdx === 3 ? x[2] + ' ' + x[1] : labelIdx === 1 ? x[1] : x[1]; return '<option value="' + x[0] + '"' + (x[0] === cur ? ' selected' : '') + '>' + esc(lab) + '</option>'; }).join('');
+  }
+  function vSource() {
+    var p = S.photo, h = '';
+    if (p) {
+      h += '<figure class="sco-photo"><img src="' + p.url + '" alt="Foto dello scontrino"><figcaption>' + Math.max(1, Math.round(p.size / 1024)) + ' KB · ' + p.w + '×' + p.h + ' px</figcaption></figure>' +
+        '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="camera">📷 Rifai la foto</button><button type="button" class="sco-btn sm" data-act="rotate">⟳ Ruota</button><button type="button" class="sco-btn sm" data-act="unphoto">Togli</button></div>';
+    } else {
+      h += '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="camera">📷 Scatta la foto</button><button type="button" class="sco-btn sm" data-act="library">🖼️ Dalla libreria</button></div>';
+    }
+    h += '<details class="sco-det" id="scoTextDet"' + (S.textOpen ? ' open' : '') + '><summary>📋 Compila dal testo di iOS</summary><ol class="sco-how"><li>Tocca nel campo qui sotto.</li><li>Scegli «Scansiona testo» (icona con la fotocamera) e inquadra lo scontrino.</li><li>Tocca «Inserisci» e poi «Leggi il testo».</li></ol>' +
+      '<textarea id="sco-f-text" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Incolla qui il testo di uno scontrino">' + esc(S.text) + '</textarea>' +
+      '<div class="sco-row"><button type="button" class="sco-btn pri sm" data-act="readtext">Leggi il testo</button><button type="button" class="sco-btn sm" data-act="cleartext">Svuota</button></div>' +
+      '<p class="sco-fine">Se «Scansiona testo» non compare, apri la foto dello scontrino in Foto, tieni premuto sul testo, scegli «Seleziona tutto» e «Copia», poi incolla qui.</p></details>';
+    return h;
+  }
+  function vFields() {
+    var f = S.f, seen = S.known.map(function (k) { return '<option value="' + esc(k.name) + '">'; }).join('');
+    return '<div class="sco-fld" id="sco-w-name"><div class="sco-lr"><label for="sco-f-name">Negozio</label>' + fbadge('name') + '</div><input id="sco-f-name" type="text" list="sco-seen" autocomplete="off" autocapitalize="words" value="' + esc(f.name) + '"><datalist id="sco-seen">' + seen + '</datalist><div class="sco-err" id="sco-e-name"></div></div>' +
+      '<div class="sco-g2"><div class="sco-fld" id="sco-w-date"><div class="sco-lr"><label for="sco-f-date">Data</label>' + fbadge('date') + '</div><input id="sco-f-date" type="date" max="' + todayIso() + '" value="' + esc(f.date) + '"><div class="sco-err" id="sco-e-date"></div></div>' +
+      '<div class="sco-fld" id="sco-w-time"><div class="sco-lr"><label for="sco-f-time">Ora</label></div><input id="sco-f-time" type="time" value="' + esc(f.time) + '"><div class="sco-err" id="sco-e-time"></div></div></div>' +
+      '<div class="sco-fld" id="sco-w-total"><div class="sco-lr"><label for="sco-f-total">Totale in euro</label>' + fbadge('total') + '</div><input id="sco-f-total" class="big" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (f.total == null ? '' : f2(f.total)) + '"><div class="sco-err" id="sco-e-total"></div></div>' +
+      '<div class="sco-g2"><div class="sco-fld"><div class="sco-lr"><label for="sco-f-cat">Categoria</label></div><select id="sco-f-cat">' + CATS.filter(function (c) { return c[0] !== 'rata'; }).map(function (c) { return '<option value="' + c[0] + '"' + (c[0] === f.cat ? ' selected' : '') + '>' + esc(c[1]) + '</option>'; }).join('') + '</select></div>' +
+      '<div class="sco-fld"><div class="sco-lr"><label for="sco-f-pay">Pagamento</label></div><select id="sco-f-pay">' + PAYS.map(function (c) { return '<option value="' + c[0] + '"' + (c[0] === f.pay ? ' selected' : '') + '>' + esc(payName(c[0])) + '</option>'; }).join('') + '</select></div></div>' +
+      '<div class="sco-fld" id="sco-w-piva"><div class="sco-lr"><label for="sco-f-piva">Partita IVA</label>' + fbadge('piva') + '</div><input id="sco-f-piva" type="text" inputmode="numeric" autocomplete="off" placeholder="11 cifre (facoltativa)" value="' + esc(f.piva) + '"></div>';
+  }
+  function vItems() {
+    var it = S.f.items; if (!it.length) return '<div id="sco-itemsbox"></div><div id="sco-sum"></div>';
+    return '<div class="sco-sec" id="sco-itemsbox">' + itemsInner() + '</div><div id="sco-sum"></div>';
+  }
+  function itemsInner() {
+    var it = S.f.items;
+    return '<div class="sco-lr"><span class="sco-eyebrow">Articoli letti</span><span class="sco-fine">' + it.length + (it.length === 1 ? ' riga' : ' righe') + '</span></div><ul class="sco-items">' +
+      it.map(function (x, i) { return '<li class="' + (x.total < 0 ? 'neg' : '') + '"><span>' + esc((x.qty && x.qty !== 1 ? String(x.qty).replace('.', ',') + ' × ' : '') + x.desc) + '</span><b>' + f2(x.total) + (x.vat ? ' ' + esc(x.vat) : '') + '</b><button type="button" class="sco-rm" data-act="rmitem" data-i="' + i + '" aria-label="Togli questa riga">✕</button></li>'; }).join('') + '</ul>';
+  }
+  function vSheet() {
+    var h = '<div class="sco-sec">' + vSource() + '</div>';
+    if (S.note) h += '<div class="sco-note">' + esc(S.note) + '</div>';
+    if (S.photo && !S.f.name && S.f.total == null && !S.textRead) h += '<div class="sco-note">Foto pronta. Scrivi negozio, totale e data: categoria e pagamento li propone l\'app. Oppure compila dal testo di iOS qui sopra.</div>';
+    h += '<div class="sco-sec">' + vFields() + '</div>' + vItems();
+    h += '<ul class="sco-warns" id="sco-warns">' + S.warns.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>';
+    h += '<div id="sco-dup"></div>';
+    var o = '';
+    if (S.photo) o += '<label class="sco-opt"><input type="checkbox" id="sco-usephoto"' + (S.usePhoto ? ' checked' : '') + '><span>Allega la foto<small>Pagina 2 del PDF e archivio di questo dispositivo</small></span></label>';
+    if (driveOn()) o += '<label class="sco-opt"><input type="checkbox" id="sco-drive"' + (S.drive ? ' checked' : '') + '><span>Salva anche su Google Drive<small>Cartella «Scontrini»</small></span></label>';
+    if (o) h += '<div class="sco-sec">' + o + '</div>';
+    h += '<details class="sco-det"><summary>🧾 Anteprima dello scontrino riscritto</summary><pre class="sco-prev" id="sco-prev"></pre><p class="sco-fine">Si aggiorna mentre correggi i campi. È la parte sinistra del PDF.</p></details>';
+    return h;
+  }
+  function paintSum() {
+    var el = $('sco-sum'); if (!el) return; var c = sumCheck(S.f.items, S.f.total);
+    if (!c) { el.className = ''; el.innerHTML = ''; return; }
+    el.className = 'sco-sumline ' + (c.ok ? 'ok' : 'warn');
+    el.textContent = c.ok ? '✓ La somma degli articoli (' + eur(c.sum) + ') torna con il totale.' :
+      'Gli articoli sommano ' + eur(c.sum) + ', il totale è ' + eur(S.f.total) + ': ' + (c.diff > 0 ? 'mancano ' + eur(c.diff) : 'sono ' + eur(-c.diff) + ' in più') + '. Controlla le righe, oppure tienile così: il PDF ha comunque il totale giusto.';
+  }
+  function paintPrev() { var el = $('sco-prev'); if (el) el.textContent = ticketText(S.f, S.f.date ? nextId(loadList(), S.f.date) : '', ''); }
+  function dupHtml() {
+    var h = '';
+    if (S.dupRcpt) h += '<div class="sco-dup warn"><b>Hai già uno scontrino uguale</b><span>' + esc(S.dupRcpt.id) + ' · ' + esc(S.dupRcpt.n) + ' · ' + dmy(S.dupRcpt.d) + ' · ' + eur(S.dupRcpt.tot) + '</span>' +
+      '<label class="sco-opt"><input type="checkbox" id="sco-dupok"' + (S.dupOk ? ' checked' : '') + '><span>È un altro scontrino, crealo comunque</span></label></div>';
+    if (S.dupExp.length) {
+      h += '<div class="sco-dup"><b>' + (S.dupExp.length === 1 ? 'Questa spesa c\'è già?' : 'Queste spese ci sono già?') + '</b><span>Con lo stesso importo ' + (S.dupExp[0].same ? 'nello stesso giorno' : 'in questi giorni') + ' c\'è già ' + (S.dupExp.length === 1 ? 'una spesa' : 'qualcosa') + ' in GoBank. Collega lo scontrino invece di crearne una seconda.</span>';
+      S.dupExp.slice(0, 3).forEach(function (c, i) {
+        var e = c.e; h += '<label class="sco-opt"><input type="radio" name="scoDup" value="' + i + '"' + (S.dupChoice === i ? ' checked' : '') + '><span>Collega a: ' + esc(String(e.desc || e.cat || 'spesa').slice(0, 44)) + '<small>' + dmy(normDate(e.date)) + ' · ' + payName(e.pay) + ' · ' + eur(e.amount) + (bankRank(e) ? ' · importata dalla banca' : '') + '</small></span></label>';
+      });
+      h += '<label class="sco-opt"><input type="radio" name="scoDup" value="new"' + (S.dupChoice === 'new' ? ' checked' : '') + '><span>Crea una spesa nuova<small>Solo se è davvero un\'altra spesa</small></span></label>';
+      if (S.dupChoice !== 'new' && S.dupExp[S.dupChoice]) { var ce = S.dupExp[S.dupChoice].e; h += '<label class="sco-opt"><input type="checkbox" id="sco-dupupd"' + (S.dupUpdate ? ' checked' : '') + '><span>Usa negozio e categoria dello scontrino nella spesa<small>Ora: «' + esc(String(ce.desc || '—').slice(0, 40)) + '» · ' + esc(catOf(ce.cat)[1]) + '</small></span></label>'; }
+      h += '</div>';
+    }
+    return h;
+  }
+  function paintDup() { var el = $('sco-dup'); if (el) el.innerHTML = dupHtml(); }
+  function recalcDup() {
+    var f = S.f; S.dupExp = []; S.dupRcpt = null;
+    if (f.total != null && f.total > 0 && validIso(f.date)) {
+      S.dupExp = findDupExpenses(expensesAround(f.date), f.total, f.date);
+      if (S.dupChoice !== 'new' && (typeof S.dupChoice !== 'number' || S.dupChoice >= S.dupExp.length)) S.dupChoice = 0;
+      S.dupRcpt = f.name ? findDupReceipt(loadList(), f) : null;
+    }
+    paintDup();
+  }
+  function setBadge(key, l, text) {
+    S.f.b[key] = l; if (S.f.bt) S.f.bt[key] = text || '';
+    var el = $('sco-b-' + key); if (el) { el.className = 'sco-badge ' + l; el.textContent = text && (l === 'none' || l === 'you') ? text : BADGE[l]; }
+    var w = $('sco-w-' + key); if (w) { w.classList.toggle('is-check', l === 'check'); w.classList.toggle('is-warn', l === 'warn' || (l === 'none' && key !== 'piva')); }
+  }
+
+  /* ── lettura dal modulo → stato ── */
+  function readFields() {
+    if (!S || S.view !== 'sheet') return;
+    var f = S.f, g = function (id) { var el = $(id); return el ? el.value : null; };
+    var v;
+    if ((v = g('sco-f-name')) !== null) f.name = v.trim();
+    if ((v = g('sco-f-date')) !== null) f.date = v;
+    if ((v = g('sco-f-time')) !== null) f.time = v;
+    if ((v = g('sco-f-total')) !== null) { f.total = num(v); f.totalRaw = v; }
+    if ((v = g('sco-f-cat')) !== null) f.cat = v;
+    if ((v = g('sco-f-pay')) !== null) f.pay = v;
+    if ((v = g('sco-f-piva')) !== null) f.piva = v.replace(/\D/g, '');
+    if ($('sco-usephoto')) S.usePhoto = $('sco-usephoto').checked;
+    if ($('sco-drive')) S.drive = $('sco-drive').checked;
+  }
+  // la lettura del testo (o della foto) riempie la scheda
+  function fillFrom(r) {
+    var f = S.f; f.name = r.merchant.name || ''; f.date = r.date || ''; f.time = r.time || ''; f.total = r.total; f.cat = r.category || 'extra'; f.pay = r.appPay || f.pay || 'bancomat';
+    f.piva = r.merchant.piva || ''; f.legal = r.merchant.legal || ''; f.address = r.merchant.address || ''; f.city = r.merchant.city || '';
+    f.doc = r.doc || null; f.iva = r.iva || null; f.last4 = (r.payment && r.payment.last4) || ''; f.paid = r.payment && r.payment.paid != null ? r.payment.paid : null; f.change = r.payment && r.payment.change != null ? r.payment.change : null;
+    f.items = cleanItems(r.items); f.totalRaw = null; f.touchedCat = false; f.touchedPay = false;
+    f.b = { name: lvl(r.conf.merchant), date: lvl(r.conf.date), total: lvl(r.conf.total), piva: r.merchant.piva ? (r.merchant.pivaValid ? (r.merchant.pivaFixed ? 'check' : 'ok') : 'warn') : 'none' }; f.bt = {};
+    S.warns = (r.warnings || []).filter(function (x) { return !/somma degli articoli/.test(x); });
+    S.note = r.fromHistory ? 'Negozio riconosciuto tra quelli già visti' + (r.fromHistory === 'nome' ? ' (dal nome)' : ' (dalla partita IVA)') + ': categoria e pagamento sono quelli dell\'ultima volta.' : '';
+    S.textRead = true;
+  }
+
+  /* ── azioni ── */
+  function onPhotoFile(file) {
+    if (!S) { S = fresh(); openSheet(); paint(); }
+    setBusy('Preparo la foto…');
+    compressImage(file).then(function (p) {
+      if (!S) { dropPhoto(p); return; }
+      dropPhoto(S.photo); S.photo = p; S.usePhoto = true; setBusy('');
+      if (S.view === 'sheet') { readFields(); paint(); recalcDup(); } else go('sheet');
+      if (S.src === 'mano') S.src = 'foto';
+    }, function () { setBusy(''); flash('⚠️ Non riesco a leggere questa foto. Prova con un\'altra.'); });
+  }
+  function startSheet(opt) {
+    if (S.view === 'start') { S.view = 'sheet'; if (opt && opt.text) S.textOpen = true; paint(); try { $('scoBd').scrollTop = 0; } catch (e) { } if (opt && opt.text) { var t = $('sco-f-text'); if (t) try { t.focus(); } catch (e) { } } else { var nm = $('sco-f-name'); if (nm && opt && opt.manual) try { nm.focus(); } catch (e) { } } recalcDup(); }
+  }
+  function readText() {
+    var t = ($('sco-f-text') || {}).value || ''; S.text = t;
+    if (!t.trim()) { flash('Incolla prima il testo dello scontrino.'); return; }
+    var r;
+    try { r = EWRCPT.parse(t); r = EWRCPT.applyHistory(r, S.known); } catch (e) { flash('⚠️ Non riesco a leggere questo testo.'); return; }
+    fillFrom(r); S.src = S.photo ? 'foto' : 'testo'; S.textOpen = false; paint(); recalcDup();
+    flash(r.ready ? 'Letto. Controlla i dati e crea lo scontrino.' : 'Letto, ma controlla i campi segnati.');
+  }
+  function showErrs(errs) {
+    ['name', 'date', 'time', 'total'].forEach(function (k) { var e = $('sco-e-' + k); if (e) e.textContent = ''; var w = $('sco-w-' + k); if (w) w.classList.remove('has-err'); });
+    errs.forEach(function (x) { var e = $('sco-e-' + x[0]); if (e) e.textContent = x[1]; var w = $('sco-w-' + x[0]); if (w) w.classList.add('has-err'); });
+    if (errs.length) { var el = $('sco-f-' + errs[0][0]); if (el) { try { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); el.focus({ preventScroll: true }); } catch (e) { } } }
+  }
+
+  function create() {
+    if (!S || S.busy) return; readFields();
+    var f = S.f, errs = validate(f, todayIso()); showErrs(errs);
+    if (errs.length) { flash(errs[0][1]); return; }
+    recalcDup();
+    if (S.dupRcpt && !S.dupOk) { flash('Hai già uno scontrino uguale: spunta «crealo comunque» se è un altro.'); var d0 = $('sco-dup'); if (d0) try { d0.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) { } return; }
+    var list = loadList(), id = nextId(list, f.date), createdAt = nowIso(), photoOn = !!(S.photo && S.usePhoto), pb = photoOn ? S.photo.bytes : null;
+    var cand = (S.dupExp.length && S.dupChoice !== 'new' && S.dupExp[S.dupChoice]) ? S.dupExp[S.dupChoice].e : null;
+    var hit = cand ? findExpense({ ex: cand.id, exk: monthKey(normDate(cand.date) || f.date), d: f.date }) : null;   // spesa già presente da collegare (se non si trova, se ne crea una)
+    var exId = hit ? hit.arr[hit.i].id : Date.now();
+    var d = buildD({ name: f.name, date: f.date, time: f.time, total: f.total, cat: f.cat, pay: f.pay, piva: f.piva, legal: f.legal, address: f.address, city: f.city, doc: f.doc, iva: f.iva, items: f.items, last4: f.last4, paid: f.paid, change: f.change, src: S.src }, { id: id, createdAt: createdAt, expenseId: exId });
+    var useIt = !!(hit && S.dupUpdate);
+    setBusy('Creo lo scontrino…');
+    var buffer = null, pdfErr = '', idbOk = false;
+    fingerprint(d, pb).then(function (fp) { d.fingerprint = fp; return makePdf(d, pb).then(function (b) { buffer = b; }, function (e) { pdfErr = String(e && e.message || e || 'errore'); }); })
+      .then(function () { return buffer ? saveDocRec(d, buffer, pb).then(function () { idbOk = true; }, function () { pdfErr = 'archivio del dispositivo pieno'; }) : null; })
+      .then(function () {
+        // 1) voce dell'elenco   2) spesa (nuova o collegata)   — se la seconda non riesce, la prima torna com'era: o c'è tutto o non c'è nulla
+        var own = !hit, exk = hit ? hit.key : monthKey(d.date), prev = list.slice();
+        var rec = toRec(d, { exk: exk, own: own, pdf: !!buffer && idbOk, ph: photoOn && !!buffer && idbOk, sz: buffer ? buffer.byteLength : 0, psz: pb && idbOk ? pb.length : 0 });
+        list.push(rec); if (!saveList(list)) throw new Error('memoria del telefono piena');
+        try {
+          if (hit) {
+            var e0 = hit.arr[hit.i]; e0.rcpt = id;
+            if (useIt) { e0.desc = d.merchant.name.replace(/<[^>]*>/g, '').slice(0, 200); e0.cat = d.category; }
+            if (save('expenses_' + hit.key, hit.arr) === false) throw new Error('memoria del telefono piena');
+          } else {
+            var arr = monthExps(exk);
+            arr.push({ id: exId, cat: d.category, amount: d.total, desc: d.merchant.name.replace(/<[^>]*>/g, '').slice(0, 200), pay: d.payment.method, date: d.date, source: srcOf(d.payment.method), createdAt: new Date().toISOString(), rcpt: id });
+            if (save('expenses_' + exk, arr) === false) throw new Error('memoria del telefono piena');
+          }
+        } catch (err) { saveList(prev); throw err; }
+        commit(); refreshApp();
+        S.result = { rec: rec, d: d, linked: !own, own: own, buffer: buffer, pdfErr: pdfErr, idb: idbOk, photo: photoOn, useIt: useIt };
+        setBusy(''); go('done'); paintArchiveSoon(); tabBadge();
+        if (S.drive && buffer) driveUpload(new Blob([buffer], { type: 'application/pdf' }), pdfName(d)).then(function () { toastApp('☁️ PDF salvato anche su Google Drive'); }, function (e) { toastApp('⚠️ PDF non caricato su Drive: ' + (e && e.message || 'errore')); });
+      })
+      .catch(function (e) {
+        if (idbOk) dbDeleteDoc(id).catch(function () { });          // niente PDF «orfani» in archivio
+        setBusy(''); flash('⚠️ Non sono riuscito a salvare: ' + (e && e.message || 'errore') + '. Non è cambiato nulla.');
+      });
+  }
+
+  function vDone() {
+    var R = S.result, r = R.rec, ex = R.linked ? 'Collegato alla spesa già presente in GoBank (' + dmy(r.d) + ')' + (R.useIt ? ': ora ha il negozio e la categoria dello scontrino' : '') : 'Spesa aggiunta in GoBank: ' + esc(r.n) + ' · ' + esc(catOf(r.c)[1]) + ' · ' + eur(r.tot) + ' · ' + esc(payName(r.p));
+    var pdf = R.buffer ? 'PDF ' + (R.photo ? 'mix A+B' : 'scontrino riscritto') + ' · ' + (R.photo ? '2 pagine' : '1 pagina') + ' · ' + Math.max(1, Math.round(R.buffer.byteLength / 1024)) + ' KB' + (R.idb ? ' · salvato in «Documenti & Fatture», scheda Scontrini' : ' · non salvato in archivio (' + esc(R.pdfErr) + '): scaricalo ora') :
+      'Il PDF non è stato creato (' + esc(R.pdfErr || 'errore') + '). Lo scontrino e la spesa sono salvati: crea il PDF dall\'archivio appena possibile.';
+    return '<div class="sco-ok"><span aria-hidden="true">✅</span><b>Scontrino creato</b><code>' + esc(r.id) + '</code></div>' +
+      '<ul class="sco-res"><li>' + ex + '</li><li>' + pdf + '</li>' + (r.fp ? '<li>Impronta <code>' + esc(fpTxt(r.fp)) + '</code></li>' : '') + '</ul>' +
+      '<div class="sco-acts">' + (R.buffer ? '<button type="button" class="sco-btn pri" data-act="openpdf">Apri il PDF</button><button type="button" class="sco-btn" data-act="savepdf">Salva su File</button>' : '') +
+      '<button type="button" class="sco-btn" data-act="gospesa">Vai alla spesa</button><button type="button" class="sco-btn" data-act="another">Un altro scontrino</button><button type="button" class="sco-btn quiet" data-act="close">Chiudi</button></div>';
+  }
+  function fpTxt(h) { return String(h || '').toUpperCase().slice(0, 16).replace(/(.{4})(?=.)/g, '$1-'); }
+
+  /* ── dettaglio ── */
+  function vDetail() {
+    var r = recOf(S.detailId); if (!r) return '<p class="sco-lead">Questo scontrino non è più in archivio.</p>';
+    var c = catOf(r.c), ex = findExpense(r), items = r.it || [];
+    var loc = S.local, known = !!loc, hasPdf = !!(loc && loc.has), hasPhoto = !!(loc && loc.photo);
+    var pdfLine = !r.pdf ? 'non ancora creato' : !known ? '…' : hasPdf ? ((hasPhoto ? '2 pagine' : '1 pagina') + ' · ' + Math.max(1, Math.round((loc.size || r.sz || 0) / 1024)) + ' KB · su questo dispositivo') : 'su un altro dispositivo: qui ci sono solo i dati';
+    var phLine = !r.ph ? 'non allegata' : !known ? 'allegata' : hasPhoto ? 'pagina 2 del PDF e archivio di questo dispositivo' : 'allegata, ma su un altro dispositivo';
+    var exLine = '—';
+    if (r.ex) {
+      if (!ex) exLine = 'non trovata (eliminata?)';
+      else { var ea = ex.arr[ex.i]; exLine = (r.own ? 'creata con lo scontrino' : 'collegata a una spesa già presente') + (cents(ea.amount) !== cents(r.tot) ? ' · ora ' + eur(ea.amount) : ''); }
+    }
+    var h = '<div class="sco-dhead"><span class="sco-dot" style="background:' + c[3] + '"></span><div><b>' + esc(r.n) + '</b><span>' + dmy(r.d) + (r.t ? ' · ' + esc(r.t) : '') + ' · ' + esc(c[1]) + '</span></div><strong>' + eur(r.tot) + '</strong></div>';
+    h += '<dl class="sco-dl"><dt>Pagamento</dt><dd>' + esc(payName(r.p)) + (r.l4 ? ' ****' + esc(r.l4) : '') + '</dd>' + (r.pv ? '<dt>Partita IVA</dt><dd>' + esc(r.pv) + '</dd>' : '') + '<dt>Articoli</dt><dd>' + items.length + '</dd><dt>Codice</dt><dd><code>' + esc(r.id) + '</code></dd>' + (r.fp ? '<dt>Impronta</dt><dd><code>' + esc(fpTxt(r.fp)) + '</code></dd>' : '') + '</dl>';
+    h += '<ul class="sco-links"><li><b>Spesa GoBank</b><span>' + esc(exLine) + '</span></li><li><b>PDF (mix A+B)</b><span>' + esc(pdfLine) + '</span></li><li><b>Foto</b><span>' + esc(phLine) + '</span></li></ul>';
+    if (S.verify) h += '<div class="sco-sumline ' + (S.verify.ok ? 'ok' : 'warn') + '">' + esc(S.verify.text) + '</div>';
+    h += '<div class="sco-acts">';
+    if (!r.pdf) h += '<button type="button" class="sco-btn pri" data-act="rebuild">Crea il PDF</button>';
+    else if (!known) h += '<button type="button" class="sco-btn pri" disabled>Apri il PDF</button>';
+    else if (hasPdf) h += '<button type="button" class="sco-btn pri" data-act="openpdf">Apri il PDF</button><button type="button" class="sco-btn" data-act="savepdf">Salva su File</button>';
+    else h += '<button type="button" class="sco-btn pri" data-act="rebuild">Rifai il PDF su questo dispositivo' + (r.ph ? ' (senza foto)' : '') + '</button>';
+    if (hasPhoto) h += '<button type="button" class="sco-btn" data-act="openphoto">Vedi la foto</button>';
+    h += '<button type="button" class="sco-btn" data-act="' + (ex ? 'gospesa' : 'remake') + '">' + (ex ? 'Vai alla spesa' : 'Ricrea la spesa') + '</button></div>';
+    if (items.length) h += '<details class="sco-det"><summary>Articoli (' + items.length + ')</summary><ul class="sco-items">' + items.map(function (x) { return '<li class="' + (x[3] < 0 ? 'neg' : '') + '"><span>' + esc((x[1] && x[1] !== 1 ? String(x[1]).replace('.', ',') + ' × ' : '') + x[0]) + '</span><b>' + f2(x[3]) + (x[4] ? ' ' + esc(x[4]) : '') + '</b></li>'; }).join('') + '</ul></details>';
+    h += '<div class="sco-more"><button type="button" class="sco-btn quiet" data-act="verify">Verifica l\'impronta</button>' + (r.pdf && hasPdf ? '<button type="button" class="sco-btn quiet" data-act="rebuild">Rifai il PDF</button>' : '') + '</div>';
+    h += '<div class="sco-del">' + (S.confirmDel ? '<p class="sco-fine">Eliminare lo scontrino' + (r.own && ex ? ' e, se vuoi, anche la spesa collegata' : '') + '? Non si può annullare.</p><div class="sco-acts"><button type="button" class="sco-btn dng" data-act="delrec">Elimina lo scontrino' + (r.own && ex ? ' (tieni la spesa)' : '') + '</button>' + (r.own && ex ? '<button type="button" class="sco-btn dng" data-act="delboth">Elimina scontrino e spesa</button>' : '') + '<button type="button" class="sco-btn quiet" data-act="delno">Annulla</button></div>' : '<button type="button" class="sco-btn quiet dngtx" data-act="delask">Elimina…</button>') + '</div>';
+    return h;
+  }
+  function afterDetail() {            // cosa c'è su questo dispositivo (PDF e foto): un solo accesso all'archivio per ogni apertura
+    if (!S || S.local) return; var id = S.detailId;
+    getDoc(id).then(function (doc) {
+      if (!S || S.detailId !== id || S.view !== 'detail') return;
+      S.local = { has: !!(doc && doc.buffer), photo: !!(doc && doc.photo), size: doc && doc.size || 0 };
+      if (doc && doc.buffer) { try { S.fileFor = { id: id, name: doc.name, blob: new Blob([doc.buffer], { type: 'application/pdf' }) }; } catch (e) { } }
+      paint();
+    });
+  }
+  function vPdf() { return '<div class="sco-pdfbar"><button type="button" class="sco-btn pri sm" data-act="savepdf">Salva su File</button></div><iframe id="scoFrame" class="sco-frame" title="PDF dello scontrino"></iframe><p class="sco-fine">Qui vedi la prima pagina. Con «Salva su File» hai il PDF completo, con la foto a pagina 2.</p>'; }
+  function vPhotoView() { return S.photoUrl ? '<img class="sco-bigimg" src="' + S.photoUrl + '" alt="Foto originale dello scontrino">' : '<p class="sco-lead">Foto non disponibile.</p>'; }
+
+  function currentBlob() {            // → Promise<{blob,name}> del PDF del dettaglio / appena creato
+    if (S && S.view === 'done' && S.result && S.result.buffer) return Promise.resolve({ blob: new Blob([S.result.buffer], { type: 'application/pdf' }), name: pdfName(S.result.d), id: S.result.rec.id });
+    var id = S && S.detailId; if (S && S.fileFor && S.fileFor.id === id) return Promise.resolve(S.fileFor);
+    return getDoc(id).then(function (doc) { return doc && doc.buffer ? { blob: new Blob([doc.buffer], { type: 'application/pdf' }), name: doc.name, id: id } : null; });
+  }
+  function actOpenPdf() {
+    var id = S.view === 'done' ? S.result.rec.id : S.detailId;
+    currentBlob().then(function (f) {
+      if (!S) return; if (!f) { flash('PDF non trovato su questo dispositivo.'); return; }
+      if (S.pdfUrl) { try { URL.revokeObjectURL(S.pdfUrl); } catch (e) { } }
+      S.pdfUrl = URL.createObjectURL(f.blob); S.detailId = id; S.back = S.view; go('pdf');
+    });
+  }
+  function actSavePdf() {
+    if (S && S.fileFor && S.view === 'detail') { sharePdf(S.fileFor.blob, S.fileFor.name); return; }
+    currentBlob().then(function (f) { if (!f) { flash('PDF non trovato su questo dispositivo.'); return; } sharePdf(f.blob, f.name); });
+  }
+  function actPhoto() {
+    var id = S.detailId; getDoc(id).then(function (doc) {
+      if (!S) return; if (!doc || !doc.photo) { flash('Foto non trovata su questo dispositivo.'); return; }
+      S.photoUrl = URL.createObjectURL(new Blob([doc.photo], { type: 'image/jpeg' })); S.back = 'detail'; go('photo');
+    });
+  }
+  function actRebuild() {
+    var id = S.detailId, r = recOf(id); if (!r) return; setBusy('Rifaccio il PDF…');
+    getDoc(id).then(function (doc) {
+      var pb = doc && doc.photo ? new Uint8Array(doc.photo) : null, d = toD(r);
+      return (r.fp ? Promise.resolve(r.fp) : fingerprint(d, pb)).then(function (fp) {
+        d.fingerprint = fp;
+        return makePdf(d, pb).then(function (buf) { return saveDocRec(d, buf, pb).then(function () { return { buf: buf, fp: fp }; }); });
+      });
+    }).then(function (o) {
+      // impronta e foto «di origine» restano quelle della registrazione (l'elenco viaggia tra i dispositivi): cambia solo il file su questo dispositivo
+      var list = loadList(); list.forEach(function (x) { if (x.id === id) { x.pdf = 1; x.sz = o.buf.byteLength; if (!x.fp) x.fp = o.fp; } });
+      saveList(list); commit();
+    }).then(function () { setBusy(''); if (S) { S.local = null; S.fileFor = null; S.verify = ''; paint(); flash('PDF rifatto.'); } paintArchiveSoon(); }, function (e) { setBusy(''); flash('⚠️ Non riesco a creare il PDF: ' + (e && e.message || 'errore')); });
+  }
+  function actVerify() {
+    var id = S.detailId, r = recOf(id); if (!r) return; setBusy('Controllo…');
+    getDoc(id).then(function (doc) {
+      var pb = doc && doc.photo ? new Uint8Array(doc.photo) : null;
+      if (r.ph && !pb) return { ok: false, text: 'La foto non è su questo dispositivo: l\'impronta qui non si può ricalcolare.' };
+      if (!r.fp) return { ok: false, text: 'Questo scontrino non ha un\'impronta (crypto non disponibile al momento della creazione).' };
+      return fingerprint(toD(r), pb).then(function (fp) { return fp === r.fp ? { ok: true, text: '✓ Impronta verificata: dati e foto sono quelli del momento della registrazione.' } : { ok: false, text: '! L\'impronta non coincide: i dati o la foto sono cambiati dopo la registrazione.' }; });
+    }).then(function (res) { setBusy(''); if (S) { S.verify = res; paint(); } }, function () { setBusy(''); flash('⚠️ Verifica non riuscita.'); });
+  }
+  function actGoSpesa() {
+    var r = recOf(S.view === 'done' ? S.result.rec.id : S.detailId); if (!r) return; var hit = findExpense(r);
+    if (!hit) { flash('La spesa collegata non c\'è più.'); return; }
+    var e = hit.arr[hit.i], iso = normDate(e.date) || r.d; closeSheet();
+    try {
+      var dt = new Date(iso + 'T12:00:00'); $('globalMonth').value = dt.getMonth() + 1; $('globalYear').value = dt.getFullYear();
+      weekOffset = calcWeekOffsetForDate(dt); refreshApp();
+      showSection('settimanale', document.querySelector('.nav-item[onclick*="settimanale"]'));
+      setTimeout(function () { try { openWeekDayModal(iso, DAYS_FULL[dt.getDay()] + ' ' + dt.getDate() + ' ' + MESI[dt.getMonth()] + ' ' + dt.getFullYear()); } catch (x) { } }, 250);
+    } catch (x) { toastApp('Apri «Spese settimanali» per vedere la spesa del ' + dmy(iso)); }
+  }
+  function actRemake() {     // la spesa collegata è stata eliminata: la rifà dai dati dello scontrino
+    var id = S.detailId, r = recOf(id); if (!r) return;
+    var key = monthKey(r.d), arr = monthExps(key), exId = Date.now();
+    arr.push({ id: exId, cat: r.c, amount: r.tot, desc: String(r.n).slice(0, 200), pay: r.p, date: r.d, source: srcOf(r.p), createdAt: new Date().toISOString(), rcpt: id });
+    if (save('expenses_' + key, arr) === false) { flash('⚠️ Memoria piena: spesa non creata.'); return; }
+    r.ex = exId; r.exk = key; r.own = 1; saveList(loadList().map(function (x) { return x.id === id ? r : x; })); commit(); refreshApp(); paint(); flash('Spesa ricreata.'); paintArchiveSoon();
+  }
+  function actDelete(withExpense) {
+    var id = S.detailId, r = recOf(id); if (!r) return; var hit = findExpense(r);
+    try {
+      if (hit) {
+        if (withExpense && r.own) { save('expenses_' + hit.key, hit.arr.filter(function (e, i) { return i !== hit.i; })); }
+        else if (hit.arr[hit.i].rcpt === id) { delete hit.arr[hit.i].rcpt; save('expenses_' + hit.key, hit.arr); }
+      }
+      saveList(loadList().filter(function (x) { return x.id !== id; })); commit(); refreshApp();
+    } catch (e) { flash('⚠️ Non sono riuscito a eliminare.'); return; }
+    dbDeleteDoc(id).catch(function () { }).then(function () { if (!S) return; closeSheet(); toastApp('🗑 Scontrino eliminato'); paintArchive(); tabBadge(); });
+  }
+
+  /* ── eventi ── */
+  function onClick(e) {
+    var t = e.target; if (t === modal) { askClose(); return; }
+    var b = t.closest && t.closest('[data-act]'); if (!b || !S) return; var a = b.getAttribute('data-act');
+    if (a === 'close') askClose();
+    else if (a === 'back') { if (S.view === 'pdf' || S.view === 'photo') { if (S.pdfUrl && S.view === 'pdf') { try { URL.revokeObjectURL(S.pdfUrl); } catch (x) { } S.pdfUrl = ''; } if (S.photoUrl && S.view === 'photo') { try { URL.revokeObjectURL(S.photoUrl); } catch (x) { } S.photoUrl = ''; } go(S.back || 'start'); } else { readFields(); go('start'); } }
+    else if (a === 'camera') { fileInput.click(); }
+    else if (a === 'library') { libInput.click(); }
+    else if (a === 'text') startSheet({ text: true });
+    else if (a === 'manual') startSheet({ manual: true });
+    else if (a === 'rotate') { if (S.photo) { setBusy('Giro la foto…'); rotatePhoto(S.photo).then(function (p) { if (!S) return; dropPhoto(S.photo); S.photo = p; setBusy(''); readFields(); paint(); }, function () { setBusy(''); flash('⚠️ Non riesco a ruotare la foto.'); }); } }
+    else if (a === 'unphoto') { dropPhoto(S.photo); S.photo = null; readFields(); paint(); }
+    else if (a === 'readtext') readText();
+    else if (a === 'cleartext') { S.text = ''; var tx = $('sco-f-text'); if (tx) { tx.value = ''; try { tx.focus(); } catch (x) { } } }
+    else if (a === 'rmitem') { var i = +b.getAttribute('data-i'); S.f.items.splice(i, 1); var box = $('sco-itemsbox'); if (box) { box.className = S.f.items.length ? 'sco-sec' : ''; box.innerHTML = S.f.items.length ? itemsInner() : ''; } paintSum(); paintPrev(); }
+    else if (a === 'create') create();
+    else if (a === 'another') { dropPhoto(S.photo); var k = S.known; S = fresh(); S.known = knownFrom(loadList()); void k; paint(); }
+    else if (a === 'openpdf') actOpenPdf();
+    else if (a === 'savepdf') actSavePdf();
+    else if (a === 'openphoto') actPhoto();
+    else if (a === 'gospesa') actGoSpesa();
+    else if (a === 'remake') actRemake();
+    else if (a === 'rebuild') actRebuild();
+    else if (a === 'verify') actVerify();
+    else if (a === 'delask') { S.confirmDel = true; paint(); }
+    else if (a === 'delno') { S.confirmDel = false; paint(); }
+    else if (a === 'delrec') actDelete(false);
+    else if (a === 'delboth') actDelete(true);
+  }
+  var dupT = 0;
+  function onInput(e) {
+    if (!S || S.view !== 'sheet') return; var id = e.target.id;
+    if (id === 'sco-f-name') { S.f.name = e.target.value.trim(); setBadge('name', 'you'); }
+    else if (id === 'sco-f-date') { S.f.date = e.target.value; setBadge('date', 'you'); }
+    else if (id === 'sco-f-time') S.f.time = e.target.value;
+    else if (id === 'sco-f-total') { S.f.total = num(e.target.value); S.f.totalRaw = e.target.value; setBadge('total', 'you'); paintSum(); }
+    else if (id === 'sco-f-piva') { S.f.piva = e.target.value.replace(/\D/g, ''); setBadge('piva', S.f.piva ? 'you' : 'none'); }
+    else if (id === 'sco-f-text') { S.text = e.target.value; syncBack(); return; }
+    else return;
+    syncBack();
+    var w = e.target.closest('.sco-fld'); if (w) { w.classList.remove('has-err'); var er = w.querySelector('.sco-err'); if (er) er.textContent = ''; }
+    paintPrev(); clearTimeout(dupT); dupT = setTimeout(function () { if (S && S.view === 'sheet') recalcDup(); }, 250);
+  }
+  function onChange(e) {
+    if (!S) return; var t = e.target, id = t.id;
+    if (S.view === 'sheet') {
+      if (id === 'sco-f-cat') { S.f.cat = t.value; S.f.touchedCat = true; paintPrev(); }
+      else if (id === 'sco-f-pay') { S.f.pay = t.value; S.f.touchedPay = true; paintPrev(); }
+      else if (id === 'sco-f-name') {      // negozio già visto: propone categoria, pagamento e partita IVA
+        var n = t.value.trim().toLowerCase(), hit = S.known.filter(function (k) { return k.name.toLowerCase() === n; })[0];
+        if (hit) {
+          if (!S.f.touchedCat) { S.f.cat = hit.cat; $('sco-f-cat').value = hit.cat; }
+          if (!S.f.touchedPay && hit.pay) { S.f.pay = hit.pay; $('sco-f-pay').value = hit.pay; }
+          if (!S.f.piva && hit.piva) { S.f.piva = hit.piva; $('sco-f-piva').value = hit.piva; setBadge('piva', 'you'); }
+          paintPrev();
+        }
+        recalcDup();
+      }
+      else if (id === 'sco-f-total') {      // a fine scrittura il totale si riscrive «12,50»: se non era quello che intendevi lo vedi subito
+        if (!moneyIssue(t.value) && num(t.value) != null && num(t.value) > 0) { S.f.total = num(t.value); t.value = f2(S.f.total); S.f.totalRaw = t.value; paintSum(); }
+        recalcDup();
+      }
+      else if (id === 'sco-f-date') recalcDup();
+      else if (id === 'sco-usephoto') S.usePhoto = t.checked;
+      else if (id === 'sco-drive') S.drive = t.checked;
+      else if (id === 'sco-dupok') S.dupOk = t.checked;
+      else if (id === 'sco-dupupd') S.dupUpdate = t.checked;
+      else if (t.name === 'scoDup') { S.dupChoice = t.value === 'new' ? 'new' : +t.value; paintDup(); }
+    }
+  }
+
+  /* ═════════════════════════ archivio (scheda «Scontrini») ═════════════════════════ */
+  var arT = 0;
+  function paintArchiveSoon() { clearTimeout(arT); arT = setTimeout(paintArchive, 30); }
+  function wireArchive() {
+    if (AR.wired) return; var s = $('scoSearch'), l = $('scoList'), c = $('scoChips'); if (!s || !l || !c) return; AR.wired = true;
+    s.addEventListener('input', function () { AR.q = s.value; paintList(); });
+    l.addEventListener('click', function (e) { var b = e.target.closest('[data-id]'); if (b) view(b.getAttribute('data-id')); });
+    c.addEventListener('click', function (e) { var b = e.target.closest('[data-c]'); if (!b) return; AR.cat = b.getAttribute('data-c'); paintChips(); paintList(); });
+  }
+  function paintChips() {
+    var el = $('scoChips'); if (!el) return; var list = loadList(), have = {};
+    list.forEach(function (r) { have[r.c] = 1; });
+    var cats = ['tutte'].concat(CATS.map(function (c) { return c[0]; }).filter(function (c) { return have[c]; }));
+    if (cats.indexOf(AR.cat) < 0) AR.cat = 'tutte';
+    el.hidden = list.length < 2;
+    el.innerHTML = cats.map(function (c) { return '<button type="button" class="sco-chip2' + (c === AR.cat ? ' on' : '') + '" data-c="' + c + '" aria-pressed="' + (c === AR.cat) + '">' + (c === 'tutte' ? 'Tutte' : esc(catOf(c)[1])) + '</button>'; }).join('');
+  }
+  function paintList() {
+    var el = $('scoList'); if (!el) return; var all = loadList(), rows = search(all, AR.q, AR.cat);
+    $('scoCount').textContent = all.length ? rows.length + (rows.length === 1 ? ' scontrino' : ' scontrini') + ' · totale ' + eur(totalOf(rows)) : '';
+    $('scoSearch').hidden = all.length < 2; $('scoEmpty').hidden = all.length > 0;
+    el.innerHTML = rows.map(function (r) {
+      var c = catOf(r.c);
+      return '<li><button type="button" class="sco-arow" data-id="' + esc(r.id) + '"><span class="sco-dot" style="background:' + c[3] + '"></span><span class="sco-am"><span class="m">' + esc(r.n) + '</span><span class="s">' + dmy(r.d) + ' · ' + esc(c[1]) + ' · ' + (r.ph ? '2 pagine' : r.pdf ? '1 pagina' : 'senza PDF') + '</span></span><span class="t">' + f2(r.tot) + '</span></button></li>';
+    }).join('') || (all.length ? '<li class="sco-fine sco-none">Nessuno scontrino corrisponde.</li>' : '');
+  }
+  function paintStore() {
+    var el = $('scoStore'); if (!el) return; var all = loadList();
+    if (!all.length) { el.textContent = ''; return; }
+    localIds().then(function (ids) {
+      var have = all.filter(function (r) { return ids.indexOf(r.id) >= 0; }), bytes = 0; have.forEach(function (r) { bytes += (r.sz || 0) + (r.psz || 0); });
+      var miss = all.filter(function (r) { return r.pdf && ids.indexOf(r.id) < 0; }).length;
+      el.textContent = '💾 ' + have.length + (have.length === 1 ? ' PDF' : ' PDF') + ' su questo dispositivo (' + (bytes < 1048576 ? Math.max(1, Math.round(bytes / 1024)) + ' KB' : (bytes / 1048576).toFixed(1).replace('.', ',') + ' MB') + ')' + (miss ? ' · ' + miss + (miss === 1 ? ' solo come dati (il PDF è su un altro dispositivo)' : ' solo come dati (i PDF sono su un altro dispositivo)') : '');
+    });
+  }
+  function paintArchive() { wireArchive(); paintChips(); paintList(); paintStore(); }
+  function tabBadge() {
+    var b = $('dtab-scontrini'); if (!b) return; var n = loadList().length;
+    b.textContent = '🧾 Scontrini' + (n > 0 ? ' (' + n + ')' : '');
+  }
+  function render() { paintArchive(); tabBadge(); return Promise.resolve(); }
+
+  /* ═════════════════════════ ingressi pubblici ═════════════════════════ */
+  function open(opt) {
+    if (S) closeSheet();
+    S = fresh(); openSheet(); paint();
+    if (opt && opt.mode === 'camera') { try { fileInput.click(); } catch (e) { } }
+  }
+  function view(id) {
+    if (!/^SC-\d{8}-\d{3}$/.test(String(id))) return;
+    if (S) closeSheet(); S = fresh(); S.view = 'detail'; S.detailId = id; openSheet(); paint();
+  }
+  function openFor(expenseId) {            // dal segno 🧾 di una spesa
+    var l = loadList(); for (var i = 0; i < l.length; i++) if (String(l[i].ex) === String(expenseId)) { view(l[i].id); return; }
+  }
+  function chip(e) {
+    if (!e || !e.rcpt) return '';
+    var id = String(e.rcpt); if (!/^SC-\d{8}-\d{3}$/.test(id)) return '';
+    return ' <button type="button" class="sco-xchip" onclick="event.stopPropagation();EWSCO.view(\'' + id + '\')" title="Apri lo scontrino ' + id + '" aria-label="Apri lo scontrino">🧾</button>';
+  }
+
+  core.open = open; core.view = view; core.openFor = openFor; core.chip = chip; core.render = render; core.badge = tabBadge; core.paintArchive = paintArchive;
+  core._state = function () { return S; };
+  return core;
+})();
+if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
 
 </script>
 <script>try{if(window.parent&&window.parent!==window)document.body.classList.add("ew-embed");}catch(e){}</script>
