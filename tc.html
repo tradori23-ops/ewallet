@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261114-v322-scontrino';
+  var BUILD = '20261115-v323-lettura-auto';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -34197,6 +34197,18 @@ body.light{
 :is(html,#_) body .sco-frame{display:block;width:100%;height:min(66vh,620px);border:1px solid var(--hair);border-radius:12px;background:#fff}
 :is(html,#_) body .sco-bigimg{display:block;max-width:100%;height:auto;margin:0 auto;border-radius:10px}
 @media (min-width:640px){:is(html,#_) body .sco-modal .sco-sheet{max-width:600px}}
+:is(html,#_) body .sco-read{margin:0 0 14px;padding:12px 14px;border-radius:14px;background:var(--tint-b);color:var(--label)}
+:is(html,#_) body .sco-read[hidden]{display:none}
+:is(html,#_) body .sco-read.done{background:var(--tint-g)}
+:is(html,#_) body .sco-read.done.part,:is(html,#_) body .sco-read.done.none,:is(html,#_) body .sco-read.err,:is(html,#_) body .sco-read.cancel{background:var(--tint-o)}
+:is(html,#_) body .sco-rhd{display:flex;align-items:center;gap:10px;font-size:14.5px;line-height:1.3}
+:is(html,#_) body .sco-rhd b{min-width:0;font-weight:650}
+:is(html,#_) body .sco-rhd .sco-spin{flex:none;width:20px;height:20px;border-width:2.5px}
+:is(html,#_) body .sco-bar{height:6px;margin:10px 0 0;border-radius:99px;background:var(--hair2);overflow:hidden}
+:is(html,#_) body .sco-bar i{display:block;width:0;height:100%;border-radius:99px;background:var(--ac);transition:width .25s ease}
+:is(html,#_) body .sco-read p{margin:6px 0 0;font-size:13px;line-height:1.4;color:var(--label2)}
+:is(html,#_) body .sco-read .sco-row{margin-top:10px}
+@media (prefers-reduced-motion:reduce){:is(html,#_) body .sco-bar i{transition:none}}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -36860,10 +36872,10 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v323', d: '15 nov 2026', t: 'Lettura automatica dello scontrino', x: 'Scatti la foto e l’app legge da sola negozio, data e totale (il motore gira sul telefono: la foto non viene inviata a nessuno). Tu controlli la scheda e crei lo scontrino; quello che scrivi tu non viene mai cambiato. La prima volta scarica il motore di lettura, circa 6 MB.' },
     { v: 'v322', d: '14 nov 2026', t: 'Scontrino digitale', x: 'Fotografa uno scontrino (o incolla il testo di «Scansiona testo» di iOS): controlli i dati e l’app crea la spesa in GoBank e un PDF con lo scontrino riscritto più la foto. Lo trovi in Documenti, scheda Scontrini.' },
     { v: 'v321', d: '9 nov 2026', t: 'Rimanenza sempre aggiornata', x: 'Quando aggiungi un’entrata o una spesa, l’avviso dice anche di quanto cambia la rimanenza (▲ +€200,00 → €357,00). La Dashboard è sempre aggiornata quando la apri, anche dopo l’entrata rapida di Spese Settimanali.' },
-    { v: 'v320', d: '8 nov 2026', t: 'Spese dal telefono e iPad', x: 'Nel dettaglio del giorno il modulo «Aggiungi spesa» ha sempre Annulla e Salva raggiungibili sul telefono. Impostazioni a tutto schermo anche su iPad in verticale.' },
-    { v: 'v319', d: '8 nov 2026', t: 'Impostazioni su schermo largo', x: 'Barra laterale con le schede, pannelli dai bordi tondi, stato dei dati sempre in vista, scorciatoie da tastiera (Esc, 1–6, Ctrl+S), statistiche con grafici, esportazione CSV delle spese e tema Notte/Giorno.' }
+    { v: 'v320', d: '8 nov 2026', t: 'Spese dal telefono e iPad', x: 'Nel dettaglio del giorno il modulo «Aggiungi spesa» ha sempre Annulla e Salva raggiungibili sul telefono. Impostazioni a tutto schermo anche su iPad in verticale.' }
   ];
 
   var cur = 'info', timer = 0, bound = false;
@@ -37449,7 +37461,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   };
 
   /* ───────────── negozio ───────────── */
-  function cleanName(s) { return s.replace(/^[\s*=\-_#.~]+|[\s*=\-_#~]+$/g, '').replace(/\s{2,}/g, ' ').trim(); }
+  function cleanName(s) { return s.replace(/^[\s*=\-_#.~|!;:'"`´‘’“”«»°^]+|[\s*=\-_#~|!;:'"`´‘’“”«»°^]+$/g, '').replace(/\s{2,}/g, ' ').trim(); }
   // un nome letto bene ha lettere vere: quasi niente simboli, parole di lunghezza normale, vocali nelle parole lunghe
   function plausibleName(s) {
     var t = String(s || '').replace(/\s+/g, ' ').trim(), letters = (t.match(new RegExp('[' + LET + ']', 'g')) || []).length, nonsp = t.replace(/\s/g, '').length;
@@ -37466,7 +37478,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if (!s || (s.match(new RegExp('[' + LET + ']', 'g')) || []).length < 3) continue;
       if (RX.head.test(s) || RX.addr.test(s) || /ESEMPIO|@|\d{5}\s/.test(s)) continue;
       if ((s.match(/\d/g) || []).length > s.length / 3) continue;
-      if (/^di\s/i.test(s) || RX.legal.test(s)) { if (ni >= 0 && i === ni + 1 && !legal) legal = s; continue; }
+      if (/^di\s/i.test(s) || RX.legal.test(s)) {
+        if (ni >= 0 && i === ni + 1 && !legal) legal = s;
+        else if (ni < 0 && !first && !/^di\s/i.test(s) && plausibleName(s)) { name = s; ni = i; plausible = true; legal = s; }     // «FERRAMENTA DEMO SRL» è già il nome
+        continue;
+      }
       if (!first) first = { s: s, i: i };
       if (!name && plausibleName(s)) { name = s; ni = i; plausible = true; }
     }
@@ -38082,6 +38098,617 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   return { build: build, canonical: canonical, qrText: qrText, group4: group4, money: money };
 });
 
+/* ═══════════════════════════════════════════════════════════════
+   EWOCR — legge lo scontrino dalla foto, direttamente sul telefono.
+   1) prepara la foto: ritaglia la carta, la raddrizza, uniforma la luce e porta il testo alla misura giusta per la lettura;
+   2) la legge con Tesseract.js (motore e lingua italiana scaricati da jsDelivr la prima volta, poi tenuti dal telefono).
+   Nessuna immagine esce verso server miei: il motore gira in un Web Worker locale.
+   Le funzioni numeriche sono pure (girano anche in Node per i collaudi); il resto richiede un browser.
+   ═══════════════════════════════════════════════════════════════ */
+(function (root, factory) {
+  var api = factory(root);
+  if (typeof module === 'object' && module.exports) module.exports = api; else root.EWOCR = api;
+})(typeof self !== 'undefined' ? self : this, function (root) {
+  'use strict';
+
+  /* ───────────── versioni fissate (mai «latest») ───────────── */
+  var V = { lib: '7.0.0', core: '7.0.0', data: '1.0.0' };
+  var CDN = 'https://cdn.jsdelivr.net/npm/';
+  var URLS = {
+    lib: CDN + 'tesseract.js@' + V.lib + '/dist/tesseract.min.js',
+    worker: CDN + 'tesseract.js@' + V.lib + '/dist/worker.min.js',
+    core: CDN + 'tesseract.js-core@' + V.core,
+    lang: CDN + '@tesseract.js-data/ita@' + V.data + '/4.0.0_best_int'
+  };
+  var CFG = {
+    ANALYSIS: 800,          // lato lungo della versione piccola usata per trovare la carta
+    STAGE1: 1800,           // lato lungo del ritaglio usato per misurare riga e inclinazione
+    WIDTH: 1500,            // larghezza della carta (px) dopo la preparazione: per gli scontrini termici dà caratteri alti ~30-60 px (prove: 1500 meglio di 1100/1300 sulle foto da telefono)
+    CH_MIN: 22,             // se i caratteri risultassero più piccoli / più grandi di così, correggo la scala
+    CH_MAX: 60,
+    CURVE: 'gamma',
+    GMAX: 2.5,              // 3 ingrassa i caratteri delle scansioni a bassa risoluzione, 2 schiarisce troppo le foto con poca luce
+    MAX_SIDE: 5200,         // limiti dell'immagine data al motore (scontrini lunghi: supermercato)
+    MAX_PIXELS: 8e6,
+    PSM: '6',
+    TIMEOUT: 240000,
+    IDLE_MS: 90000          // dopo tanto tempo senza letture libero la memoria del motore
+  };
+
+  function clamp(v, a, b) { return v < a ? a : (v > b ? b : v); }
+
+  /* ═════════════ PARTE NUMERICA (pura) ═════════════ */
+
+  function grayOf(rgba, n) {
+    var g = new Uint8ClampedArray(n), i, j = 0;
+    for (i = 0; i < n; i++, j += 4) g[i] = (rgba[j] * 77 + rgba[j + 1] * 150 + rgba[j + 2] * 29) >> 8;
+    return g;
+  }
+
+  function otsu(g) {
+    var hist = new Float64Array(256), n = g.length, i, sum = 0;
+    for (i = 0; i < n; i++) hist[g[i]]++;
+    for (i = 0; i < 256; i++) sum += i * hist[i];
+    var wB = 0, sB = 0, best = -1, thr = 127;
+    for (i = 0; i < 256; i++) {
+      wB += hist[i]; if (!wB) continue;
+      var wF = n - wB; if (!wF) break;
+      sB += i * hist[i];
+      var mB = sB / wB, mF = (sum - sB) / wF, v = wB * wF * (mB - mF) * (mB - mF);
+      if (v > best) { best = v; thr = i; }
+    }
+    return thr;
+  }
+
+  // sfocatura a scatola separabile (somme scorrevoli), bordi replicati
+  function blurGray(g, w, h, r) {
+    if (r < 1) return g;
+    var n = w * h, tmp = new Float32Array(n), out = new Uint8ClampedArray(n), x, y, k, s, d = 2 * r + 1, row;
+    for (y = 0; y < h; y++) {
+      row = y * w; s = 0;
+      for (k = -r; k <= r; k++) s += g[row + clamp(k, 0, w - 1)];
+      for (x = 0; x < w; x++) {
+        tmp[row + x] = s / d;
+        s += g[row + clamp(x + r + 1, 0, w - 1)] - g[row + clamp(x - r, 0, w - 1)];
+      }
+    }
+    for (x = 0; x < w; x++) {
+      s = 0;
+      for (k = -r; k <= r; k++) s += tmp[clamp(k, 0, h - 1) * w + x];
+      for (y = 0; y < h; y++) {
+        out[y * w + x] = (s / d + 0.5) | 0;
+        s += tmp[clamp(y + r + 1, 0, h - 1) * w + x] - tmp[clamp(y - r, 0, h - 1) * w + x];
+      }
+    }
+    return out;
+  }
+
+  // filtro del massimo (o del minimo) separabile, finestra quadrata di raggio r
+  function rankFilter(g, w, h, r, isMax) {
+    var n = w * h, tmp = new Uint8ClampedArray(n), out = new Uint8ClampedArray(n), x, y, k, v, m;
+    for (y = 0; y < h; y++) {
+      var row = y * w;
+      for (x = 0; x < w; x++) {
+        m = isMax ? 0 : 255;
+        var a = Math.max(0, x - r), b = Math.min(w - 1, x + r);
+        for (k = a; k <= b; k++) { v = g[row + k]; if (isMax ? v > m : v < m) m = v; }
+        tmp[row + x] = m;
+      }
+    }
+    for (x = 0; x < w; x++) {
+      for (y = 0; y < h; y++) {
+        m = isMax ? 0 : 255;
+        var c = Math.max(0, y - r), d = Math.min(h - 1, y + r);
+        for (k = c; k <= d; k++) { v = tmp[k * w + x]; if (isMax ? v > m : v < m) m = v; }
+        out[y * w + x] = m;
+      }
+    }
+    return out;
+  }
+
+  // riduzione per media di area, per un fattore intero
+  function shrink(g, w, h, f) {
+    if (f <= 1) return { g: g, w: w, h: h };
+    var nw = Math.floor(w / f), nh = Math.floor(h / f), o = new Uint8ClampedArray(nw * nh), ff = f * f, x, y, i, j, s, row;
+    for (y = 0; y < nh; y++) for (x = 0; x < nw; x++) {
+      s = 0;
+      for (j = 0; j < f; j++) { row = (y * f + j) * w + x * f; for (i = 0; i < f; i++) s += g[row + i]; }
+      o[y * nw + x] = (s / ff + 0.5) | 0;
+    }
+    return { g: o, w: nw, h: nh };
+  }
+
+  /* Uniforma la luce: stima il «bianco della carta» (massimo locale su finestra più grande dei caratteri, poi sfumato)
+     e divide. Il tavolo scuro fuori dalla carta diventa chiaro, le ombre e i gradienti spariscono. */
+  function flatField(g, w, h, charPx) {
+    var win = Math.max(24, Math.round((charPx || 30) * 3));
+    var f = Math.max(1, Math.floor(win / 10)), sm = shrink(g, w, h, f);
+    var r = Math.max(2, Math.round(win / f / 2));
+    var mx = rankFilter(sm.g, sm.w, sm.h, r, true);
+    var bg = blurGray(mx, sm.w, sm.h, Math.max(1, Math.round(r / 2)));
+    var out = new Uint8ClampedArray(w * h), x, y, fx, fy, x0, y0, x1, y1, tx, ty, b, i = 0;
+    for (y = 0; y < h; y++) {
+      fy = clamp((y + 0.5) / f - 0.5, 0, sm.h - 1); y0 = fy | 0; y1 = Math.min(sm.h - 1, y0 + 1); ty = fy - y0;
+      for (x = 0; x < w; x++, i++) {
+        fx = clamp((x + 0.5) / f - 0.5, 0, sm.w - 1); x0 = fx | 0; x1 = Math.min(sm.w - 1, x0 + 1); tx = fx - x0;
+        b = (bg[y0 * sm.w + x0] * (1 - tx) + bg[y0 * sm.w + x1] * tx) * (1 - ty) + (bg[y1 * sm.w + x0] * (1 - tx) + bg[y1 * sm.w + x1] * tx) * ty;
+        if (b < 24) b = 24;
+        out[i] = clamp(g[i] / b * 238, 0, 255);
+      }
+    }
+    return out;
+  }
+
+  /* Trova la carta: la parte chiara più grande della foto → rettangolo di area minima.
+     Ritorna {cx,cy,w,h,ang} in pixel della mappa data (ang in gradi: asse lungo = verticale dopo la rotazione), oppure null. */
+  function findPaper(g, w, h) {
+    var n = w * h, b = blurGray(g, w, h, 2), t = otsu(b), m = new Uint8Array(n), i, x, y;
+    for (i = 0; i < n; i++) m[i] = b[i] > t ? 1 : 0;
+    // chiusura (riempie testo, riflessi, pieghe): dilata di 3 poi erode di 3 con una finestra quadrata
+    var mm = new Uint8ClampedArray(m); mm = rankFilter(mm, w, h, 3, true); mm = rankFilter(mm, w, h, 3, false);
+    for (i = 0; i < n; i++) m[i] = mm[i] ? 1 : 0;
+    var lab = new Int32Array(n), stack = new Int32Array(n), id = 0, best = 0, bestId = 0, sp, cnt, p;
+    for (i = 0; i < n; i++) {
+      if (!m[i] || lab[i]) continue;
+      id++; sp = 0; cnt = 0; stack[sp++] = i; lab[i] = id;
+      while (sp) {
+        p = stack[--sp]; cnt++; x = p % w; y = (p - x) / w;
+        if (x > 0 && m[p - 1] && !lab[p - 1]) { lab[p - 1] = id; stack[sp++] = p - 1; }
+        if (x < w - 1 && m[p + 1] && !lab[p + 1]) { lab[p + 1] = id; stack[sp++] = p + 1; }
+        if (y > 0 && m[p - w] && !lab[p - w]) { lab[p - w] = id; stack[sp++] = p - w; }
+        if (y < h - 1 && m[p + w] && !lab[p + w]) { lab[p + w] = id; stack[sp++] = p + w; }
+      }
+      if (cnt > best) { best = cnt; bestId = id; }
+    }
+    if (!bestId || best < 0.025 * n) return null;
+    if (best > 0.88 * n) return null;              // tutta la foto è chiara: niente da ritagliare
+    // contorno della componente
+    var xs = [], ys = [];
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      p = y * w + x; if (lab[p] !== bestId) continue;
+      if (x === 0 || y === 0 || x === w - 1 || y === h - 1 || lab[p - 1] !== bestId || lab[p + 1] !== bestId || lab[p - w] !== bestId || lab[p + w] !== bestId) { xs.push(x); ys.push(y); }
+    }
+    var bestA = Infinity, R = null, a, c, s, k, u, v, mnu, mxu, mnv, mxv, L = xs.length, area;
+    for (a = -45; a < 45; a += 0.5) {
+      c = Math.cos(a * Math.PI / 180); s = Math.sin(a * Math.PI / 180);
+      mnu = mnv = 1e9; mxu = mxv = -1e9;
+      for (k = 0; k < L; k++) {
+        u = xs[k] * c + ys[k] * s; v = -xs[k] * s + ys[k] * c;
+        if (u < mnu) mnu = u; if (u > mxu) mxu = u; if (v < mnv) mnv = v; if (v > mxv) mxv = v;
+      }
+      area = (mxu - mnu) * (mxv - mnv);
+      if (area < bestA) { bestA = area; R = { a: a, mnu: mnu, mxu: mxu, mnv: mnv, mxv: mxv }; }
+    }
+    if (!R) return null;
+    var fill = best / bestA;
+    var cu = (R.mnu + R.mxu) / 2, cv = (R.mnv + R.mxv) / 2, ca = Math.cos(R.a * Math.PI / 180), sa = Math.sin(R.a * Math.PI / 180);
+    var out = { cx: cu * ca - cv * sa, cy: cu * sa + cv * ca, w: R.mxu - R.mnu, h: R.mxv - R.mnv, ang: R.a, fill: fill, area: best / n };
+    if (fill < 0.72) return null;                   // non è un rettangolo: probabilmente carta + mano/sfondo uniti
+    return out;
+  }
+
+  /* Mappa «inchiostro»: quanto un pixel è più scuro dello sfondo locale, solo per tratti sottili (top-hat nero con finestra quadrata).
+     Ignora ombre, gradienti e le macchie larghe del tavolo; il testo (tratti stretti) resta. */
+  function inkMap(g, w, h, r) {
+    var cl = rankFilter(rankFilter(g, w, h, r, true), w, h, r, false), n = w * h, o = new Uint8ClampedArray(n), i, d;
+    for (i = 0; i < n; i++) { d = cl[i] - g[i]; o[i] = d > 0 ? d : 0; }
+    return o;
+  }
+
+  /* Maschera della carta su una mappa già uniformata: la parte chiara più grande (testo compreso), il resto è tavolo.
+     Ritorna Uint8Array (1 = carta) della stessa dimensione, oppure null se la carta non si distingue. */
+  function paperMask(g, w, h) {
+    var f = Math.max(1, Math.floor(Math.max(w, h) / 320)), sm = shrink(g, w, h, f), sw = sm.w, sh = sm.h, n = sw * sh, i, x, y;
+    var b = new Uint8ClampedArray(n); for (i = 0; i < n; i++) b[i] = sm.g[i] > 190 ? 255 : 0;
+    b = rankFilter(rankFilter(b, sw, sh, 2, true), sw, sh, 2, false);
+    var lab = new Int32Array(n), st = new Int32Array(n), id = 0, bestId = 0, best = 0, sp, cnt, p;
+    for (i = 0; i < n; i++) {
+      if (!b[i] || lab[i]) continue;
+      id++; sp = 0; cnt = 0; st[sp++] = i; lab[i] = id;
+      while (sp) {
+        p = st[--sp]; cnt++; x = p % sw; y = (p - x) / sw;
+        if (x > 0 && b[p - 1] && !lab[p - 1]) { lab[p - 1] = id; st[sp++] = p - 1; }
+        if (x < sw - 1 && b[p + 1] && !lab[p + 1]) { lab[p + 1] = id; st[sp++] = p + 1; }
+        if (y > 0 && b[p - sw] && !lab[p - sw]) { lab[p - sw] = id; st[sp++] = p - sw; }
+        if (y < sh - 1 && b[p + sw] && !lab[p + sw]) { lab[p + sw] = id; st[sp++] = p + sw; }
+      }
+      if (cnt > best) { best = cnt; bestId = id; }
+    }
+    if (!bestId || best < 0.12 * n) return null;
+    // riempio i buchi (testo, ombre): tutto ciò che non è raggiungibile dal bordo senza attraversare la carta
+    var reach = new Uint8Array(n), q = 0; sp = 0;
+    function push(k) { if (!reach[k] && lab[k] !== bestId) { reach[k] = 1; st[sp++] = k; } }
+    for (x = 0; x < sw; x++) { push(x); push((sh - 1) * sw + x); }
+    for (y = 0; y < sh; y++) { push(y * sw); push(y * sw + sw - 1); }
+    while (sp) {
+      p = st[--sp]; x = p % sw; y = (p - x) / sw;
+      if (x > 0) push(p - 1); if (x < sw - 1) push(p + 1); if (y > 0) push(p - sw); if (y < sh - 1) push(p + sw);
+    }
+    var m = new Uint8ClampedArray(n); for (i = 0; i < n; i++) m[i] = reach[i] ? 0 : 255;
+    m = rankFilter(m, sw, sh, 1, true);
+    var out = new Uint8Array(w * h), mx, my;
+    for (y = 0; y < h; y++) { my = Math.min(sh - 1, (y / f) | 0); for (x = 0; x < w; x++) { mx = Math.min(sw - 1, (x / f) | 0); out[y * w + x] = m[my * sw + mx] ? 1 : 0; } }
+    return out;
+  }
+
+  /* Curva di contrasto: il testo scuro, la carta bianca. mode 'gamma' (curva) o 'stretch' (stira da un nero scelto sull'inchiostro).
+     Ritorna { lut, gamma|lo }. */
+  function inkLut(g, T, n, mode, gmax) {
+    var vals = [], i, step = Math.max(1, Math.floor(n / 60000)), lut = new Uint8ClampedArray(256), v, info = {};
+    for (i = 0; i < n; i += step) if (T[i] > 40) vals.push(g[i]);
+    vals.sort(function (a, b) { return a - b; });
+    var med = vals.length >= 200 ? vals[vals.length >> 1] : 150;
+    if (mode === 'stretch') {
+      var lo = vals.length >= 200 ? vals[Math.floor(vals.length * 0.08)] : 60; lo = clamp(lo, 0, 150); info.lo = lo;
+      for (v = 0; v < 256; v++) lut[v] = v >= 238 ? 255 : clamp(Math.round((v - lo) * 255 / (238 - lo)), 0, 255);
+    } else {
+      var gam = (med > 30 && med < 236) ? clamp(Math.log(55 / 255) / Math.log(med / 238), 1, gmax || 3) : Math.min(1.6, gmax || 3); info.gamma = +gam.toFixed(2);
+      for (v = 0; v < 256; v++) lut[v] = v >= 238 ? 255 : Math.round(255 * Math.pow(v / 238, gam));
+    }
+    info.lut = lut; info.med = med; return info;
+  }
+  /* Applica la curva, bianco fuori dalla maschera (0 = fuori) e un bordo bianco (frazione della dimensione minore). */
+  function applyFinish(g, w, h, lut, border, mask) {
+    var n = w * h, i, out = new Uint8ClampedArray(n);
+    for (i = 0; i < n; i++) out[i] = lut[g[i]];
+    if (mask) for (i = 0; i < n; i++) if (mask[i] === 0) out[i] = 255;
+    var b = Math.round((border || 0) * Math.min(w, h)), x, y;
+    if (b > 0) for (y = 0; y < h; y++) { var row = y * w; if (y < b || y >= h - b) { for (x = 0; x < w; x++) out[row + x] = 255; } else { for (x = 0; x < b; x++) { out[row + x] = 255; out[row + w - 1 - x] = 255; } } }
+    return out;
+  }
+
+  /* Zona di testo quando la carta non si distingue dal tavolo: su una mappa «inchiostro», celle con abbastanza tratti,
+     gruppo più pesante. Ritorna {x0,y0,x1,y1} in pixel della mappa, oppure null. */
+  function inkBox(T, w, h) {
+    var cs = clamp(Math.round(Math.max(w, h) / 70), 8, 40), gw = Math.ceil(w / cs), gh = Math.ceil(h / cs), cell = new Float32Array(gw * gh), x, y, i;
+    for (y = 0; y < h; y++) { var row = y * w, gy = ((y / cs) | 0) * gw; for (x = 0; x < w; x++) if (T[row + x] > 26) cell[gy + ((x / cs) | 0)]++; }
+    var on = new Uint8Array(gw * gh), thr = Math.max(6, cs * cs * 0.04), cnt = 0;
+    for (i = 0; i < on.length; i++) if (cell[i] >= thr) { on[i] = 1; cnt++; }
+    if (cnt < 4) return null;
+    var dl = new Uint8Array(gw * gh), cx, cy, dx, dy;
+    for (cy = 0; cy < gh; cy++) for (cx = 0; cx < gw; cx++) if (on[cy * gw + cx]) for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) { var yy = cy + dy, xx = cx + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw) dl[yy * gw + xx] = 1; }
+    var lab = new Int32Array(gw * gh), id = 0, bestId = 0, bestW = 0, st = [], k, p, ws = [0];
+    for (i = 0; i < dl.length; i++) {
+      if (!dl[i] || lab[i]) continue;
+      id++; st.length = 0; st.push(i); lab[i] = id; var wsum = 0;
+      while (st.length) {
+        p = st.pop(); if (on[p]) wsum += cell[p];
+        cx = p % gw; cy = (p - cx) / gw;
+        for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) { var y2 = cy + dy, x2 = cx + dx; if (y2 < 0 || y2 >= gh || x2 < 0 || x2 >= gw) continue; k = y2 * gw + x2; if (dl[k] && !lab[k]) { lab[k] = id; st.push(k); } }
+      }
+      ws[id] = wsum; if (wsum > bestW) { bestW = wsum; bestId = id; }
+    }
+    if (!bestId) return null;
+    var x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1;
+    for (cy = 0; cy < gh; cy++) for (cx = 0; cx < gw; cx++) { k = cy * gw + cx; if (on[k] && ws[lab[k]] >= 0.12 * bestW) { if (cx < x0) x0 = cx; if (cx > x1) x1 = cx; if (cy < y0) y0 = cy; if (cy > y1) y1 = cy; } }
+    if (x1 < 0) return null;
+    return { x0: x0 * cs, y0: y0 * cs, x1: Math.min(w, (x1 + 1) * cs), y1: Math.min(h, (y1 + 1) * cs), weight: bestW };
+  }
+
+  /* Il testo corre in orizzontale (+) o in verticale (−)? Confronto la «nitidezza» dei profili a righe e a colonne. Ritorna cvRighe/cvColonne. */
+  function orientRatio(T, w, h) {
+    var rs = new Float64Array(h), cs = new Float64Array(w), x, y, v;
+    for (y = 0; y < h; y++) { var row = y * w; for (x = 0; x < w; x++) { v = T[row + x]; if (v > 20) { rs[y] += v; cs[x] += v; } } }
+    function cv(a) { var n = a.length, m = 0, i, s = 0; for (i = 0; i < n; i++) m += a[i]; m /= n; if (m <= 0) return 0; for (i = 0; i < n; i++) s += (a[i] - m) * (a[i] - m); return Math.sqrt(s / n) / m; }
+    var a = cv(rs), b = cv(cs); return b > 0 ? a / b : (a > 0 ? 9 : 1);
+  }
+
+  /* Inclinazione residua del testo (gradi, ±maxDeg): massimizzo la «nitidezza» del profilo a righe di una mappa inchiostro. */
+  function skewOf(T, w, h, maxDeg) {
+    maxDeg = maxDeg || 6;
+    var xs = [], ys = [], wt = [], x, y, step = Math.max(1, Math.floor(Math.sqrt(w * h / 90000))), v;
+    for (y = 0; y < h; y += step) for (x = 0; x < w; x += step) { v = T[y * w + x]; if (v > 20) { xs.push(x - w / 2); ys.push(y - h / 2); wt.push(v); } }
+    var L = xs.length; if (L < 300) return 0;
+    var nb = Math.ceil(Math.sqrt(w * w + h * h) / step) + 4;
+    function score(deg) {
+      var s = Math.sin(deg * Math.PI / 180), c = Math.cos(deg * Math.PI / 180), hist = new Float64Array(nb), k, b, mean = 0, ss = 0, tot = 0;
+      for (k = 0; k < L; k++) { b = ((ys[k] * c - xs[k] * s) / step + nb / 2) | 0; if (b >= 0 && b < nb) { hist[b] += wt[k]; tot += wt[k]; } }
+      mean = tot / nb; for (k = 0; k < nb; k++) ss += (hist[k] - mean) * (hist[k] - mean);
+      return ss;
+    }
+    var best = -1, ba = 0, a;
+    for (a = -maxDeg; a <= maxDeg + 1e-9; a += 0.5) { var sc = score(a); if (sc > best) { best = sc; ba = a; } }
+    var b2 = best, a2 = ba;
+    for (a = ba - 0.5; a <= ba + 0.5 + 1e-9; a += 0.1) { var sc2 = score(a); if (sc2 > b2) { b2 = sc2; a2 = a; } }
+    return a2;
+  }
+
+  /* Altezza tipica dei caratteri (px): mediana delle altezze dei componenti connessi di una mappa inchiostro. null se pochi. */
+  function charHeight(T, w, h) {
+    var n = w * h, lab = new Int32Array(n), par = [0], x, y, i, nxt = 1;
+    function find(a) { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; }
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      i = y * w + x; if (T[i] <= 26) continue;
+      var a = x > 0 ? lab[i - 1] : 0, b = y > 0 ? lab[i - w] : 0, c = (y > 0 && x > 0) ? lab[i - w - 1] : 0, d = (y > 0 && x < w - 1) ? lab[i - w + 1] : 0;
+      var m = a || b || c || d;
+      if (!m) { lab[i] = nxt; par[nxt] = nxt; nxt++; continue; }
+      lab[i] = m; var cand = [a, b, c, d];
+      for (var q = 0; q < 4; q++) if (cand[q] && cand[q] !== m) { var r1 = find(cand[q]), r2 = find(m); if (r1 !== r2) par[r1] = r2; }
+    }
+    var bb = {}, k;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      k = lab[y * w + x]; if (!k) continue; k = find(k);
+      var o = bb[k]; if (!o) bb[k] = { x0: x, x1: x, y0: y, y1: y, a: 1 }; else { if (x < o.x0) o.x0 = x; if (x > o.x1) o.x1 = x; if (y < o.y0) o.y0 = y; if (y > o.y1) o.y1 = y; o.a++; }
+    }
+    var hs = [];
+    for (k in bb) { var o2 = bb[k], bw = o2.x1 - o2.x0 + 1, bh = o2.y1 - o2.y0 + 1; if (bh >= 6 && bh <= 150 && bw >= 2 && bw <= 160 && bw / bh >= 0.2 && bw / bh <= 2.2 && o2.a >= 10) hs.push(bh); }
+    if (hs.length < 25) return null;
+    hs.sort(function (p1, p2) { return p1 - p2; });
+    return { h: hs[hs.length >> 1], n: hs.length };
+  }
+
+  /* Toglie dal testo letto le righe che sono solo «rumore» (bordi del tavolo, venature): nessuna lettera o cifra, oppure lettura quasi nulla.
+     Più di così non si toglie: le prove hanno mostrato che un filtro più severo scarta anche righe di totale vere.
+     lines: [{t, c, w}] → {text, kept, dropped} */
+  function cleanLines(lines) {
+    var out = [], dropped = 0;
+    (lines || []).forEach(function (l) {
+      var t = String(l.t || '').replace(/\s+$/, '');
+      if (!t.trim()) return;
+      var alnum = (t.match(/[A-Za-z0-9À-ÿ]/g) || []).length;
+      if (!alnum || ((l.c || 0) < 12 && alnum < 4)) { dropped++; return; }
+      out.push(t);
+    });
+    return { text: out.join('\n'), kept: out.length, dropped: dropped };
+  }
+
+  /* ═════════════ PARTE BROWSER: foto → tela pronta per la lettura ═════════════ */
+
+  function mkCanvas(w, h) { var c = document.createElement('canvas'); c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h)); return c; }
+  function freeCanvas(c) { try { if (c) { c.width = 1; c.height = 1; } } catch (e) { } }
+
+  // decodifica (con l'orientamento EXIF già applicato dal browser)
+  function decode(file) {
+    return new Promise(function (resolve, reject) {
+      var url = URL.createObjectURL(file), img = new Image();
+      img.onload = function () {
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h) { URL.revokeObjectURL(url); return reject(new Error('immagine')); }
+        resolve({ img: img, w: w, h: h, done: function () { try { URL.revokeObjectURL(url); } catch (e) { } img.src = ''; } });
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('immagine')); };
+      img.src = url;
+    });
+  }
+
+  // disegna una regione ruotata dell'originale in una tela di dimensioni date. region = {cx,cy,w,h} in pixel originali, ang in gradi
+  function drawRegion(src, region, ang, scale, rot90) {
+    var cw = Math.max(1, Math.round(region.w * scale)), ch = Math.max(1, Math.round(region.h * scale));
+    var cv = mkCanvas(rot90 % 180 ? ch : cw, rot90 % 180 ? cw : ch), cx = cv.getContext('2d');
+    cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height);
+    cx.imageSmoothingEnabled = true; cx.imageSmoothingQuality = 'high';
+    cx.translate(cv.width / 2, cv.height / 2);
+    if (rot90) cx.rotate(rot90 * Math.PI / 180);
+    cx.rotate(-ang * Math.PI / 180);
+    cx.scale(scale, scale);
+    cx.translate(-region.cx, -region.cy);
+    cx.drawImage(src, 0, 0);
+    return cv;
+  }
+  // riduzioni grandi in più passi (Safari ridimensiona male di colpo)
+  function drawSmall(src, sw, sh, tw, th) {
+    var cur = src, cw = sw, ch = sh, tmp = null, k;
+    while (cw / 2 >= tw && ch / 2 >= th) {
+      k = mkCanvas(Math.round(cw / 2), Math.round(ch / 2)); var c2 = k.getContext('2d'); c2.imageSmoothingQuality = 'high'; c2.drawImage(cur, 0, 0, k.width, k.height);
+      if (tmp) freeCanvas(tmp); tmp = k; cur = k; cw = k.width; ch = k.height;
+    }
+    var out = mkCanvas(tw, th), c3 = out.getContext('2d'); c3.imageSmoothingQuality = 'high'; c3.drawImage(cur, 0, 0, out.width, out.height);
+    if (tmp) freeCanvas(tmp);
+    return out;
+  }
+  function grayFromCanvas(cv) {
+    var d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height);
+    return { g: grayOf(d.data, cv.width * cv.height), w: cv.width, h: cv.height };
+  }
+  function canvasFromGray(g, w, h) {
+    var cv = mkCanvas(w, h), cx = cv.getContext('2d'), d = cx.createImageData(w, h), i, j = 0, n = w * h;
+    for (i = 0; i < n; i++, j += 4) { d.data[j] = d.data[j + 1] = d.data[j + 2] = g[i]; d.data[j + 3] = 255; }
+    cx.putImageData(d, 0, 0);
+    return cv;
+  }
+
+  /* Prepara la foto. opts: {rot: giro assoluto 0|90|180|270 (orario) come la vedi tu: spegne il riconoscimento automatico dell'orientamento,
+     flip: giro in più (es. 180) sopra quello scelto dal programma, crop:false per non ritagliare, region: geometria di una passata precedente,
+     width: larghezza della carta in px dopo la preparazione, flat:false}. Ritorna { canvas (grigi), info }. */
+  function prepare(file, opts) {
+    opts = opts || {};
+    var t0 = Date.now(), info = {};
+    return decode(file).then(function (D) {
+      try {
+        var ow = D.w, oh = D.h, region, ang = 0, paper = null, F1, T1, G1, s1, R1 = 4, ks = 1, A = null;
+        info.orig = [ow, oh];
+        var abs = opts.rot != null, flip = ((opts.flip || 0) % 360 + 360) % 360, auto = 0;
+        function stage1(rot) {
+          s1 = Math.min(1, CFG.STAGE1 / Math.max(region.w, region.h));
+          var c1 = drawRegion(D.img, region, ang, s1, rot); G1 = grayFromCanvas(c1); freeCanvas(c1);
+          F1 = flatField(G1.g, G1.w, G1.h, 28 * Math.max(0.5, s1 * 1.5)); T1 = inkMap(F1, G1.w, G1.h, R1);
+        }
+        if (opts.region) { region = opts.region.r; ang = opts.region.ang; auto = opts.region.auto || 0; info.reused = true; }
+        else {
+          ks = Math.min(1, CFG.ANALYSIS / Math.max(ow, oh));
+          var aw = Math.max(8, Math.round(ow * ks)), ah = Math.max(8, Math.round(oh * ks));
+          if (opts.crop !== false) {
+            var acv = drawSmall(D.img, ow, oh, aw, ah); A = grayFromCanvas(acv); freeCanvas(acv);
+            paper = findPaper(A.g, A.w, A.h);
+          }
+          if (paper) {
+            var mx = -0.012 * paper.w;
+            region = { cx: paper.cx / ks, cy: paper.cy / ks, w: (paper.w + 2 * mx) / ks, h: (paper.h + 2 * mx * paper.h / paper.w) / ks }; ang = paper.ang;
+            info.paper = { fill: +paper.fill.toFixed(2), area: +paper.area.toFixed(2), ang: +paper.ang.toFixed(1) };
+          } else {
+            region = { cx: ow / 2, cy: oh / 2, w: ow, h: oh }; info.paper = null;
+          }
+          // la zona di testo dentro il ritaglio: se la «carta» è molto più grande del testo (rettangolo sbagliato) o non c'è carta, stringo
+          if (opts.crop !== false) {
+            stage1(0);
+            var ib = inkBox(T1, G1.w, G1.h);
+            if (ib) {
+              var bw = ib.x1 - ib.x0, bh = ib.y1 - ib.y0;
+              if (!paper || bw * bh * 1.8 < G1.w * G1.h) {
+                var pad = Math.max(10, 0.05 * Math.max(bw, bh));
+                var x0 = Math.max(0, ib.x0 - pad), y0 = Math.max(0, ib.y0 - pad), x1 = Math.min(G1.w, ib.x1 + pad), y1 = Math.min(G1.h, ib.y1 + pad);
+                var dx = ((x0 + x1) / 2 - G1.w / 2) / s1, dy = ((y0 + y1) / 2 - G1.h / 2) / s1, ca = Math.cos(ang * Math.PI / 180), sa = Math.sin(ang * Math.PI / 180);
+                region = { cx: region.cx + dx * ca - dy * sa, cy: region.cy + dx * sa + dy * ca, w: (x1 - x0) / s1, h: (y1 - y0) / s1 };
+                info.ink = [Math.round(x0 / s1), Math.round(y0 / s1), Math.round(x1 / s1), Math.round(y1 / s1)];
+                if (paper) info.inkShrunk = true;
+              }
+            }
+          }
+          // orientamento: il testo corre in orizzontale o in verticale?
+          stage1(0);
+          var orr = orientRatio(T1, G1.w, G1.h); info.orient = +orr.toFixed(2);
+          if (!abs && orr < 0.75 && G1.w >= 1.1 * G1.h) auto = 90;    // una carta «in piedi» non si gira mai: serve anche che il blocco sia più largo che alto
+        }
+        var rot = (((abs ? ((opts.rot % 360) + 360) % 360 : auto)) + flip) % 360;
+        info.region = { r: region, ang: ang, auto: auto };
+        stage1(rot);
+        var skew = skewOf(T1, G1.w, G1.h, (paper || opts.region) ? 4 : 10), ch = charHeight(T1, G1.w, G1.h);
+        info.skew = +skew.toFixed(2); info.ch1 = ch ? ch.h : null;
+        var cur = inkLut(F1, T1, G1.w * G1.h, opts.curve || CFG.CURVE, opts.gmax || CFG.GMAX); info.gamma = cur.gamma; info.lo = cur.lo; info.med = cur.med;
+        // scala finale: la larghezza della carta (lungo le righe) diventa ~WIDTH px; poi controllo con l'altezza dei caratteri
+        var along = (rot % 180) ? region.h : region.w;
+        var target = opts.width || CFG.WIDTH, sf = target / along;
+        var chOut = ch ? ch.h * sf / s1 : null;
+        if (chOut && chOut < CFG.CH_MIN) sf = sf * CFG.CH_MIN / chOut;
+        else if (chOut && chOut > CFG.CH_MAX) sf = sf * CFG.CH_MAX / chOut;
+        var maxS = Math.min(CFG.MAX_SIDE / Math.max(region.w, region.h), Math.sqrt(CFG.MAX_PIXELS / (region.w * region.h)));
+        sf = clamp(sf, 0.1, Math.min(maxS, 3));
+        info.scale = +sf.toFixed(3); info.chOut = chOut ? Math.round(chOut) : null;
+        var cf = drawRegion(D.img, region, ang + skew, sf, rot), GF = grayFromCanvas(cf);
+        D.done(); freeCanvas(cf);
+        var flat = opts.flat === false ? GF.g : flatField(GF.g, GF.w, GF.h, 30);
+        var mask = opts.mask === false ? null : paperMask(flat, GF.w, GF.h);
+        var out = applyFinish(flat, GF.w, GF.h, cur.lut, 0.015, mask);
+        var res = canvasFromGray(out, GF.w, GF.h);
+        info.out = [GF.w, GF.h]; info.masked = !!mask; info.ms = Date.now() - t0;
+        return { canvas: res, info: info };
+      } catch (e) { try { D.done(); } catch (x) { } throw e; }
+    });
+  }
+
+  /* ═════════════ MOTORE (Tesseract.js) ═════════════ */
+
+  var E = { T: null, worker: null, pending: null, idle: null, busy: false };
+
+  function ready() { try { return !!localStorage.getItem('ewocr_ready'); } catch (e) { return false; } }
+  function markReady() { try { localStorage.setItem('ewocr_ready', String(Date.now())); } catch (e) { } }
+
+  function supported() {
+    try { return typeof Worker !== 'undefined' && typeof WebAssembly === 'object' && !!document.createElement('canvas').getContext && typeof Blob !== 'undefined'; } catch (e) { return false; }
+  }
+
+  function loadLib() {
+    if (root.Tesseract && root.Tesseract.createWorker) return Promise.resolve(root.Tesseract);
+    return new Promise(function (resolve, reject) {
+      var s = document.createElement('script'), t = setTimeout(function () { s.onload = s.onerror = null; reject(mkErr('rete', 'timeout libreria')); }, 30000);
+      s.src = URLS.lib; s.async = true;
+      s.onload = function () { clearTimeout(t); root.Tesseract && root.Tesseract.createWorker ? resolve(root.Tesseract) : reject(mkErr('motore', 'libreria vuota')); };
+      s.onerror = function () { clearTimeout(t); try { s.parentNode && s.parentNode.removeChild(s); } catch (e) { } reject(mkErr('rete', 'libreria')); };
+      document.head.appendChild(s);
+    });
+  }
+  function mkErr(code, msg) { var e = new Error(msg || code); e.code = code; return e; }
+
+  function dropIdle() { if (E.idle) { clearTimeout(E.idle); E.idle = null; } }
+  function armIdle() { dropIdle(); E.idle = setTimeout(function () { release(); }, CFG.IDLE_MS); }
+
+  // libera il motore (memoria) — anche durante una lettura per annullarla
+  function release() {
+    dropIdle();
+    var w = E.worker; E.worker = null; E.pending = null;
+    if (w) { try { w.terminate(); } catch (e) { } }
+  }
+
+  /* Prepara il motore. onP(stage, frac): stage in 'lib'|'core'|'lang'|'init'. */
+  function engine(onP) {
+    dropIdle();
+    if (onP) E.onP = onP;
+    if (E.worker) return Promise.resolve(E.worker);
+    if (E.pending) return E.pending;
+    var p = loadLib().then(function (T) {
+      return new Promise(function (resolve, reject) {
+        var done = false, fail = function (e) { if (done) return; done = true; E.pending = null; reject(typeof e === 'object' && e && e.code ? e : mkErr('rete', String(e && e.message || e))); };
+        var to = setTimeout(function () { fail(mkErr('rete', 'timeout motore')); }, 180000);
+        T.createWorker('ita', 1, {
+          workerPath: URLS.worker, corePath: URLS.core, langPath: URLS.lang, gzip: true,
+          errorHandler: function (e) { clearTimeout(to); fail(mkErr('rete', String(e))); },
+          logger: function (m) {
+            if (!E.onP || !m) return;
+            var st = String(m.status || ''), f = +m.progress || 0;
+            if (st.indexOf('core') >= 0) E.onP('core', f); else if (st.indexOf('language') >= 0) E.onP('lang', f); else if (st.indexOf('initializ') >= 0) E.onP('init', f); else if (st.indexOf('recogniz') >= 0) E.onP('read', f);
+          }
+        }).then(function (w) {
+          clearTimeout(to);
+          if (done) { try { w.terminate(); } catch (e) { } return; }
+          return w.setParameters({ tessedit_pageseg_mode: CFG.PSM, preserve_interword_spaces: '1', user_defined_dpi: '300' }).then(function () {
+            done = true; E.worker = w; E.pending = null; markReady(); armIdle(); resolve(w);
+          });
+        }).catch(function (e) { clearTimeout(to); fail(mkErr('rete', String(e && e.message || e))); });
+      });
+    });
+    E.pending = p;
+    p.catch(function () { E.pending = null; });
+    return p;
+  }
+
+  function pngBlob(cv) {
+    return new Promise(function (resolve, reject) {
+      try { cv.toBlob(function (b) { b ? resolve(b) : reject(mkErr('memoria', 'png')); }, 'image/png'); } catch (e) { reject(mkErr('memoria', String(e))); }
+    });
+  }
+
+  /* Legge una tela già preparata. Ritorna {text, conf, lines:[{t,c,w:[[t,c]...]}], ms} */
+  function recognize(canvas, onP) {
+    return pngBlob(canvas).then(function (blob) {
+      return engine(onP).then(function (w) {
+        var t0 = Date.now();
+        return w.recognize(blob, {}, { text: true, blocks: true }).then(function (r) {
+          var d = r.data || {}, lines = [];
+          (d.blocks || []).forEach(function (b) { (b.paragraphs || []).forEach(function (p) { (p.lines || []).forEach(function (l) {
+            lines.push({ t: l.text.replace(/\s+$/, ''), c: Math.round(l.confidence || 0), w: (l.words || []).map(function (x) { var bb = x.bbox || {}; return [x.text, Math.round(x.confidence || 0), bb.x0, bb.y0, bb.x1, bb.y1]; }) });
+          }); }); });
+          var cl = cleanLines(lines);
+          return { text: cl.text, raw: d.text || '', conf: Math.round(d.confidence || 0), lines: lines, dropped: cl.dropped, ms: Date.now() - t0 };
+        });
+      });
+    });
+  }
+
+  /* Tutto insieme: foto → testo. job = read(file, {onProgress(stage, frac), rot}) → { promise, cancel() } */
+  function read(file, opts) {
+    opts = opts || {};
+    var cancelled = false, job = {};
+    function chk() { if (cancelled) throw mkErr('annullato', 'annullato'); }
+    function P(stage, f) { try { opts.onProgress && opts.onProgress(stage, f); } catch (e) { } }
+    var timer = null;
+    job.cancel = function (keep) { cancelled = true; clearTimeout(timer); if (!keep) release(); };          // keep: solo scartare il risultato (parte subito un'altra lettura)
+    job.promise = new Promise(function (resolve, reject) {
+      timer = setTimeout(function () { cancelled = true; release(); reject(mkErr('timeout', 'tempo scaduto')); }, CFG.TIMEOUT);
+      if (!supported()) return reject(mkErr('non-supportato', 'browser'));
+      P('foto', 0);
+      var enginePromise = engine(function (s, f) { P(s, f); });          // il motore si scalda mentre preparo la foto
+      enginePromise.catch(function () { });
+      prepare(file, opts).then(function (prep) {
+        chk(); P('foto', 1);
+        return recognize(prep.canvas, function (s, f) { P(s, f); }).then(function (rec) { freeCanvas(prep.canvas); rec.info = prep.info; return rec; }, function (e) { freeCanvas(prep.canvas); throw e; });
+      }).then(function (rec) { clearTimeout(timer); armIdle(); if (cancelled) reject(mkErr('annullato', 'annullato')); else resolve(rec); }, function (e) {
+        clearTimeout(timer); armIdle();
+        if (e && e.code === 'rete' && typeof navigator !== 'undefined' && navigator.onLine === false) e = mkErr('offline', 'offline');      // senza rete: se il motore era già sul telefono funziona lo stesso, altrimenti lo dico chiaro
+        reject(cancelled ? mkErr('annullato', 'annullato') : e);
+      });
+    });
+    return job;
+  }
+
+  return {
+    VERSION: 1, URLS: URLS, CFG: CFG,
+    supported: supported, ready: ready, read: read, prepare: prepare, recognize: recognize, engine: engine, release: release,
+    // parti pure, esposte per i collaudi
+    _b: { decode: decode, drawSmall: drawSmall, grayFromCanvas: grayFromCanvas, drawRegion: drawRegion, canvasFromGray: canvasFromGray },
+    _px: { grayOf: grayOf, otsu: otsu, blurGray: blurGray, rankFilter: rankFilter, shrink: shrink, flatField: flatField, findPaper: findPaper, skewOf: skewOf, inkBox: inkBox, charHeight: charHeight, inkMap: inkMap, orientRatio: orientRatio, inkLut: inkLut, applyFinish: applyFinish, paperMask: paperMask, cleanLines: cleanLines }
+  };
+});
+
 </script>
 <script id="sco-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -38502,8 +39129,9 @@ var EWSCO = (function () {
     var last = sortRecs(loadList())[0];
     return { view: 'start', prev: null, photo: null, text: '', textOpen: false, src: 'mano', busy: '', confirmClose: false, confirmDel: false, known: knownFrom(loadList()),
       f: blankForm(last && last.p || 'bancomat'), warns: [], note: '', dupExp: [], dupChoice: 0, dupRcpt: null, dupOk: false, dupUpdate: false, usePhoto: true, drive: false,
-      detailId: '', result: null, pdfUrl: '', verify: '', local: null, fileFor: null, errs: {} };
+      detailId: '', result: null, pdfUrl: '', verify: '', local: null, fileFor: null, errs: {}, orig: null, ocr: newOcr() };
   }
+  function newOcr() { return { st: 'none', id: 0, job: null, rot: null, first: false, stage: 'foto', fr: {}, pct: 0, base: 0, t0: 0, ms: 0, code: '', found: null, nitems: 0, nothing: false, part: false, hint: '', tries: 0, keep: null }; }
   function blankForm(pay) {
     return { name: '', date: todayIso(), time: '', total: null, totalRaw: null, cat: 'supermercato', pay: pay, piva: '', legal: '', address: '', city: '', doc: null, iva: null, last4: '', paid: null, change: null, items: [],
       b: { name: 'none', date: 'you', total: 'none', piva: 'none' }, bt: { name: 'scrivilo', date: '✎ oggi', total: 'scrivilo' }, touchedCat: false, touchedPay: false };
@@ -38532,6 +39160,7 @@ var EWSCO = (function () {
     try { $('scoBd').scrollTop = 0; modal.querySelector('.sco-sheet').focus({ preventScroll: true }); } catch (e) { }
   }
   function closeSheet() {
+    ocrStop();
     if (S) { dropPhoto(S.photo); if (S.pdfUrl) { try { URL.revokeObjectURL(S.pdfUrl); } catch (e) { } } }
     S = null; if (modal) modal.hidden = true; document.body.style.overflow = '';
   }
@@ -38577,10 +39206,10 @@ var EWSCO = (function () {
   }
   function tile(act, ic, t, s) { return '<button type="button" class="sco-tile" data-act="' + act + '"><span class="sco-ti" aria-hidden="true">' + ic + '</span><b>' + t + '</b><i>' + s + '</i></button>'; }
   function vStart() {
-    return '<p class="sco-lead">Fotografa lo scontrino: ne resta una copia digitale in PDF, collegata alla spesa. Prima di salvare vedi sempre una scheda con i dati, da controllare.</p>' +
-      '<div class="sco-tiles">' + tile('camera', '📷', 'Scatta la foto', 'Apre la fotocamera') + tile('library', '🖼️', 'Scegli una foto', 'Dalla libreria') +
+    return '<p class="sco-lead">Fotografa lo scontrino: l\'app legge da sola negozio, data e totale e ne fa una copia digitale in PDF, collegata alla spesa. Prima di salvare vedi sempre una scheda da controllare.</p>' +
+      '<div class="sco-tiles">' + tile('camera', '📷', 'Scatta la foto', 'Legge i dati da sola') + tile('library', '🖼️', 'Scegli una foto', 'Dalla libreria, legge i dati') +
       tile('text', '📋', 'Incolla il testo', 'Da «Scansiona testo» di iOS') + tile('manual', '✍️', 'Compila a mano', 'Senza foto') + '</div>' +
-      '<p class="sco-fine">La foto resta su questo dispositivo. I dati dello scontrino viaggiano con il backup, come il resto di GoBank.</p>';
+      '<p class="sco-fine">La lettura avviene sul telefono: la foto non viene inviata a nessuno e resta su questo dispositivo. La prima volta l\'app scarica il motore di lettura (circa 6 MB, serve internet): di solito poi resta sul telefono, altrimenti lo riscarica. I dati dello scontrino viaggiano con il backup, come il resto di GoBank.</p>';
   }
   function fbadge(key) {
     var f = S.f, l = f.b[key] || 'none', t = (f.bt && f.bt[key] && (l === 'none' || l === 'you')) ? f.bt[key] : BADGE[l];
@@ -38589,7 +39218,7 @@ var EWSCO = (function () {
   function opts(list, cur, labelIdx) {
     return list.map(function (x) { var lab = labelIdx === 3 ? x[2] + ' ' + x[1] : labelIdx === 1 ? x[1] : x[1]; return '<option value="' + x[0] + '"' + (x[0] === cur ? ' selected' : '') + '>' + esc(lab) + '</option>'; }).join('');
   }
-  function vSource() {
+  function vPhoto() {
     var p = S.photo, h = '';
     if (p) {
       h += '<figure class="sco-photo"><img src="' + p.url + '" alt="Foto dello scontrino"><figcaption>' + Math.max(1, Math.round(p.size / 1024)) + ' KB · ' + p.w + '×' + p.h + ' px</figcaption></figure>' +
@@ -38597,7 +39226,11 @@ var EWSCO = (function () {
     } else {
       h += '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="camera">📷 Scatta la foto</button><button type="button" class="sco-btn sm" data-act="library">🖼️ Dalla libreria</button></div>';
     }
-    h += '<details class="sco-det" id="scoTextDet"' + (S.textOpen ? ' open' : '') + '><summary>📋 Compila dal testo di iOS</summary><ol class="sco-how"><li>Tocca nel campo qui sotto.</li><li>Scegli «Scansiona testo» (icona con la fotocamera) e inquadra lo scontrino.</li><li>Tocca «Inserisci» e poi «Leggi il testo».</li></ol>' +
+    return h;
+  }
+  function vTextDet() {
+    var h = '';
+    h += '<details class="sco-det" id="scoTextDet"' + (S.textOpen ? ' open' : '') + '><summary>' + (S.ocr && S.ocr.st === 'done' ? '📋 Testo letto dalla foto' : '📋 Compila dal testo di iOS') + '</summary>' + (S.ocr && S.ocr.st === 'done' ? '<p class="sco-fine">È il testo che l\'app ha letto. Se c\'è un errore, correggilo qui e tocca «Leggi il testo».</p>' : '') + '<ol class="sco-how"><li>Tocca nel campo qui sotto.</li><li>Scegli «Scansiona testo» (icona con la fotocamera) e inquadra lo scontrino.</li><li>Tocca «Inserisci» e poi «Leggi il testo».</li></ol>' +
       '<textarea id="sco-f-text" rows="6" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Incolla qui il testo di uno scontrino">' + esc(S.text) + '</textarea>' +
       '<div class="sco-row"><button type="button" class="sco-btn pri sm" data-act="readtext">Leggi il testo</button><button type="button" class="sco-btn sm" data-act="cleartext">Svuota</button></div>' +
       '<p class="sco-fine">Se «Scansiona testo» non compare, apri la foto dello scontrino in Foto, tieni premuto sul testo, scegli «Seleziona tutto» e «Copia», poi incolla qui.</p></details>';
@@ -38623,9 +39256,9 @@ var EWSCO = (function () {
       it.map(function (x, i) { return '<li class="' + (x.total < 0 ? 'neg' : '') + '"><span>' + esc((x.qty && x.qty !== 1 ? String(x.qty).replace('.', ',') + ' × ' : '') + x.desc) + '</span><b>' + f2(x.total) + (x.vat ? ' ' + esc(x.vat) : '') + '</b><button type="button" class="sco-rm" data-act="rmitem" data-i="' + i + '" aria-label="Togli questa riga">✕</button></li>'; }).join('') + '</ul>';
   }
   function vSheet() {
-    var h = '<div class="sco-sec">' + vSource() + '</div>';
-    if (S.note) h += '<div class="sco-note">' + esc(S.note) + '</div>';
-    if (S.photo && !S.f.name && S.f.total == null && !S.textRead) h += '<div class="sco-note">Foto pronta. Scrivi negozio, totale e data: categoria e pagamento li propone l\'app. Oppure compila dal testo di iOS qui sopra.</div>';
+    var h = '<div class="sco-sec" id="sco-src">' + vPhoto() + '</div>';
+    if (S.photo) h += '<div class="sco-read ' + readCls() + '" id="sco-read" role="status"' + (S.ocr.st === 'none' ? ' hidden' : '') + '>' + readInner() + '</div>';
+    h += '<div class="sco-sec" id="sco-txt">' + vTextDet() + '</div><div id="sco-notes">' + notesHtml() + '</div>';
     h += '<div class="sco-sec">' + vFields() + '</div>' + vItems();
     h += '<ul class="sco-warns" id="sco-warns">' + S.warns.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>';
     h += '<div id="sco-dup"></div>';
@@ -38634,6 +39267,12 @@ var EWSCO = (function () {
     if (driveOn()) o += '<label class="sco-opt"><input type="checkbox" id="sco-drive"' + (S.drive ? ' checked' : '') + '><span>Salva anche su Google Drive<small>Cartella «Scontrini»</small></span></label>';
     if (o) h += '<div class="sco-sec">' + o + '</div>';
     h += '<details class="sco-det"><summary>🧾 Anteprima dello scontrino riscritto</summary><pre class="sco-prev" id="sco-prev"></pre><p class="sco-fine">Si aggiorna mentre correggi i campi. È la parte sinistra del PDF.</p></details>';
+    return h;
+  }
+  function notesHtml() {
+    var h = '';
+    if (S.note) h += '<div class="sco-note">' + esc(S.note) + '</div>';
+    if (S.photo && S.ocr.st === 'none' && !S.f.name && S.f.total == null && !S.textRead) h += '<div class="sco-note">Foto pronta. Scrivi negozio, totale e data: categoria e pagamento li propone l\'app. Oppure compila dal testo di iOS qui sopra.</div>';
     return h;
   }
   function paintSum() {
@@ -38702,6 +39341,182 @@ var EWSCO = (function () {
     S.textRead = true;
   }
 
+
+  /* ═════════════════════════ lettura automatica della foto (EWOCR) ═════════════════════════ */
+  var ocrSeq = 0, RANK = { foto: 0, lib: 1, core: 2, lang: 3, init: 4, read: 5, retry: 6 };
+  var RW1 = { foto: 10, core: 45, lang: 25, init: 5, read: 15 }, RW2 = { foto: 25, core: 0, lang: 0, init: 10, read: 65 };       // peso di ogni fase nella barra: prima volta (scarico) / motore già sul telefono
+  function ocrOk() { try { return typeof EWOCR !== 'undefined' && EWOCR.supported(); } catch (e) { return false; } }
+  function warmOcr() { try { if (ocrOk()) EWOCR.engine().catch(function () { }); } catch (e) { } }       // già mentre scatti la foto il motore si prepara
+  function ocrStop(keep) {
+    var o = S && S.ocr; if (!o) return;
+    if (o.job) { try { o.job.cancel(keep); } catch (e) { } o.job = null; }
+    if (o.st === 'run') o.st = 'cancel';
+    o.id = ++ocrSeq;                                    // chi era in corso non scrive più nulla
+  }
+  function ocrPct(o) {
+    var w = o.first ? RW1 : RW2, sum = 0, tot = 0, k;
+    for (k in w) { tot += w[k]; sum += w[k] * Math.min(1, o.fr[k] || 0); }
+    var v = (o.base || 0) + (100 - (o.base || 0)) * sum / tot;
+    return Math.max(o.pct || 0, Math.max(2, Math.min(99, Math.round(v))));
+  }
+  function ocrProgress(o, st, f) {
+    if (st === 'lib') st = 'core';
+    if (!(st in RANK)) return;
+    if ((st === 'core' || st === 'lang') && !o.first) o.first = true;          // la cache era stata svuotata: si riscarica
+    o.fr[st] = Math.max(o.fr[st] || 0, f || 0);
+    var chg = false;
+    if (RANK[st] > RANK[o.stage]) { o.stage = st; chg = true; }
+    o.pct = ocrPct(o);
+    if (chg) paintRead(); else paintBar();
+  }
+  function readMsg(o) {
+    var st = o.stage;
+    if (st === 'retry') return 'Provo a leggere la foto girata…';
+    if (st === 'read') return 'Leggo lo scontrino…';
+    if (st === 'core' || st === 'lang') return o.first ? 'Scarico il motore di lettura…' : 'Avvio il motore di lettura…';
+    if (st === 'init') return 'Avvio il motore di lettura…';
+    return 'Preparo la foto…';
+  }
+  var FOUND = [['name', 'negozio'], ['date', 'data'], ['total', 'totale'], ['piva', 'partita IVA']];
+  function readCls() { var o = S.ocr; return o.st + (o.st === 'done' ? (o.nothing ? ' none' : o.part ? ' part' : '') : ''); }
+  function readInner() {
+    var o = S.ocr, h = '', msg = '';
+    if (o.st === 'run') {
+      var dl = (o.stage === 'core' || o.stage === 'lang') && o.first;
+      return '<div class="sco-rhd"><span class="sco-spin" aria-hidden="true"></span><b>' + esc(readMsg(o)) + '</b></div>' +
+        '<div class="sco-bar" id="sco-bar" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + o.pct + '"><i style="width:' + o.pct + '%"></i></div>' +
+        '<p>' + (dl ? 'Di solito una volta sola: il motore di lettura (circa 6 MB) resta poi sul telefono. ' : '') + 'Intanto puoi già scrivere i dati: quelli che scrivi tu non vengono cambiati.</p>' +
+        '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="ocrcancel">Annulla</button></div>';
+    }
+    if (o.st === 'done') {
+      var got = (o.found || []).map(function (x) { return x; }), miss = FOUND.slice(0, 3).filter(function (x) { return (o.found || []).indexOf(x[1]) < 0; }).map(function (x) { return x[1]; });
+      var head = o.nothing ? 'Non sono riuscito a leggere i dati' : o.part ? '◐ Foto letta: controlla i campi segnati' : '✓ Foto letta';
+      msg = o.nothing ? 'Rifai la foto con tutto lo scontrino in vista, ben illuminato e su un piano scuro. Oppure scrivi i dati a mano.' :
+        'Trovati: ' + got.join(', ') + (o.nitems ? ', ' + o.nitems + (o.nitems === 1 ? ' articolo' : ' articoli') : '') + '.' + (miss.length ? ' Non trovati: ' + miss.join(', ') + '.' : '') + (o.ms ? ' (' + Math.max(1, Math.round(o.ms / 1000)) + ' s)' : '');
+      return '<div class="sco-rhd"><b>' + esc(head) + '</b></div><p>' + esc(msg) + '</p>' + (o.hint ? '<p>' + esc(o.hint) + '</p>' : '') +
+        '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="ocrretry">⟳ Rileggi la foto</button></div>';
+    }
+    if (o.st === 'err') {
+      var c = o.code, retry = c !== 'non-supportato' && c !== 'memoria';
+      msg = c === 'offline' ? 'Serve internet la prima volta, per scaricare il motore di lettura (circa 6 MB). Riprova quando sei online, oppure scrivi i dati a mano.' :
+        c === 'rete' ? 'Non riesco a scaricare il motore di lettura. Controlla la connessione e riprova, oppure scrivi i dati a mano.' :
+        c === 'timeout' ? 'La lettura sta durando troppo. Riprova, oppure scrivi i dati a mano.' :
+        c === 'non-supportato' ? 'Questo browser non può leggere le foto da solo. Scrivi i dati a mano, oppure usa «Compila dal testo di iOS» qui sopra.' :
+        c === 'memoria' ? 'La foto è troppo grande per la memoria del telefono. Rifai la foto, oppure scrivi i dati a mano.' :
+        c === 'immagine' ? 'Non riesco ad aprire questa foto. Prova con un\'altra, oppure scrivi i dati a mano.' :
+        'La lettura automatica non è riuscita. Riprova, oppure scrivi i dati a mano.';
+      return '<div class="sco-rhd"><b>Lettura automatica non riuscita</b></div><p>' + esc(msg) + '</p>' + (retry ? '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="ocrretry">Riprova</button></div>' : '');
+    }
+    if (o.st === 'cancel') return '<div class="sco-rhd"><b>Lettura annullata</b></div><p>Scrivi i dati a mano, oppure fai leggere la foto all\'app.</p><div class="sco-row"><button type="button" class="sco-btn sm" data-act="ocrretry">Leggi la foto</button></div>';
+    return '';
+  }
+  function paintRead() {
+    var el = $('sco-read'); if (!el || !S) return;
+    el.className = 'sco-read ' + readCls(); el.hidden = S.ocr.st === 'none'; el.innerHTML = readInner();
+  }
+  function paintBar() {
+    var el = $('sco-bar'); if (!el || !S) return; var o = S.ocr;
+    if (el.firstChild) el.firstChild.style.width = o.pct + '%'; el.setAttribute('aria-valuenow', o.pct);
+  }
+  function paintSrc() {          // il riquadro della foto (e del testo letto) si ridisegna, tranne se stai scrivendo nel testo
+    var el = $('sco-txt'), tx = $('sco-f-text'); if (!el || S.view !== 'sheet') return;
+    if (tx && document.activeElement === tx) return;
+    var open = $('scoTextDet') ? $('scoTextDet').open : S.textOpen; S.textOpen = !!open;
+    el.innerHTML = vTextDet();
+  }
+
+  function nameOk(r) { var m = r.merchant || {}; return !!(m.name && (m.plausible || (r.conf && r.conf.merchant >= 0.9))); }       // un nome fatto di sillabe a caso non si scrive nella scheda
+  function ocrScore(r) { return (r.total != null ? 3 : 0) + (r.date ? 2 : 0) + (nameOk(r) ? 1 : 0) + (r.merchant && r.merchant.piva ? 1 : 0) + (r.items && r.items.length ? 1 : 0); }
+  function ocrWeak(r) { return r.total == null && !r.date; }                       // niente totale e niente data: di solito foto capovolta o illeggibile
+  function ocrStart(opt) {
+    if (!S || !S.orig) return;
+    opt = opt || {};
+    var o = S.ocr;
+    if (o.job) { try { o.job.cancel(true); } catch (e) { } o.job = null; }
+    var my = o.id = ++ocrSeq;
+    if (!ocrOk()) { o.st = 'err'; o.code = 'non-supportato'; paintRead(); return; }
+    if (!opt.retry) { o.tries = 0; o.keep = null; o.fr = {}; o.stage = 'foto'; o.base = 0; o.pct = 2; o.first = !EWOCR.ready(); o.t0 = Date.now(); }
+    else { o.fr = {}; o.stage = 'retry'; o.base = (o.tries || 0) >= 2 ? 72 : 45; o.pct = Math.max(o.pct || 0, o.base); }
+    o.st = 'run'; o.code = ''; o.found = null; o.hint = ''; o.nothing = false; o.part = false;
+    paintRead();
+    var job;
+    try {
+      job = EWOCR.read(S.orig, { rot: o.rot == null ? undefined : o.rot, flip: opt.extra || 0, onProgress: function (st, f) { if (S && S.ocr.id === my) ocrProgress(S.ocr, st, f); } });
+    } catch (e) { o.st = 'err'; o.code = 'motore'; paintRead(); return; }
+    o.job = job;
+    job.promise.then(function (rec) {
+      if (!S || S.ocr.id !== my) return;
+      o.job = null; ocrDone(rec, opt);
+    }, function (e) {
+      if (!S || S.ocr.id !== my) return;
+      o.job = null; o.st = 'err'; o.code = (e && e.code) || 'motore';
+      if (o.code === 'annullato') { o.st = 'cancel'; }
+      paintRead();
+    });
+  }
+  function ocrDone(rec, opt) {
+    var o = S.ocr, r, cand;
+    try { r = EWRCPT.applyHistory(EWRCPT.parse(rec.text), S.known); } catch (e) { o.st = 'err'; o.code = 'motore'; paintRead(); return; }
+    cand = { rec: rec, r: r, score: ocrScore(r) };
+    if (o.keep && o.keep.score >= cand.score) cand = o.keep;                       // una lettura di prima era migliore: la tengo
+    if (ocrWeak(cand.r) && (o.tries || 0) < 2) {                                   // niente totale né data: foto girata? Ritento (al massimo due volte)
+      var inf = rec.info || {}, vert = inf.orient != null && inf.orient < 0.75 && !(inf.region && inf.region.auto);      // righe in verticale e non ancora girata: provo 90° e 270°; altrimenti 180°
+      var flip = (vert ? [90, 270] : [180])[o.tries || 0];
+      if (flip != null) { o.tries = (o.tries || 0) + 1; o.keep = cand; ocrStart({ retry: true, extra: flip }); return; }
+    }
+    o.keep = null; o.st = 'done'; o.ms = Date.now() - o.t0;
+    ocrApply(cand);
+  }
+  function ocrApply(c) {
+    var o = S.ocr, r = c.r, rec = c.rec, f = S.f;
+    S.text = rec.text; S.src = 'foto'; S.textUser = false; S.textRead = true;
+    fillAuto(r, rec);
+    var got = [];
+    if (nameOk(r)) got.push('negozio'); if (r.date) got.push('data'); if (r.total != null) got.push('totale'); if (r.merchant && r.merchant.piva) got.push('partita IVA');
+    o.found = got; o.nitems = (r.items || []).length;
+    o.nothing = r.total == null && !r.date && !nameOk(r);
+    o.part = !o.nothing && !(r.ready && r.total != null && r.date && nameOk(r));
+    var sc = rec.info && rec.info.scale;
+    o.hint = (o.nothing || o.part) && sc && sc >= 1.7 ? 'Nella foto lo scontrino è piccolo: avvicinati e rifai la foto, la lettura sarà più sicura.' : '';
+    paintRead(); refreshFields(); paintSrc();
+    flash(o.nothing ? 'Non sono riuscito a leggere lo scontrino.' : r.ready ? 'Letto. Controlla i dati e crea lo scontrino.' : 'Letto, ma controlla i campi segnati.');
+  }
+  // riempie la scheda dal risultato della lettura, SENZA toccare quello che hai scritto tu
+  function fillAuto(r, rec) {
+    var f = S.f, b = f.b, bt = f.bt || (f.bt = {}), low = (rec.conf || 0) < 60;
+    function mine(k) { return b[k] === 'you' && !(k === 'date' && bt.date === '✎ oggi'); }
+    function cap(l) { return low && l === 'ok' ? 'check' : l; }
+    var m = r.merchant || {}, okName = nameOk(r);
+    if (!mine('name')) { f.name = okName ? m.name : ''; b.name = okName ? lvl(r.conf.merchant) : 'none'; bt.name = okName ? '' : 'scrivilo'; }
+    if (!mine('date')) {
+      if (r.date) { f.date = r.date; b.date = cap(lvl(r.conf.date)); bt.date = ''; }
+      else { f.date = validIso(f.date) ? f.date : todayIso(); b.date = 'you'; bt.date = '✎ oggi'; }
+    }
+    if (!mine('total')) { f.total = r.total; f.totalRaw = null; b.total = r.total != null ? cap(lvl(r.conf.total)) : 'none'; bt.total = r.total != null ? '' : 'scrivilo'; }
+    if (!mine('piva')) { f.piva = m.piva || ''; b.piva = m.piva ? (m.pivaValid ? (m.pivaFixed ? 'check' : 'ok') : 'warn') : 'none'; }
+    if (r.time && !f.time) f.time = r.time;
+    f.legal = m.legal || ''; f.address = m.address || ''; f.city = m.city || '';
+    f.doc = r.doc || null; f.iva = r.iva || null; f.last4 = (r.payment && r.payment.last4) || ''; f.paid = r.payment && r.payment.paid != null ? r.payment.paid : null; f.change = r.payment && r.payment.change != null ? r.payment.change : null;
+    f.items = cleanItems(r.items);
+    if (!f.touchedCat) f.cat = r.category || 'extra';
+    if (!f.touchedPay) f.pay = r.appPay || f.pay || 'bancomat';
+    S.warns = (r.warnings || []).filter(function (x) { return !/somma degli articoli/.test(x) && !(!okName && /nome del negozio/.test(x)); });
+    if (!r.date) S.warns.push('Non ho letto la data: ho messo oggi. Controllala.');
+    S.note = r.fromHistory ? 'Negozio riconosciuto tra quelli già visti' + (r.fromHistory === 'nome' ? ' (dal nome)' : ' (dalla partita IVA)') + ': categoria e pagamento sono quelli dell\'ultima volta.' : '';
+  }
+  // porta la scheda (già in memoria) sullo schermo senza ridisegnarla: così non perdi il punto in cui stai scrivendo
+  function refreshFields() {
+    if (!S || S.view !== 'sheet') return;
+    var f = S.f;
+    function set(id, v) { var el = $(id); if (el && el.value !== v) el.value = v; }
+    set('sco-f-name', f.name); set('sco-f-date', f.date); set('sco-f-time', f.time); set('sco-f-total', f.total == null ? '' : f2(f.total)); set('sco-f-cat', f.cat); set('sco-f-pay', f.pay); set('sco-f-piva', f.piva);
+    ['name', 'date', 'total', 'piva'].forEach(function (k) { setBadge(k, f.b[k], f.bt && f.bt[k]); });
+    var box = $('sco-itemsbox'); if (box) { box.className = f.items.length ? 'sco-sec' : ''; box.innerHTML = f.items.length ? itemsInner() : ''; }
+    var w = $('sco-warns'); if (w) w.innerHTML = S.warns.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
+    var nt = $('sco-notes'); if (nt) nt.innerHTML = notesHtml();
+    paintSum(); paintPrev(); recalcDup(); syncBack();
+  }
+
   /* ── azioni ── */
   function onPhotoFile(file) {
     if (!S) { S = fresh(); openSheet(); paint(); }
@@ -38709,8 +39524,10 @@ var EWSCO = (function () {
     compressImage(file).then(function (p) {
       if (!S) { dropPhoto(p); return; }
       dropPhoto(S.photo); S.photo = p; S.usePhoto = true; setBusy('');
+      S.orig = file; S.ocr.rot = null; S.textUser = false; S.ocr.st = 'run';          // nuova foto: la lettura parte da sola
       if (S.view === 'sheet') { readFields(); paint(); recalcDup(); } else go('sheet');
       if (S.src === 'mano') S.src = 'foto';
+      ocrStart();
     }, function () { setBusy(''); flash('⚠️ Non riesco a leggere questa foto. Prova con un\'altra.'); });
   }
   function startSheet(opt) {
@@ -38721,6 +39538,7 @@ var EWSCO = (function () {
     if (!t.trim()) { flash('Incolla prima il testo dello scontrino.'); return; }
     var r;
     try { r = EWRCPT.parse(t); r = EWRCPT.applyHistory(r, S.known); } catch (e) { flash('⚠️ Non riesco a leggere questo testo.'); return; }
+    ocrStop(); if (S.ocr.st !== 'done') S.ocr.st = 'none'; S.textUser = true;          // il testo dato da te vale più della lettura automatica
     fillFrom(r); S.src = S.photo ? 'foto' : 'testo'; S.textOpen = false; paint(); recalcDup();
     flash(r.ready ? 'Letto. Controlla i dati e crea lo scontrino.' : 'Letto, ma controlla i campi segnati.');
   }
@@ -38742,6 +39560,7 @@ var EWSCO = (function () {
     var exId = hit ? hit.arr[hit.i].id : Date.now();
     var d = buildD({ name: f.name, date: f.date, time: f.time, total: f.total, cat: f.cat, pay: f.pay, piva: f.piva, legal: f.legal, address: f.address, city: f.city, doc: f.doc, iva: f.iva, items: f.items, last4: f.last4, paid: f.paid, change: f.change, src: S.src }, { id: id, createdAt: createdAt, expenseId: exId });
     var useIt = !!(hit && S.dupUpdate);
+    ocrStop(); if (S.ocr.st === 'cancel') S.ocr.st = 'none';
     setBusy('Creo lo scontrino…');
     var buffer = null, pdfErr = '', idbOk = false;
     fingerprint(d, pb).then(function (fp) { d.fingerprint = fp; return makePdf(d, pb).then(function (b) { buffer = b; }, function (e) { pdfErr = String(e && e.message || e || 'errore'); }); })
@@ -38906,12 +39725,14 @@ var EWSCO = (function () {
     var b = t.closest && t.closest('[data-act]'); if (!b || !S) return; var a = b.getAttribute('data-act');
     if (a === 'close') askClose();
     else if (a === 'back') { if (S.view === 'pdf' || S.view === 'photo') { if (S.pdfUrl && S.view === 'pdf') { try { URL.revokeObjectURL(S.pdfUrl); } catch (x) { } S.pdfUrl = ''; } if (S.photoUrl && S.view === 'photo') { try { URL.revokeObjectURL(S.photoUrl); } catch (x) { } S.photoUrl = ''; } go(S.back || 'start'); } else { readFields(); go('start'); } }
-    else if (a === 'camera') { fileInput.click(); }
-    else if (a === 'library') { libInput.click(); }
+    else if (a === 'camera') { warmOcr(); fileInput.click(); }
+    else if (a === 'library') { warmOcr(); libInput.click(); }
     else if (a === 'text') startSheet({ text: true });
     else if (a === 'manual') startSheet({ manual: true });
-    else if (a === 'rotate') { if (S.photo) { setBusy('Giro la foto…'); rotatePhoto(S.photo).then(function (p) { if (!S) return; dropPhoto(S.photo); S.photo = p; setBusy(''); readFields(); paint(); }, function () { setBusy(''); flash('⚠️ Non riesco a ruotare la foto.'); }); } }
-    else if (a === 'unphoto') { dropPhoto(S.photo); S.photo = null; readFields(); paint(); }
+    else if (a === 'rotate') { if (S.photo) { setBusy('Giro la foto…'); rotatePhoto(S.photo).then(function (p) { if (!S) return; dropPhoto(S.photo); S.photo = p; setBusy(''); readFields(); S.ocr.rot = ((S.ocr.rot || 0) + 90) % 360; paint(); if (S.orig && S.ocr.st !== 'none') ocrStart(); }, function () { setBusy(''); flash('⚠️ Non riesco a ruotare la foto.'); }); } }
+    else if (a === 'unphoto') { ocrStop(); dropPhoto(S.photo); S.photo = null; S.orig = null; S.ocr = newOcr(); readFields(); paint(); }
+    else if (a === 'ocrcancel') { ocrStop(); paintRead(); }
+    else if (a === 'ocrretry') { ocrStart(); }
     else if (a === 'readtext') readText();
     else if (a === 'cleartext') { S.text = ''; var tx = $('sco-f-text'); if (tx) { tx.value = ''; try { tx.focus(); } catch (x) { } } }
     else if (a === 'rmitem') { var i = +b.getAttribute('data-i'); S.f.items.splice(i, 1); var box = $('sco-itemsbox'); if (box) { box.className = S.f.items.length ? 'sco-sec' : ''; box.innerHTML = S.f.items.length ? itemsInner() : ''; } paintSum(); paintPrev(); }
