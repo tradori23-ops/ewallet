@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20261107-ew-v129-hub-largo';
+  var BUILD='20261116-ew-v130-launcher-pieno';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -350,6 +350,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
 .hero-h .cv{font-size:20px;color:var(--label3);stroke-width:2.4}
 .ew-right{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:12px;grid-auto-rows:min-content;align-content:start}
 .ew-preview{margin-top:0;padding:0;flex:1;display:flex;flex-direction:column;background:transparent;border:0}
+.ew-pv-top,.ew-pv-notes,.ew-pv-nums{display:contents}
 .ew-date{margin:16px 0 4px;font:700 22px var(--font-disp);letter-spacing:-.4px;color:var(--act);text-transform:capitalize}
 .ew-greeting{margin:0;padding:0;background:transparent;border:0}
 .ew-greeting-top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
@@ -688,6 +689,118 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
   .hw,.hw-quick button,#card-tc,#card-gw{transition:none!important}
 }
 
+/* ═══════════ LAUNCHER GOBANK · LAYOUT A TUTTA FINESTRA (da 681 px in su; sul telefono non cambia nulla) ═══════════
+   Richiesta del 16/11/2026: niente bordi vuoti, le sezioni occupano tutti i margini. Scelta: «B · Mosaico».
+   Va in coda a hub.css e hub_wide.css. I selettori hanno un livello in più dei corrispondenti di hub.css, quindi non dipendono dall'ordine. */
+
+/* ═════ SISTEMA ═════
+   1) un solo margine laterale (--gx) per barra, titolo e carte: i bordi vuoti spariscono e la barra si allinea alle carte
+   2) un solo spazio tra le carte (--gp)
+   3) le righe si chiudono a filo: le carte di una riga hanno la stessa altezza e l'ultima non resta mai a metà
+   4) ogni carta si adatta al PROPRIO spazio (container query), non solo alla finestra
+   Gli involucri .ew-pv-top / .ew-pv-notes / .ew-pv-nums della carta Dashboard sono display:contents sotto i 620 px di carta (vedi hub.css). */
+.ew-launcher,.ew-sublauncher{--gx:clamp(16px,2.2vw,36px);--gp:clamp(12px,1.3vw,20px);
+  --gxl:max(var(--gx),env(safe-area-inset-left,0px));--gxr:max(var(--gx),env(safe-area-inset-right,0px));
+  --bar-h:calc(env(safe-area-inset-top,0px) + 56px);
+  --vfill:calc(100dvh - var(--bar-h) - var(--gx) - env(safe-area-inset-bottom,0px));
+  --sqs:clamp(34px,2.8vw,44px)}
+@media (min-width:681px){
+  .ew-launcher,.ew-sublauncher{padding-bottom:calc(var(--gx) + env(safe-area-inset-bottom,0px))}
+  :is(.ew-launcher,.ew-sublauncher) .ew-wrap{width:100%;max-width:2560px;margin:0 auto;padding-left:var(--gxl);padding-right:var(--gxr)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-topbar{padding-left:var(--gxl);padding-right:var(--gxr)}
+  /* allineamento ottico: il segno «<» e i tre puntini cadono sui bordi delle carte, non 8–14 px dentro */
+  :is(.ew-launcher,.ew-sublauncher) .ew-topbar .l{margin-left:-7px}
+  :is(.ew-launcher,.ew-sublauncher) .ew-topbar .r{margin-right:-13px}
+
+  /* testata su una riga: titolo + sottotitolo a sinistra, sigillo a destra (al posto della striscia vuota) */
+  :is(.ew-launcher,.ew-sublauncher) .ew-head{display:flex;align-items:baseline;flex-wrap:wrap;gap:0 14px;padding:2px 0 var(--gp)}
+  :is(.ew-launcher,.ew-sublauncher) .brandrow{order:3;margin:0 0 0 auto;min-height:0;align-self:center}
+  :is(.ew-launcher,.ew-sublauncher) .lt{margin:0;font-size:clamp(28px,2.3vw,34px)}
+  :is(.ew-launcher,.ew-sublauncher) .lt-sub{margin:0;font-size:15px}
+  :is(.ew-launcher,.ew-sublauncher) .ew-health{margin:0 0 var(--gp)}
+
+  :is(.ew-launcher,.ew-sublauncher) .ew-grid{gap:var(--gp);padding-bottom:0}
+  :is(.ew-launcher,.ew-sublauncher) .ew-right{gap:var(--gp)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile{padding:clamp(14px,1.25vw,20px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile .lb{font-size:clamp(16px,1.2vw,18px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.big{padding:clamp(16px,1.5vw,24px);container:dash/inline-size}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile .sq:not(.s40){width:var(--sqs);height:var(--sqs);font-size:calc(var(--sqs)*.55)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-mapsection{padding:clamp(14px,1.25vw,20px)}
+
+  /* sotto-pagine (Gestione, Banca): stesse regole, carte a tutta larghezza */
+  :is(.ew-launcher,.ew-sublauncher) .ew-sub-title{margin:2px 2px var(--gp)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-sub-grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,260px),1fr));grid-auto-rows:minmax(150px,24vh);gap:var(--gp);padding:0}
+  :is(.ew-launcher,.ew-sublauncher) .ew-sub-grid .ew-tile{min-height:0}
+  :is(.ew-launcher,.ew-sublauncher) .ew-sub-grid .ew-tile .sq{--sqs:clamp(46px,4vw,62px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-sub-grid .ew-tile .lb{font-size:clamp(18px,1.6vw,24px)}
+}
+
+/* la carta «Calendario & Dashboard» è sempre alta e stretta (5 colonne su 12, per tutta l'altezza): resta a UNA colonna e,
+   quando è larga (monitor grandi), cresce con i caratteri e gli spazi invece di lasciare vuoti */
+@container dash (min-width:600px){
+  :is(.ew-launcher,.ew-sublauncher) .ew-date{margin-top:clamp(16px,2.6cqw,30px);font-size:clamp(22px,3.8cqw,36px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-greeting-hello,:is(.ew-launcher,.ew-sublauncher) .ew-greeting-clock{font-size:clamp(17px,2.95cqw,24px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-quote{margin-top:clamp(8px,1.4cqw,14px);font-size:clamp(16px,2.8cqw,22px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-quote cite{font-size:clamp(13px,2.2cqw,16px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-diary,:is(.ew-launcher,.ew-sublauncher) .ew-vacspese{margin-top:clamp(14px,2.2cqw,24px);padding:clamp(14px,2.2cqw,22px) clamp(16px,2.6cqw,26px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-diary-text{font-size:clamp(16px,2.6cqw,20px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-stats{margin-top:clamp(18px,3cqw,34px);padding-top:clamp(16px,2.6cqw,28px);gap:clamp(14px,2.6cqw,28px) 14px}
+  :is(.ew-launcher,.ew-sublauncher) .ew-stat-label,:is(.ew-launcher,.ew-sublauncher) .hw-lx-h{font-size:clamp(11px,1.9cqw,13px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-stat-val{font-size:clamp(24px,4.2cqw,40px)}
+  :is(.ew-launcher,.ew-sublauncher) .hw-lx-bl i{font-size:clamp(10px,1.7cqw,12px)}
+  :is(.ew-launcher,.ew-sublauncher) .hw-lx-t,:is(.ew-launcher,.ew-sublauncher) .hw-lx-none{font-size:clamp(13.5px,2.34cqw,17px)}
+}
+@container dash (min-width:1250px){
+  :is(.ew-launcher,.ew-sublauncher) .ew-pv-nums .ew-stats{grid-template-columns:repeat(4,minmax(0,1fr))}
+}
+/* nella carta stretta (una colonna) la settimana cresce con lo spazio che avanza */
+@media (min-width:681px){
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.big .ew-preview{flex:1 1 auto}
+  :is(.ew-launcher,.ew-sublauncher) .hw-lx{flex:1 1 auto;margin-top:auto;max-height:clamp(240px,50vh,640px)}
+  :is(.ew-launcher,.ew-sublauncher) .hw-lx-bars{flex:1 1 58px;height:auto;min-height:58px}
+}
+
+/* area del grafico: due righe guida e la base, così una settimana con poche spese si legge come un grafico e non come un vuoto;
+   a settimana senza spese compare una scritta al posto delle barre */
+@media (min-width:681px){
+  :is(.ew-launcher,.ew-sublauncher) .hw-lx-bars{position:relative;
+    background:linear-gradient(var(--fill),var(--fill)) 0 0/100% 1px no-repeat,linear-gradient(var(--fill),var(--fill)) 0 50%/100% 1px no-repeat;
+    box-shadow:0 1px 0 var(--sep)}
+  /* a settimana senza spese resta la riga in alto (niente riga di mezzo, per non tagliare la scritta) */
+  :is(.ew-launcher,.ew-sublauncher) .hw-lx-bars:has(.hw-lx-none){background:linear-gradient(var(--fill),var(--fill)) 0 0/100% 1px no-repeat}
+  :is(.ew-launcher,.ew-sublauncher) .hw-lx-none{position:absolute;left:0;right:0;top:0;bottom:26px;display:flex;align-items:center;justify-content:center;padding:0 12px;text-align:center;font:500 13.5px var(--font);color:var(--label2);pointer-events:none}
+}
+
+/* mappa che riempie lo spazio che le resta */
+@media (min-width:681px){
+  :is(.ew-launcher,.ew-sublauncher) .ew-mapsection.ew-fill{display:flex;flex-direction:column}
+  :is(.ew-launcher,.ew-sublauncher) .ew-mapsection.ew-fill #ewMapContainer{flex:1 1 auto;height:auto;min-height:260px}
+}
+
+/* ═════ MOSAICO A INCASTRO ═════
+   Un blocco grande a sinistra (Dashboard, per tutta l'altezza) e a destra scorciatoie sopra la mappa: 12 colonne, nessun buco.
+   Sotto 1100 px: due colonne e mappa a tutta larghezza. */
+@media (min-width:681px){
+  :is(.ew-launcher,.ew-sublauncher) .ew-wrap{display:flex;flex-direction:column;min-height:var(--vfill)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-grid{flex:1 1 auto;grid-template-columns:minmax(0,1.12fr) minmax(0,1fr);grid-template-rows:minmax(min-content,1fr) auto}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.big{grid-row:auto}
+  :is(.ew-launcher,.ew-sublauncher) .ew-right{align-content:stretch;grid-template-rows:repeat(3,minmax(104px,1fr)) repeat(2,auto)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-mapsection{grid-column:1/-1;margin:0}
+  :is(.ew-launcher,.ew-sublauncher) .ew-mapsection.ew-fill #ewMapContainer{min-height:clamp(300px,36vh,440px)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-pv-notes{margin-top:auto}
+}
+@media (min-width:1100px){
+  :is(.ew-launcher,.ew-sublauncher) .ew-grid{grid-template-columns:repeat(12,minmax(0,1fr));grid-template-rows:auto minmax(min-content,1fr)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.big{grid-column:1/6;grid-row:1/3}
+  :is(.ew-launcher,.ew-sublauncher) .ew-right{grid-column:6/-1;grid-row:1;grid-template-columns:repeat(4,minmax(0,1fr));grid-template-rows:none;grid-auto-rows:minmax(116px,auto)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.wide{grid-column:auto;flex-direction:column;align-items:stretch;justify-content:space-between;gap:16px;min-height:0}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.wide .chev{display:none}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.wide .tt{flex:none}
+  :is(.ew-launcher,.ew-sublauncher) .ew-tile.wide .sq.s40{width:var(--sqs);height:var(--sqs);font-size:calc(var(--sqs)*.55)}
+  :is(.ew-launcher,.ew-sublauncher) .ew-mapsection{grid-column:6/-1;grid-row:2}
+  :is(.ew-launcher,.ew-sublauncher) .ew-mapsection.ew-fill #ewMapContainer{min-height:200px}
+}
+
 </style>
 <link rel="manifest" href="manifest.json"></head>
 <body>
@@ -969,6 +1082,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
       <div class="ew-tile big" onclick="openTcSection('dashboard')">
         <div class="hero-h"><span class="sq c-gold"><svg class="ic" aria-hidden="true"><use href="#i-calendar"/></svg></span><span class="lb">Calendario &amp; Dashboard</span><svg class="ic cv" aria-hidden="true"><use href="#i-chev-r"/></svg></div>
         <div class="ew-preview" id="ewDashPreview">
+          <div class="ew-pv-top">
           <div class="ew-date" id="ewPreviewDate">—</div>
           <div class="ew-greeting" id="ewGreeting">
             <div class="ew-greeting-top">
@@ -977,6 +1091,8 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             </div>
             <div class="ew-quote" id="ewGreetingQuote">—<cite id="ewGreetingQuoteAuthor"></cite></div>
           </div>
+          </div>
+          <div class="ew-pv-notes">
           <div class="ew-diary" id="ewDiaryBox" style="display:none;">
             <div class="ew-diary-top"><span id="ewDiaryMood">📔</span> <span id="ewDiaryLabel">Diario di oggi</span> <span id="ewDiaryTime"></span></div>
             <div class="ew-diary-text" id="ewDiaryText"></div>
@@ -985,6 +1101,8 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             <div class="ew-diary-top" id="ewVacSpeseTitle"><span id="ewVacSpeseTitleTxt">🧳 Spese vacanza di oggi</span><button class="ew-card-close" onclick="event.stopPropagation();ewDismissVacSpese()" title="Nascondi">✕</button></div>
             <div id="ewVacSpeseList"></div>
           </div>
+          </div>
+          <div class="ew-pv-nums">
           <div class="ew-stats">
             <div><div class="ew-stat-label">Rimanenza</div><div class="ew-stat-val" id="ewPreviewRim" style="color:var(--good);">—</div></div>
             <div><div class="ew-stat-label">Spese mese</div><div class="ew-stat-val" id="ewPreviewSpese" style="color:var(--act);">—</div></div>
@@ -996,6 +1114,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             <div class="hw-lx-bars" id="hwLxBars"></div>
             <div class="hw-lx-bl" id="hwLxBl"></div>
             <div class="hw-lx-t" id="hwLxT"></div>
+          </div>
           </div>
         </div>
       </div>
@@ -1036,7 +1155,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <svg class="ic chev" aria-hidden="true"><use href="#i-chev-r"/></svg>
       </div>
       </div>
-      <div class="ew-mapsection" id="ewMapSection">
+      <div class="ew-mapsection ew-fill" id="ewMapSection">
         <div class="ew-mapsection-head">
           <span>Mappa delle spese</span>
           <button class="ew-map-refresh" id="ewMapRefreshBtn" onclick="ewInitMap(true)" style="display:none;">↻ Aggiorna</button>
@@ -1481,12 +1600,13 @@ var HW=(function(){
     $('hwLxLab').textContent=b.label||'';
     var free=b.days.map(function(d){ return +d.free||0; }), mx=1, bars='', lbl='';
     free.forEach(function(v){ if(v>mx) mx=v; });
+    var none=!free.some(function(v){ return v>0; });   // settimana senza spese: il grafico lo dice a parole invece di restare un riquadro vuoto
     b.days.forEach(function(d,i){
       var p=d.ds.split('-'), x=new Date(+p[0],+p[1]-1,+p[2]), cls=(i===b.todayIdx?'td ':'')+(b.todayIdx>=0&&i>b.todayIdx?'fu':'');
       bars+='<i class="'+cls+'" style="height:'+Math.max(6,Math.round(free[i]/mx*100))+'%" title="'+esc(DOW3[x.getDay()]+' '+x.getDate()+' · '+eur(free[i]))+'"></i>';
       lbl+='<i class="'+(i===b.todayIdx?'td':'')+'">'+DL[x.getDay()]+'</i>';
     });
-    $('hwLxBars').innerHTML=bars; $('hwLxBl').innerHTML=lbl;
+    $('hwLxBars').innerHTML=bars+(none?'<span class="hw-lx-none">Ancora nessuna spesa questa settimana</span>':''); $('hwLxBl').innerHTML=lbl;
     var t;
     if(b.amount==null) t='Spese libere · <b>'+eur(b.spent||0)+'</b>';
     else if(b.remaining<0) t='Budget superato di <b>'+eur(-b.remaining)+'</b>';
@@ -2553,6 +2673,21 @@ document.addEventListener('keydown',function(e){ if(e.key==='Escape') ewCloseMen
   var el=document.getElementById(id); if(!el) return;
   el.addEventListener('scroll',function(){ el.classList.toggle('scrolled', el.scrollTop>8); },{passive:true});
 });
+// ── mappa: l'altezza del riquadro dipende dal layout (finestra, rotazione, avvisi che compaiono); quando cambia misura la mappa si adatta e tiene il centro ──
+(function(){
+  var c=document.getElementById('ewMapContainer'); if(!c||!window.ResizeObserver) return;
+  var t=null, last='';
+  new ResizeObserver(function(){
+    clearTimeout(t);
+    t=setTimeout(function(){
+      var m=window._ewMapInstance; if(!m||!window.google||!google.maps||!google.maps.event) return;
+      var r=c.getBoundingClientRect(), k=Math.round(r.width)+'x'+Math.round(r.height);
+      if(!r.width||!r.height||k===last) return;
+      last=k;
+      try{ var ctr=m.getCenter(); google.maps.event.trigger(m,'resize'); if(ctr) m.setCenter(ctr); }catch(e){}
+    },150);
+  }).observe(c);
+})();
 function closeLauncher(){
   try{ewCloseMenu();}catch(e){}
   document.getElementById('ewLauncher').classList.remove('open');
