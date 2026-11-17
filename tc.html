@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261115-v323-lettura-auto';
+  var BUILD = '20261117-v324-righe-complete';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -34156,6 +34156,26 @@ body.light{
 :is(html,#_) body .sco-items li b{flex:none;font-weight:600;font-variant-numeric:tabular-nums}
 :is(html,#_) body .sco-items li.neg b{color:var(--good)}
 :is(html,#_) body .sco-rm{flex:none;width:30px;height:30px;padding:0;border:0;border-radius:50%;background:var(--fill3);color:var(--label2);font-size:12px;cursor:pointer;-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-items.sco-ed li{display:grid;grid-template-columns:50px minmax(0,1fr) 84px 32px;gap:6px;align-items:start;padding:5px 0}
+:is(html,#_) body .sco-ed input,:is(html,#_) body .sco-ed textarea{display:block;width:100%;min-width:0;min-height:42px;margin:0;padding:8px 9px;border:1px solid var(--hair2);border-radius:10px;background:var(--fill3);color:var(--label);font:16px/1.25 var(--font);-webkit-appearance:none;appearance:none}
+:is(html,#_) body .sco-ed textarea{resize:none;overflow:hidden;padding-top:9px;padding-bottom:9px;overflow-wrap:break-word}
+:is(html,#_) body .sco-ed input:focus,:is(html,#_) body .sco-ed textarea:focus{outline:2px solid var(--ac);outline-offset:1px}
+:is(html,#_) body .sco-ed .sco-rm{margin-top:5px}
+:is(html,#_) body .sco-ed .sco-i-q{padding-left:4px;padding-right:4px;text-align:center;font-variant-numeric:tabular-nums}
+:is(html,#_) body .sco-ed .sco-i-t{text-align:right;font-weight:600;font-variant-numeric:tabular-nums}
+:is(html,#_) body .sco-ed li.est .sco-i-t{border-style:dashed;border-color:var(--bd-o);background:var(--tint-o)}
+:is(html,#_) body .sco-ed li.neg .sco-i-t{color:var(--good)}
+:is(html,#_) body .sco-ed .sco-rm{width:32px;height:32px}
+@media (max-width:359px){:is(html,#_) body .sco-items.sco-ed li{grid-template-columns:44px minmax(0,1fr) 30px;grid-template-areas:"q d x" ". t .";gap:5px}
+:is(html,#_) body .sco-ed .sco-i-q{grid-area:q}
+:is(html,#_) body .sco-ed .sco-i-d{grid-area:d}
+:is(html,#_) body .sco-ed .sco-i-t{grid-area:t;justify-self:end;width:112px}
+:is(html,#_) body .sco-ed .sco-rm{grid-area:x;width:28px;height:28px;margin-top:6px}}
+:is(html,#_) body .sco-items small{display:block;font-size:12px;color:var(--label2)}
+:is(html,#_) body .sco-xl li{padding:5px 0;font:12.5px/1.4 var(--font-mono)}
+:is(html,#_) body .sco-xl li span{overflow-wrap:anywhere;white-space:pre-wrap}
+:is(html,#_) body .sco-det .sco-fine{margin:0 0 8px}
+:is(html,#_) body .sco-det>.sco-fld:last-child{margin-bottom:4px}
 :is(html,#_) body .sco-sumline{margin:0 0 12px;padding:9px 12px;border-radius:12px;font-size:13px;line-height:1.4}
 :is(html,#_) body .sco-sumline:empty{display:none}
 :is(html,#_) body .sco-sumline.ok{background:var(--tint-g);color:var(--good)}
@@ -34169,7 +34189,7 @@ body.light{
 :is(html,#_) body .sco-opt span{min-width:0;overflow-wrap:anywhere}
 :is(html,#_) body .sco-opt small{display:block;margin-top:2px;font-size:12px;color:var(--label2)}
 :is(html,#_) body .sco-det{margin:0 0 14px;padding:0}
-:is(html,#_) body .sco-det>summary{min-height:44px;display:flex;align-items:center;font-size:14.5px;font-weight:600;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
+:is(html,#_) body .sco-det>summary{min-height:44px;display:flex;align-items:center;gap:7px;font-size:14.5px;font-weight:600;cursor:pointer;list-style:none;-webkit-tap-highlight-color:transparent}
 :is(html,#_) body .sco-det>summary::-webkit-details-marker{display:none}
 :is(html,#_) body .sco-det>summary::after{content:"›";margin-left:auto;font-size:20px;color:var(--label2);transform:rotate(90deg);transition:transform .15s}
 :is(html,#_) body .sco-det[open]>summary::after{transform:rotate(-90deg)}
@@ -36872,10 +36892,10 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v324', d: '17 nov 2026', t: 'Scontrino letto per intero', x: 'Dalla foto l’app prende ora tutto quello che c’è scritto: negozio e insegna, indirizzo, tutte le righe con quantità e importi, IVA, pagamento e le altre righe (operatore, tavolo, IBAN…). Prima di creare lo scontrino puoi correggere ogni riga. Copia digitale e PDF riportano tutto. Vale anche per fatture e ricevute del POS.' },
     { v: 'v323', d: '15 nov 2026', t: 'Lettura automatica dello scontrino', x: 'Scatti la foto e l’app legge da sola negozio, data e totale (il motore gira sul telefono: la foto non viene inviata a nessuno). Tu controlli la scheda e crei lo scontrino; quello che scrivi tu non viene mai cambiato. La prima volta scarica il motore di lettura, circa 6 MB.' },
     { v: 'v322', d: '14 nov 2026', t: 'Scontrino digitale', x: 'Fotografa uno scontrino (o incolla il testo di «Scansiona testo» di iOS): controlli i dati e l’app crea la spesa in GoBank e un PDF con lo scontrino riscritto più la foto. Lo trovi in Documenti, scheda Scontrini.' },
-    { v: 'v321', d: '9 nov 2026', t: 'Rimanenza sempre aggiornata', x: 'Quando aggiungi un’entrata o una spesa, l’avviso dice anche di quanto cambia la rimanenza (▲ +€200,00 → €357,00). La Dashboard è sempre aggiornata quando la apri, anche dopo l’entrata rapida di Spese Settimanali.' },
-    { v: 'v320', d: '8 nov 2026', t: 'Spese dal telefono e iPad', x: 'Nel dettaglio del giorno il modulo «Aggiungi spesa» ha sempre Annulla e Salva raggiungibili sul telefono. Impostazioni a tutto schermo anche su iPad in verticale.' }
+    { v: 'v321', d: '9 nov 2026', t: 'Rimanenza sempre aggiornata', x: 'Quando aggiungi un’entrata o una spesa, l’avviso dice anche di quanto cambia la rimanenza (▲ +€200,00 → €357,00). La Dashboard è sempre aggiornata quando la apri, anche dopo l’entrata rapida di Spese Settimanali.' }
   ];
 
   var cur = 'info', timer = 0, bound = false;
@@ -37442,7 +37462,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         var f = found[k], rest = s.slice(0, f.at) + ' ' + s.slice(f.at + f.len);
         var time = findTime(rest);
         if (!time && i + 1 < lines.length && /^\s*(ORA\s*[:.]?\s*)?\d{1,2}\s*[:.]\s*\d{2}\s*$/i.test(lines[i + 1])) time = findTime(lines[i + 1]);
-        var score = (/DATA|DEL\b|ORA|DOC|EMESS/i.test(s) ? 2 : 0) + (time ? 1 : 0);
+        var score = (/DATA|DEL\b|ORA|DOC|EMESS/i.test(s) ? 2 : 0) + (time ? 1 : 0) - (/SCAD|PAGAMENTO\s+ENTRO|ENTRO\s+IL/i.test(s) ? 3 : 0);
         if (!best || score > best.score) best = { iso: f.y + '-' + pad(f.mo) + '-' + pad(f.d), time: time, line: i, score: score };
       }
     }
@@ -37456,7 +37476,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     compl: /C[O0]MPLESSIV/i,
     pay: /^(PAGAMENT|CARTA\s+DI\s+(CRED|DEB)|CARTA\s+(CRED|DEB)|BANCOMAT|PAGOBANCOMAT|POS\b|CONTANT|RESTO|ELETTRONIC|TICKET|BUON[OI]|SATISPAY|VISA|MASTERCARD|MAESTRO|AMEX|CREDIT|DEBIT|CARTA\s*\*|PAGATO|DA\s+PAGARE|IMPORTO)/i,
     head: /^(DOCUMENTO|DOC\b|SCONTRINO|COMMERCIALE|FISCALE|RICEVUTA|COPIA|CASSA|OP(ERATORE)?\b|DATA|ORA\b|TEL|FAX|WWW|HTTP|P\.?\s?IVA|PARTITA|C\.?F\.?\b|CODICE|ARTICOLI|PEZZI|N\.?\s*ART|PUNTI|SALDO|TESSERA|CARD|RT\b|MATR|ARROTOND|GRAZIE|ARRIVEDERCI|LOTTERIA|IVA\b|IMPONIBILE|ALIQUOTA|DI\s+CUI|CODICE)/i,
-    addr: /^(VIA|VIALE|V\.LE|V\.\s|PIAZZA|P\.ZZA|P\.ZA|CORSO|C\.SO|LARGO|LOC\b|LOC\.|LOCALIT|STRADA|S\.S\.|SS\s?\d|VICOLO|BORGO|CONTRADA|FRAZ)/i,
+    addr: /^(VIA|VIALE|V\.LE|V\.\s|PIAZZA|P\.ZZA|P\.ZA|CORSO|C\.SO|C[\s.]{0,2}[S5][O0](?=[\s.,])|PZA|PIAZZALE|LUNGOMARE|LUNGARNO|LARGO|LOC\b|LOC\.|LOCALIT|STRADA|S\.S\.|SS\s?\d|VICOLO|BORGO|CONTRADA|FRAZ)/i,
     legal: /(S\.?\s?R\.?\s?L\.?S?|S\.?\s?P\.?\s?A\.?|S\.?\s?N\.?\s?C\.?|S\.?\s?A\.?\s?S\.?|S\.?\s?S\.?)\s*$/i
   };
 
@@ -37469,32 +37489,98 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var toks = t.split(' ').map(function (x) { return x.replace(new RegExp('[^' + LET + ']', 'g'), ''); }).filter(Boolean);
     if (!toks.length) return false;
     var mean = toks.reduce(function (a, x) { return a + x.length; }, 0) / toks.length;
+    // MAIUSCOLE e minuscole mescolate («sii AN ESIBISCE»): un nome stampato è tutto maiuscolo o con l'iniziale maiuscola; due lettere minuscole sole («e», «da») non contano
+    var low = toks.filter(function (x) { return x.length >= 3 && x === x.toLowerCase(); }).length, upp = toks.filter(function (x) { return x.length >= 2 && x === x.toUpperCase(); }).length;
+    if (low && upp) return false;
     return mean >= 3.2 && toks.some(function (x) { return x.length >= 4 && /[AEIOUaeiouÀ-ÿ]/.test(x); });
   }
+
+  /* province italiane (sigle valide): servono a capire se «TO» in fondo a una riga è una provincia */
+  var PROV = {};
+  ('AG AL AN AO AP AQ AR AT AV BA BG BI BL BN BO BR BS BT BZ CA CB CE CH CI CL CN CO CR CS CT CZ EN FC FE FG FI FM FR GE GO GR IM IS KR LC LE LI LO LT LU MB MC ME MI MN MO MS MT NA NO NU OG OR OT PA PC PD PE PG PI PN PO PR PT PU PV PZ RA RC RE RG RI RM RN RO SA SI SO SP SR SS SU SV TA TE TN TO TP TR TS TV UD VA VB VC VE VI VR VS VT VV').split(' ').forEach(function (p) { PROV[p] = 1; });
+  var RX_STREET = new RegExp('^[' + LET + '][' + LET + "'. ]{3,}\\s*,\\s*\\d{1,4}\\s*[A-Za-z]?(?:[\\s\\-–,]+\\d{5})?[\\s\\-–]*$");        // «ITALIA , 12» (senza «Corso»/«Via» davanti)
+  // «C.SO ITALIA, 12 -10100» → indirizzo + CAP (il CAP in fondo alla riga)
+  function splitAddr(a) {
+    var zip = '', m = /[\s\-–,;]+(\d{5})[\s\-–,;.]*$/.exec(a);
+    if (m) { zip = m[1]; a = a.slice(0, m.index); }
+    return { address: a.replace(/[\s\-–,;]+$/, '').replace(/\s+,/g, ',').trim(), zip: zip };
+  }
+  // «10100 TORINO (TO)», «TORINO -TO», «50121 FIRENZE FI», «55100 LUCCA» → {zip, city, prov} oppure null.
+  // loose: già letto un indirizzo sopra, quindi «NOME XX» senza CAP si accetta come città + provincia
+  function fixProv(p) {
+    p = String(p || '').toUpperCase(); if (PROV[p]) return p;
+    var q = p.replace(/[L1|!]/g, 'I').replace(/0/g, 'O').replace(/5/g, 'S').replace(/8/g, 'B');
+    return PROV[q] ? q : '';
+  }
+  function parseCity(line, loose) {
+    var a = cleanName(String(line || '')), zip = '', m, c = '', p = '';
+    if (!a) return null;
+    if ((m = /^(\d{5})\b[\s,\-–]*(.*)$/.exec(a))) { zip = m[1]; a = m[2].trim(); }
+    if (!a || /\d/.test(a)) return null;
+    if ((m = new RegExp('^([' + LET + '][' + LET + "'. ]*?)\\s*[-(\\[]\\s*([A-Za-z]{2})\\s*[-)\\]]?$").exec(a)) && fixProv(m[2])) { c = m[1]; p = fixProv(m[2]); }
+    else if ((m = new RegExp('^([' + LET + '][' + LET + "'. ]*?)[\\s,]+([A-Z]{2})$").exec(a)) && PROV[m[2]] && (zip || loose)) { c = m[1]; p = m[2]; }
+    else if (zip && new RegExp('^[' + LET + '][' + LET + "'. ]{2,}$").test(a)) c = a;
+    else return null;
+    c = c.replace(/[\s,.\-–]+$/, '').trim();
+    if ((c.match(new RegExp('[' + LET + ']', 'g')) || []).length < 3) return null;
+    return { zip: zip, city: c, prov: p };
+  }
+  function fmtCity(c) { return (c.zip ? c.zip + ' ' : '') + c.city + (c.prov ? ' (' + c.prov + ')' : ''); }
+
   function findMerchant(lines, pivaLine) {
-    var end = Math.min(lines.length, pivaLine >= 0 ? Math.max(pivaLine + 1, 3) : 8, 10), name = '', ni = -1, legal = '', address = '', city = '', plausible = false, first = null;
-    for (var i = 0; i < end; i++) {
-      var s = cleanName(lines[i]).replace(new RegExp('^[' + LET + '][\\s|_.:;\'"“”\\-]+(?=[' + LET + ']{3})'), '');
+    var end = Math.min(lines.length, pivaLine >= 0 ? Math.max(pivaLine + 1, 3) : 8, 10), name = '', ni = -1, legal = '', li = -1, plausible = false, first = null, i, s;
+    for (i = 0; i < end; i++) {
+      s = cleanName(lines[i]).replace(/^(?:CEDENTE|PRESTATORE|FORNITORE|EMITTENTE|VENDITORE|DENOMINAZIONE|RAGIONE\s+SOCIALE|DITTA)\s*(?:\/\s*[A-Za-z]+)?\s*[:\-]\s*/i, '').replace(new RegExp('^[' + LET + '][\\s|_.:;\'"“”\\-]+(?=[' + LET + ']{3})'), '');
       if (!s || (s.match(new RegExp('[' + LET + ']', 'g')) || []).length < 3) continue;
       if (RX.head.test(s) || RX.addr.test(s) || /ESEMPIO|@|\d{5}\s/.test(s)) continue;
       if ((s.match(/\d/g) || []).length > s.length / 3) continue;
       if (/^di\s/i.test(s) || RX.legal.test(s)) {
-        if (ni >= 0 && i === ni + 1 && !legal) legal = s;
-        else if (ni < 0 && !first && !/^di\s/i.test(s) && plausibleName(s)) { name = s; ni = i; plausible = true; legal = s; }     // «FERRAMENTA DEMO SRL» è già il nome
+        if (ni >= 0 && i === ni + 1 && !legal) { legal = s; li = i; }
+        else if (ni < 0 && !first && !/^di\s/i.test(s) && plausibleName(s)) { name = s; ni = i; plausible = true; legal = s; li = i; }     // «FERRAMENTA DEMO SRL» è già il nome
         continue;
       }
       if (!first) first = { s: s, i: i };
       if (!name && plausibleName(s)) { name = s; ni = i; plausible = true; }
     }
     if (!name && first) { name = first.s; ni = first.i; }
-    for (var j = Math.max(ni, 0); j < Math.min(lines.length, (ni < 0 ? 0 : ni) + 7); j++) {
-      var a = cleanName(lines[j]);
-      if (!address && RX.addr.test(a)) address = a;
-      var cm = new RegExp('(?:\\d{5}\\s+)?([' + LET + "' ]{3,}?)\\s*\\(([A-Z]{2})\\)").exec(a);
-      if (!city && cm) city = cleanName(cm[1]).replace(/^[\-–,\s]+/, '') + ' (' + cm[2] + ')';
-      else if (!city) { var cm2 = new RegExp('\\b\\d{5}\\s+([' + LET + "' ]{3,})$").exec(a); if (cm2) city = cleanName(cm2[1]); }
+    // insegna: la prima riga è la ragione sociale («ROSSI E FIGLI SRL») e subito sotto c'è il nome del locale («TRATTORIA DEL PONTE»)
+    var trade = '', ti = -1;
+    if (ni >= 0 && legal && li === ni && !/^di\s/i.test(name)) {
+      for (var t = ni + 1; t < Math.min(lines.length, ni + 3); t++) {
+        var c = cleanName(lines[t]); if (!c) continue;
+        if (RX.head.test(c) || RX.addr.test(c) || RX_STREET.test(c) || parseCity(c, true) || /@|ESEMPIO|\d{3,}/.test(c) || RX.legal.test(c) || /^di\s/i.test(c)) break;
+        var up = (c.match(/[A-ZÀ-Ý]/g) || []).length, lo = (c.match(/[a-zà-ÿ]/g) || []).length;
+        if (plausibleName(c) && up >= 4 * lo && c.length <= 44 && !/GRAZIE|BENVENUT|OFFERT|PROMO|SCONT/i.test(c)) { trade = c; ti = t; }
+        break;
+      }
     }
-    return { name: name, legal: legal, address: address, city: city, line: ni, plausible: plausible };
+    if (trade) { name = trade; ni = ti; plausible = true; }
+    // indirizzo, CAP, città: nelle righe subito sotto il nome
+    var idx = [], address = '', ai = -1, zip = '', city = null, cj = -1, j, a, last = Math.max(ni, li, 0), lo0 = Math.max(0, Math.min(ni < 0 ? 0 : ni, li < 0 ? 999 : li));
+    [ni, li, ti].forEach(function (x) { if (x >= 0 && idx.indexOf(x) < 0) idx.push(x); });
+    for (j = lo0; j < Math.min(lines.length, last + 7); j++) {
+      if (idx.indexOf(j) >= 0) continue;
+      a = cleanName(lines[j]); if (!a) continue;
+      if (ai < 0 && (RX.addr.test(a) || RX_STREET.test(a))) {
+        var inl = new RegExp('^(.*?)[\\s,\\-–]+(\\d{5})\\s+([' + LET + "'. ]{3,}?)\\s*(?:[-(\\[]\\s*([A-Za-z]{2})\\s*[-)\\]]?)?$").exec(a), sp;
+        if (inl && (!inl[4] || fixProv(inl[4]))) { address = inl[1].trim(); city = { zip: inl[2], city: inl[3].replace(/[\s,.\-–]+$/, ''), prov: fixProv(inl[4]) }; cj = j; }
+        else { sp = splitAddr(a); address = sp.address; zip = sp.zip; }
+        ai = j; idx.push(j); continue;
+      }
+      if (!city) { var pc = parseCity(a, ai >= 0); if (pc) { city = pc; cj = j; idx.push(j); } }
+    }
+    if (!city) {     // «(XX)» in una riga qualsiasi dell'intestazione
+      for (j = Math.max(ni, 0); j < Math.min(lines.length, (ni < 0 ? 0 : ni) + 7); j++) {
+        a = cleanName(lines[j]);
+        var cm = new RegExp('(?:(\\d{5})\\s+)?([' + LET + "' ]{3,}?)\\s*\\(([A-Za-z]{2})\\)").exec(a);
+        if (cm && fixProv(cm[3])) { city = { zip: cm[1] || '', city: cleanName(cm[2]).replace(/^[\-–,\s]+/, ''), prov: fixProv(cm[3]) }; cj = j; if (idx.indexOf(j) < 0) idx.push(j); break; }
+        var cm2 = new RegExp('\\b(\\d{5})\\s+([' + LET + "' ]{3,})$").exec(a);
+        if (cm2) { city = { zip: cm2[1], city: cleanName(cm2[2]), prov: '' }; cj = j; if (idx.indexOf(j) < 0) idx.push(j); break; }
+      }
+    }
+    if (city && !city.zip && zip) city.zip = zip;
+    var hdrEnd = idx.length ? Math.max.apply(null, idx) + 1 : 0;
+    return { name: name, legal: legal, trade: trade, address: address, city: city ? fmtCity(city) : '', zip: city && city.zip || zip, line: ni, plausible: plausible, idx: idx, hdrEnd: hdrEnd };
   }
   function titleCase(s) {
     return s.toLowerCase().replace(new RegExp('(^|[\\s\\-\'/.])([' + LET + '])', 'g'), function (m, a, b) { return a + b.toUpperCase(); })
@@ -37503,13 +37589,14 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   /* ───────────── totale ───────────── */
   function lineTotalCandidates(lines) {
-    var out = [];
+    var out = [], pos = /\b(?:STAN|TERMINAL[EI]|MERCHANT|AUTH(?:ORI[ZS]{1,2}AZ\w*)?|ESITO\s+TRANSAZ\w*|PAGOBANCOMAT)\b/i.test(lines.join('\n'));
     for (var i = 0; i < lines.length; i++) {
       var s = lines[i], kind = 0;
       if (RX.tot.test(s) && !RX.totBad.test(s)) kind = RX.compl.test(s) ? 5 : 4;
+      else if (/NETTO\s+(?:A\s+)?PAGARE|TOTALE\s+DOVUTO/i.test(s)) kind = 4;
       else if (/DA\s+PAGARE/i.test(s)) kind = 3;
       else if (/IMPORTO\s+PAGATO|TOTALE\s+PAGATO|^\s*PAGATO\b/i.test(s)) kind = 2;
-      else if (/^\s*IMPORTO\b/i.test(s)) kind = 1;
+      else if (/^\s*IMPORTO\b/i.test(s)) kind = pos ? 4 : 1;
       if (!kind) continue;
       var a = amounts(s), broken = /\d[,.](?:\s|$)/.test(s);
       if (!a.length && !broken && i + 1 < lines.length && /^\s*(?:€|EUR)?\s*\d[\d.]*[,.]\d{2}\s*(?:€|EUR)?\s*$/.test(lines[i + 1])) a = amounts(lines[i + 1]).slice(0, 1);
@@ -37520,6 +37607,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   /* ───────────── articoli ───────────── */
+  function r3(v) { return Math.round((+v || 0) * 1000) / 1000; }
+  function sumOf(items) { return r2(items.reduce(function (t, x) { return t + (x.total || 0); }, 0)); }
   function itemOf(s) {
     var m = new RegExp('^(.*?[' + LET + '].*?)\\s+(?:-\\s?)?(\\d{1,3}(?:\\.\\d{3})+|\\d+)[,.](\\d{2})(-?)\\s*(?:EUR|€|E)?\\s*([A-F]|\\d{1,2}(?:[,.]\\d+)?\\s?%|\\*)?\\s*$').exec(s);
     if (!m) return null;
@@ -37536,29 +37625,150 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
   var RX_QTYLINE = /^\s*(\d+(?:[,.]\d{1,3})?)\s*(?:KG|HG|G|L|LT|PZ)?\s*[xX*]\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2,3})(?:\s*(?:€|EUR))?(?:\s*\/\s*(?:KG|HG|L|LT|PZ))?\s*(?:=?\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2}))?\s*([A-F])?\s*$/i;
   var RX_AMTONLY = /^\s*(-\s?)?(\d{1,3}(?:\.\d{3})+|\d+)[,.](\d{2})(-?)\s*(?:EUR|€)?\s*([A-F])?\s*$/;
+  var RX_AMT2 = /^\s*-?(?:\d{1,3}(?:\.\d{3})+|\d+)[,.]\d{2}-?\s+-?(?:\d{1,3}(?:\.\d{3})+|\d+)[,.]\d{2}-?\s*(?:EUR|€)?\s*[A-F]?\s*$/;
+
+  /* ── scontrini «a colonne»: «Pezzi  Descrizione  Prz.Unit  Prz.Tot» → «1,00 CAPPUCCINO   1,50   1,50» ── */
+  var AMTTOK = /^-?(?:\d{1,3}(?:\.\d{3})+|\d+)[,.]\d{2}-?$/;           // 1,50 · 1.234,56 · 12.09 · 1,50-
+  var QTYDEC = /^\d{1,3}[,.]\d{2,3}$/;                               // 1,00 · 0,350
+  var QTYTOK = /^\d{1,3}(?:[,.]\d{1,3})?$/;
+  var PCTTOK = /^\d{1,2}(?:[,.]\d{1,2})?%$/;
+  // «1,90]» → «1,90»: un segno attaccato a un importo (rumore) non deve nasconderlo
+  function cleanTok(t) { var c = t.replace(/^[\[\]|!'`´(){}_~^]+|[\[\]|!'`´(){}_~^]+$/g, ''); return c && c !== t && (AMTTOK.test(c) || PCTTOK.test(c)) ? c : t; }
+  function tv(t) { var neg = /^-|-$/.test(t); var v = parseFloat(String(t).replace(/^-|-$/g, '').replace(/\.(?=\d{3}(?:\D|$))/g, '').replace(',', '.')); return neg ? -v : v; }
+  // un gettone corto fatto di segni o di una cifra sola, rimasto dopo l'ultimo importo («! 1», «|_1°», «]»): rumore di lettura
+  function isJunk(t) { return t.length <= 5 && !/[A-Za-zÀ-ÿ]{2,}/.test(t) && !AMTTOK.test(t) && !PCTTOK.test(t) && !/^[A-F]$/.test(t) && !/^(?:EUR|€|E)$/i.test(t); }
+  // riga di intestazione delle colonne (niente cifre): almeno due colonne note, oppure «Prz.Unit» / «Prz.Tot» / «Descrizione» da soli
+  function isColHead(s) {
+    if (/\d/.test(s)) return false;
+    var t = s.replace(/[^A-Za-zÀ-ÿ.\s]/g, ' '), hits = 0;
+    [/PEZZI|\bPZ\b|\bQ\.?\s?T[AÀ]'?\b|QUANT/i, /DESCRIZ|ARTICOL|PRODOTT|DENOMIN/i, /\bPRZ\b|PREZZ|\bUNIT\b|\bP\.?\s?UNIT/i, /\bPRZ\.?\s?TOT|\bTOT\b|IMPORTO|\bIMP\b|VALORE/i].forEach(function (rx) { if (rx.test(t)) hits++; });
+    return hits >= 2 || /PRZ\.?\s?(TOT|UNIT)|PREZZO\s+(UNIT|TOT)|\bDESCRIZIONE\b/i.test(t);
+  }
+  /* «1,00 CAPPUCCINO 1,50 1,50» → qta 1, unitario 1,50, totale 1,50. Torna null se la riga non è fatta a colonne
+     (allora si usa la lettura semplice «descrizione … prezzo»). Controlla che quantità × unitario = totale. */
+  function itemCols(s, hasHdr) {
+    var tk = s.trim().replace(/\s+/g, ' ').split(' ').map(cleanTok), i;
+    if (tk.length < 3 || /\d\s*(?:KG|HG|G|L|LT|PZ)?\s*[xX*]\s*\d/i.test(s)) return null;
+    var la = -1; for (i = tk.length - 1; i >= 0; i--) if (AMTTOK.test(tk[i])) { la = i; break; }
+    if (la < 1) return null;
+    var tail = tk.slice(la + 1), junk = false, vat = '';
+    for (i = 0; i < tail.length; i++) {
+      var x = tail[i];
+      if (/^[A-F]$/.test(x) || PCTTOK.test(x)) { if (!vat) vat = x; }
+      else if (/^(?:EUR|€|E|\*)$/i.test(x)) continue;
+      else if (isJunk(x)) junk = true;
+      else return null;
+    }
+    var body = tk.slice(0, la + 1), nums = [], k = body.length - 1;
+    while (k >= 0) {
+      var y = body[k];
+      if (AMTTOK.test(y)) nums.unshift({ k: 'a', v: tv(y), t: y });
+      else if (PCTTOK.test(y)) nums.unshift({ k: 'p', v: parseFloat(y.replace(',', '.')) });
+      else if (/^\d{1,3}$/.test(y) && nums.length) nums.unshift({ k: 'i', v: +y });
+      else break;
+      k--;
+    }
+    var head = body.slice(0, k + 1), lead = null;
+    var A = nums.filter(function (n) { return n.k === 'a'; }), I = nums.filter(function (n) { return n.k === 'i'; }), P = nums.filter(function (n) { return n.k === 'p'; });
+    if (head.length >= 2 && QTYTOK.test(head[0]) && /[A-Za-zÀ-ÿ]/.test(head[1]) && (QTYDEC.test(head[0]) || A.length >= 2)) { lead = tv(head[0]); head = head.slice(1); }
+    // «2,00 ACQUA 0,75   2,50   5,00»: con la quantità davanti, prezzo e totale sono gli ultimi due importi; quelli prima (misure, formati) fanno parte della descrizione
+    if (lead != null && A.length >= 3 && Math.abs(lead * A[A.length - 2].v - A[A.length - 1].v) <= 0.0112 + 0.0001 * Math.abs(A[A.length - 1].v)) {
+      head = head.concat(A.slice(0, A.length - 2).map(function (a) { return a.t; })); A = A.slice(A.length - 2);
+    }
+    var desc = head.join(' ').replace(/^[\s|!._\-]+/, '').replace(/[\s.…_\-]+$/g, '').trim();
+    if ((desc.match(new RegExp('[' + LET + ']', 'g')) || []).length < 2) return null;
+    if (!A.length || (A.length < 2 && lead == null)) return null;
+    if (!vat && P.length) vat = String(P[P.length - 1].v).replace('.', ',') + '%';
+    var qty = lead != null ? lead : (I.length ? I[I.length - 1].v : (A.length >= 3 ? A[A.length - 3].v : null)), unit = null, total, amb = false, inf = false, chk = false;
+    var T = A[A.length - 1].v, U = A.length >= 2 ? A[A.length - 2].v : null;
+    if (A.length >= 2) {
+      if (qty == null) {
+        var q = U ? T / U : NaN;
+        if (U && isFinite(q) && Math.abs(q - Math.round(q)) < 0.0005 && Math.round(q) >= 1 && Math.round(q) <= 999) { qty = Math.round(q); unit = U; total = T; }
+        else return null;                         // due importi che non sono «prezzo» e «totale»: lascio fare alla lettura semplice
+      } else if (Math.abs(qty * U - T) <= 0.0112 + 0.0001 * Math.abs(T)) { unit = U; total = T; }
+      else if (Math.abs(qty * T - U) <= 0.0112) { unit = T; total = U; chk = true; }                   // colonne scambiate
+      else { unit = U; total = T; chk = true; }
+    } else {                                      // un solo importo dopo la quantità
+      qty = lead; total = T;
+      if (qty !== 1) { if (junk) { unit = T; total = r2(qty * T); inf = true; } else amb = true; }       // c'è rumore dove andava il totale: l'importo letto è quello unitario
+    }
+    return { desc: desc, qty: r3(qty), unit: qty === 1 ? null : unit, total: r2(total), vat: vat, amb: amb, inf: inf, chk: chk };
+  }
+
+  /* Legge la zona articoli [from, to). Ritorna {items, used (righe usate), hdr (c'è l'intestazione delle colonne),
+     unpriced (descrizioni con quantità ma senza importo), leftAmts (righe di soli importi non abbinate)}. */
   function findItems(lines, from, to) {
-    var items = [], pending = null;
+    var items = [], pending = null, pendAt = -1, used = [], hdr = false, unp = [], left = [], blk = false;
+    function push(it, ln, extraUsed) { it.ln = ln; items.push(it); used.push(ln); if (extraUsed != null && extraUsed >= 0) used.push(extraUsed); }
     for (var i = from; i < to; i++) {
       var s = lines[i].trim(); if (!s) { pending = null; continue; }
-      if (RX.head.test(s) || RX.pay.test(s) || (RX.tot.test(s) && !/\d,\d{2}/.test(s) && false)) { pending = null; continue; }
+      if (isColHead(s)) { hdr = true; used.push(i); pending = null; continue; }
+      if (RX.head.test(s) || RX.pay.test(s)) { pending = null; continue; }
       if (RX.tot.test(s)) { pending = null; continue; }
       if (/^\s*(DATA|ORA)\b|\d{1,2}\s*[\/\-]\s*\d{1,2}\s*[\/\-]\s*\d{2,4}/i.test(s)) { pending = null; continue; }
       var ql = RX_QTYLINE.exec(s);
       if (ql && pending) {
         var qty = parseFloat(ql[1].replace(',', '.')), unit = parseFloat(ql[2].replace(/\./g, '').replace(',', '.')), tot = ql[3] ? parseFloat(ql[3].replace(/\./g, '').replace(',', '.')) : r2(qty * unit);
-        items.push({ desc: pending, qty: qty, unit: unit, total: tot, vat: ql[4] || '' }); pending = null; continue;
+        push({ desc: pending, qty: qty, unit: unit, total: tot, vat: ql[4] || '' }, i, pendAt); pending = null; continue;
+      }
+      var colPend = pending && !blk && QTYDEC.test(pending.split(' ')[0]);          // «1,00 CAPPUCCINO» sulla riga sopra, «1,50  1,50» su questa
+      if (pending && colPend && (RX_AMT2.test(s) || RX_AMTONLY.test(s))) {
+        var jn = itemCols(pending + ' ' + s, hdr);
+        if (jn) { push(jn, pendAt, i); pending = null; continue; }
       }
       var ao = RX_AMTONLY.exec(s);
       if (ao && pending) {   // «2 X ACQUA 1,5L» sulla riga sopra, «1,18 C» su questa
         var pv = parseFloat(ao[2].replace(/\./g, '') + '.' + ao[3]), pq = /^(\d{1,3})\s*(?:[xX*]|PZ\.?)\s+(.*)$/.exec(pending);
-        items.push({ desc: pq ? pq[2] : pending, qty: pq ? +pq[1] : 1, unit: null, total: (ao[1] || ao[4]) ? -pv : pv, vat: ao[5] || '' }); pending = null; continue;
+        push({ desc: pq ? pq[2] : pending, qty: pq ? +pq[1] : 1, unit: null, total: (ao[1] || ao[4]) ? -pv : pv, vat: ao[5] || '' }, i, pendAt); pending = null; continue;
       }
-      var it = itemOf(s);
-      if (it) { items.push(it); pending = null; continue; }
+      var it = itemCols(s, hdr) || itemOf(s);
+      if (it) { push(it, i); pending = null; continue; }
+      if (RX_AMT2.test(s) || RX_AMTONLY.test(s)) {          // solo importi, senza descrizione sopra: li ricordo (foto inclinata: prezzi spostati)
+        left.push({ i: i, a: amounts(s).map(function (x) { return Math.abs(x.v); }) }); pending = null; continue;
+      }
       // riga di sola descrizione: il prezzo arriva sulla riga dopo («2 x 1,20  2,40»)
-      if (new RegExp('^[' + LET + '0-9][^\\n]{2,}$').test(s) && !/\d[,.]\d{2}\s*$/.test(s)) pending = s.replace(/\s+/g, ' '); else pending = null;
+      if (new RegExp('^[' + LET + '0-9][^\\n]{2,}$').test(s) && !/\d[,.]\d{2}\s*$/.test(s)) {
+        if (pending && QTYDEC.test(pending.split(' ')[0]) && QTYDEC.test(s.split(/\s+/)[0])) blk = true;      // due descrizioni di fila: i prezzi vengono tutti dopo
+        pending = s.replace(/\s+/g, ' '); pendAt = i;
+        var ud = /^(\d{1,3}[,.]\d{2,3})\s+(\S.*)$/.exec(pending);
+        if (ud && /[A-Za-zÀ-ÿ]{2}/.test(ud[2])) unp.push({ i: i, desc: ud[2].replace(/[\s.…_\-|!]+$/g, '').trim(), qty: tv(ud[1]) });
+      } else pending = null;
     }
-    return items;
+    // chi è già stato letto come articolo non resta «senza importo»
+    var usedSet = {}; used.forEach(function (x) { usedSet[x] = 1; });
+    unp = unp.filter(function (u) { return !usedSet[u.i]; });
+    return { items: items, used: used, hdr: hdr, unpriced: unp, leftAmts: left };
+  }
+  /* Dopo aver trovato il totale: colonne separate (descrizioni e prezzi su righe diverse, foto inclinata), un importo mancante
+     ricavato dalla differenza, importo «unitario o totale?» deciso dalla somma. Ritorna {items, used, notes}. */
+  function completeItems(res, total) {
+    var items = res.items.slice(), used = res.used.slice(), notes = [], u, k;
+    if (!items.length && res.unpriced.length && res.leftAmts.length >= res.unpriced.length) {
+      var cand = res.unpriced.map(function (d, n) {
+        var a = res.leftAmts[n].a, t = a[a.length - 1], un = a.length > 1 ? a[a.length - 2] : null;
+        return { desc: d.desc, qty: r3(d.qty), unit: d.qty === 1 ? null : (un != null ? un : r2(t / d.qty)), total: t, vat: '', ln: d.i, inf: false };
+      });
+      if (total == null || Math.abs(sumOf(cand) - total) < 0.015) {
+        items = cand; res.unpriced.forEach(function (d, n) { used.push(d.i, res.leftAmts[n].i); });
+        res = { items: items, used: used, hdr: res.hdr, unpriced: [], leftAmts: [] }; notes.push('colonne');
+      }
+    } else if (res.unpriced.length === 1 && total != null && items.length) {
+      var diff = r2(total - sumOf(items));
+      if (diff > 0.005) {
+        u = res.unpriced[0];
+        items.push({ desc: u.desc, qty: r3(u.qty), unit: u.qty === 1 ? null : r2(diff / u.qty), total: diff, vat: '', ln: u.i, inf: true }); used.push(u.i); notes.push('dedotta');
+      }
+    }
+    if (total != null && items.length && Math.abs(sumOf(items) - total) >= 0.015) {
+      var ambs = items.filter(function (x) { return x.amb; });
+      if (ambs.length) {
+        var alt = items.map(function (x) { return x.amb ? { desc: x.desc, qty: x.qty, unit: x.total, total: r2(x.qty * x.total), vat: x.vat, ln: x.ln, inf: true } : x; });
+        if (Math.abs(sumOf(alt) - total) < 0.015) { items = alt; notes.push('unitario'); }
+      }
+    }
+    items.sort(function (p, q) { return (p.ln == null ? 0 : p.ln) - (q.ln == null ? 0 : q.ln); });
+    return { items: items, used: used, notes: notes };
   }
 
   /* ───────────── pagamento, IVA, numeri documento ───────────── */
@@ -37566,10 +37776,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var res = { method: '', last4: '', paid: null, change: null, line: -1, cardAmount: null }, cash = false, card = false;
     for (var i = lines.length - 1; i >= 0; i--) {
       var s = lines[i], a = amounts(s);
+      if (/^\s*IMPORTO\b/i.test(s) && a.length && res.impAmount == null) res.impAmount = Math.abs(a[a.length - 1].v);
       if (/RESTO|CAMBIO/i.test(s) && a.length && res.change === null) { res.change = Math.abs(a[a.length - 1].v); continue; }
       if (/CONTANT|\bCASH\b|\bCONT\.?\b/i.test(s)) { cash = true; if (a.length && res.paid === null) res.paid = Math.abs(a[a.length - 1].v); if (res.line < 0) res.line = i; }
       if (/SATISPAY/i.test(s)) { res.method = 'satispay'; res.line = i; }
       if (/TICKET|BUON[OI]\s+PAST|BUONO\s+PASTO|EDENRED|DAY\s+SPA|PLUXEE|REPAS/i.test(s)) { res.method = res.method || 'ticket'; res.line = i; }
+      if (/BONIFICO/i.test(s)) { res.method = res.method || 'bonifico'; if (res.line < 0) res.line = i; }
       if (/KLARNA/i.test(s)) res.method = res.method || 'klarna';
       if (/SCALAPAY/i.test(s)) res.method = res.method || 'scalapay';
       if (/BANCOMAT|PAGOBANCOMAT|MAESTRO|V\s?PAY|DEBIT|CARTA\s+DI\s+(CRED|DEB)|CARTA\s+(CRED|DEB)|VISA|MASTERCARD|AMEX|\bPOS\b|ELETTRONIC|CARTA\s*[*X#]/i.test(s)) { card = true; if (res.line < 0) res.line = i; if (a.length && res.cardAmount === null) res.cardAmount = Math.abs(a[a.length - 1].v); }
@@ -37577,24 +37789,37 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if (l4 && !res.last4) res.last4 = l4[1];
     }
     if (!res.method) res.method = cash && !card ? 'contanti' : card ? 'carta' : (cash ? 'contanti' : '');
+    if (res.method === 'carta' && res.cardAmount === null && res.impAmount != null) res.cardAmount = res.impAmount;
+    delete res.impAmount;
     if (res.method === 'contanti' && res.paid !== null && res.change !== null && total != null && Math.abs(res.paid - res.change - total) > 0.015) res.paid = r2(total + res.change);
+    // contanti diversi dal totale e nessun resto che spieghi la differenza: quasi sempre una cifra letta male, meglio non riportarla
+    if (res.method === 'contanti' && res.paid !== null && total != null && Math.abs(res.paid - total) > 0.015 && (res.change === null || Math.abs(res.paid - res.change - total) > 0.015)) { res.badPaid = res.paid; res.paid = null; res.change = null; }
     return res;
   }
   function findIva(lines) {
-    var rates = [], total = null;
+    var rates = [], total = null, baseOnly = null;
+    function put(e) {
+      for (var k = 0; k < rates.length; k++) if (rates[k].rate === e.rate) { if (rates[k].base === null) rates[k].base = e.base; if (rates[k].tax === null) rates[k].tax = e.tax; return; }
+      rates.push(e);
+    }
     for (var i = 0; i < lines.length; i++) {
       var s = lines[i];
-      if (!/IVA|IMPOSTA|%/i.test(s) || /P\.?\s?IVA|PARTITA/i.test(s)) continue;
+      if (/P\.?\s?IVA|PARTITA/i.test(s)) continue;
+      var word = /IVA|IMPOSTA|IMPONIBILE|ALIQ/i.test(s), lead = /^\s*\d{1,2}(?:[,.]\d{1,2})?\s?%/.test(s);
+      if (!word && !lead) continue;          // «Consulenza 2 50,00 100,00 22%»: è una voce, non il riepilogo IVA
       var a = amounts(s), rm = /(\d{1,2}(?:[,.]\d{1,2})?)\s?%/.exec(s);
       if (rm && a.length) {
         var rate = parseFloat(rm[1].replace(',', '.'));
         if (!(rate > 0 && rate <= 30)) continue;
         var vals = a.map(function (x) { return Math.abs(x.v); });
         var e = { rate: rate, tax: null, base: null };
-        if (vals.length === 1) e.tax = vals[0]; else { e.base = Math.max(vals[0], vals[1]); e.tax = Math.min(vals[0], vals[1]); }
-        rates.push(e);
-      } else if (/(DI\s+CUI\s+IVA|TOTALE\s+IVA|IMPOSTA)/i.test(s) && a.length) total = Math.abs(a[a.length - 1].v);
+        if (vals.length === 1) { if (/IMPONIBILE/i.test(s) && !/IMPOSTA/i.test(s)) e.base = vals[0]; else e.tax = vals[0]; }
+        else { e.base = Math.max(vals[0], vals[1]); e.tax = Math.min(vals[0], vals[1]); }
+        put(e);
+      } else if (/IMPONIBILE/i.test(s) && a.length && !/IMPOSTA/i.test(s)) baseOnly = Math.abs(a[a.length - 1].v);
+      else if (/(DI\s+CUI\s+IVA|TOTALE\s+IVA|IMPOSTA)/i.test(s) && a.length) total = Math.abs(a[a.length - 1].v);
     }
+    if (baseOnly !== null && rates.length === 1 && rates[0].base === null) rates[0].base = baseOnly;
     if (total === null && rates.length && rates.every(function (x) { return x.tax !== null; })) total = r2(rates.reduce(function (t, x) { return t + x.tax; }, 0));
     return { rates: rates, total: total };
   }
@@ -37624,7 +37849,116 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     for (var i = 0; i < CATS.length; i++) if (CATS[i][1].test(text)) return CATS[i][0];
     return 'extra';
   }
-  var APP_PAY = { contanti: 'contanti', carta: 'bancomat', satispay: 'satispay', ticket: 'tickets', klarna: 'klarna', scalapay: 'scalapay' };
+  var APP_PAY = { contanti: 'contanti', carta: 'bancomat', satispay: 'satispay', ticket: 'tickets', klarna: 'klarna', scalapay: 'scalapay', bonifico: 'bonifico' };
+
+  /* ───────────── tutte le altre righe del documento ───────────── */
+  /* Ogni riga che non è finita in un campo (negozio, data, articoli, totale, pagamento, IVA) resta com'è sul documento:
+     operatore, banco/tavolo, IBAN, numero cassa, matricola RT, terminale e autorizzazione del POS, messaggi, ecc.
+     Una riga con più colonne (separate da spazi larghi) si valuta una colonna per volta. */
+  var KNOWN = /\b(?:TOTALE|COMPLESSIVO|IMPORTO|PAGATO|PAGAMENTO|CONTANTI|CONTANTE|RESTO|CAMBIO|DATA|ORA|DEL|DOC|IVA|IMPONIBILE|IMPOSTA|ALIQUOTA|DI|CUI|EU|EUR|EURO|SUBTOTALE|SUB|TOT|ELETTRONICO|ELETTRONICA|DA|PAGARE|CARTA|CREDITO|DEBITO|BANCOMAT|PAGOBANCOMAT|POS|VISA|MASTERCARD|MAESTRO|SATISPAY|TICKET|SCONTRINO|N|NR)\b/ig;
+  var RX_DOCNUM = /(?:DOC(?:UMENTO)?\.?(?:\s+COMM(?:ERCIALE)?\.?)?|SCONTRINO|N\.?\s*DOC|N[°º.]|NUMERO)\s*(?:N[°º.]?|NR\.?|#)?\s*[:.]?\s*(?:\d{1,5}\s?[\-\/]\s?\d{1,7}|\d{3,10})(?![\d\/\-])/gi;
+  function lettersOf(t) { return (String(t).match(new RegExp('[' + LET + ']', 'g')) || []).length; }
+  function wordish(t) { return (String(t).match(new RegExp('[' + LET + ']{3,}', 'g')) || []).some(function (w) { return /[AEIOUaeiouÀ-ÿ]/.test(w) && !/^[IiLl1|]+$/.test(w); }); }
+  // toglie dal testo i dati che hanno già un campo (partita IVA, date, orari, importi, numero documento)
+  function stripData(t, ctx) {
+    t = ' ' + t + ' ';
+    t = t.replace(/\bP(?:ART(?:ITA)?)?\s?\.?\s?[IL1|]\.?\s?V\.?\s?[A4]\.?\s*[:.\-]?\s*(?:IT)?\s*[0-9OoIlSB][0-9OoIlSB \-]{8,14}[0-9OoIlSB]/gi, ' ');
+    t = t.replace(/\b\d{11}\b/g, function (m) { return ctx && ctx.piva && m === ctx.piva ? ' ' : m; });
+    t = t.replace(RX_DOCNUM, ' ');
+    t = t.replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' ');
+    t = t.replace(/\b\d{1,2}\s*[:.]\s*\d{2}(?:\s*[:.]\s*\d{2})?\b/g, ' ');
+    t = t.replace(/[-+]?\s?\d{1,3}(?:\.\d{3})*[,.]\d{2}-?/g, ' ');
+    t = t.replace(/\b(?:CASSA\s+CONT(?:ANTI|ANTE)?|CONTO\s+DEL)\b/gi, ' ');
+    return t;
+  }
+  var LABELS = ['TOTALE', 'COMPLESSIVO', 'IMPORTO', 'PAGATO', 'PAGAMENTO', 'CONTANTI', 'CONTANTE', 'RESTO', 'CAMBIO', 'SUBTOTALE', 'EURO', 'IMPONIBILE', 'IMPOSTA', 'ALIQUOTA', 'ELETTRONICO', 'ELETTRONICA', 'PAGARE', 'CREDITO', 'DEBITO'];
+  function lev(a, b) {
+    var p = [], i, j, c;
+    for (j = 0; j <= b.length; j++) p[j] = j;
+    for (i = 1; i <= a.length; i++) { var prev = p[0]; p[0] = i; for (j = 1; j <= b.length; j++) { c = p[j]; p[j] = Math.min(p[j] + 1, p[j - 1] + 1, prev + (a.charAt(i - 1) === b.charAt(j - 1) ? 0 : 1)); prev = c; } }
+    return p[b.length];
+  }
+  function fuzzyLabel(w) {         // «EUt», «TOTAIE», «CONTANTL»: etichette note lette male
+    w = String(w).toUpperCase().replace(/[^A-ZÀ-Ý]/g, '');
+    if (w.length < 2) return false;
+    if (/^EU[A-Z]?$/.test(w)) return true;
+    if (w.length < 4) return false;
+    for (var i = 0; i < LABELS.length; i++) if (Math.abs(LABELS[i].length - w.length) <= 2 && lev(LABELS[i], w) <= (w.length >= 7 ? 2 : 1)) return true;
+    return false;
+  }
+  function keepable(seg, ctx) {
+    var t = stripData(seg, ctx).replace(KNOWN, ' ').replace(/[^A-Za-zÀ-ÿ0-9]+/g, ' ').trim();
+    t = t.split(' ').filter(function (w) { return !fuzzyLabel(w); }).join(' ');
+    var L = lettersOf(t);
+    if (L >= 3 && wordish(t)) return true;
+    if (/^\s*[*=#~\-]{2,}\s*\S.*\S\s*[*=#~\-]{2,}\s*$/.test(String(seg)) && lettersOf(seg) >= 5) return true;       // «*** PAGAMENTO ELETTRONICO ***»
+    if (L >= 2 && /[A-ZÀ-Ý]{2,}\.?\s*[:.]?\s*\d/.test(t)) return true;                                   // «OP 12», «TAV. 5»
+    if (/[A-Z]{2}\d{2}\s?[A-Z0-9]{4}[A-Z0-9 ]{10,}/.test(String(seg).toUpperCase())) return true;        // IBAN
+    return false;
+  }
+  function tidyExtra(seg) {
+    return String(seg).replace(/\s+/g, ' ').replace(/^[\s|!_~*=\-.,;'"`´‘’“”°^]+/, '').replace(/[\s|!_~*=\-,;'"`´‘’“”°^]+$/, '').trim()
+      .replace(new RegExp('([' + LET + '])\\s+:', 'g'), '$1:').replace(new RegExp('([' + LET + ']):(?=[' + LET + '0-9])', 'g'), '$1: ').replace(/\s+\./g, '.');
+  }
+  /* IBAN: controllo (modulo 97) e, se manca poco, correzione di una cifra confondibile */
+  function ibanOk(s) {
+    s = String(s).replace(/\s/g, '').toUpperCase();
+    if (!/^[A-Z]{2}\d{2}[A-Z0-9]{11,30}$/.test(s)) return false;
+    var r = s.slice(4) + s.slice(0, 4), rem = 0;
+    for (var i = 0; i < r.length; i++) { var c = r.charCodeAt(i), v = c >= 65 ? c - 55 : c - 48; rem = (v > 9 ? rem * 100 + v : rem * 10 + v) % 97; }
+    return rem === 1;
+  }
+  var NUMFIX = { O: '0', Q: '0', D: '0', I: '1', L: '1', '|': '1', S: '5', B: '8', Z: '2', G: '6' }, LETFIX = { '0': 'O', '1': 'I', '5': 'S', '8': 'B', '2': 'Z', '6': 'G' };
+  /* IBAN: controllo (modulo 97). Si ripara solo ciò che si può dire con quasi certezza: lettere che somigliano a cifre (O→0, I/L→1, S→5, B→8, Z→2, G→6)
+     nelle posizioni dei numeri, e solo se il controllo torna con UNA sola combinazione. Cambiare cifre a caso «farebbe tornare» un IBAN sbagliato una volta su 97. */
+  function fixIban(raw) {
+    var t = String(raw || '').toUpperCase().replace(/[^A-Z0-9|]/g, '');
+    if (/^[1L|I]T\d/.test(t) || /^[1L|]T/.test(t)) t = 'IT' + t.slice(2);
+    if (/^IT/.test(t) && t.length >= 20) {          // posizioni numeriche dell'IBAN italiano: controllo (2-3), ABI+CAB (5-14); la 4 è una lettera
+      t = t.split('').map(function (c, i) { return (i === 2 || i === 3 || (i >= 5 && i <= 14)) && NUMFIX[c] ? NUMFIX[c] : (i === 4 && LETFIX[c] ? LETFIX[c] : c); }).join('');
+    }
+    t = t.replace(/\|/g, '1');
+    if (ibanOk(t)) return { value: t, ok: true, fixed: false };
+    if (/^IT/.test(t) && t.length === 27) {
+      var sus = [], p;
+      for (p = 15; p < 27; p++) if (NUMFIX[t.charAt(p)]) sus.push(p);          // conto: cifre e lettere, quelle «sospette» sono lettere che somigliano a cifre
+      if (sus.length && sus.length <= 3) {
+        var hits = [], k, q, mask;
+        for (mask = 1; mask < (1 << sus.length); mask++) {
+          q = t; for (k = 0; k < sus.length; k++) if (mask & (1 << k)) q = q.slice(0, sus[k]) + NUMFIX[t.charAt(sus[k])] + q.slice(sus[k] + 1);
+          if (ibanOk(q)) hits.push(q);
+        }
+        if (hits.length === 1) return { value: hits[0], ok: true, fixed: true };
+      }
+    }
+    return { value: t, ok: false, fixed: false };
+  }
+  function collectExtras(lines, usedSet, ctx, warnings) {
+    var out = [], seen = {};
+    lines.forEach(function (ln, i) {
+      if (usedSet[i] || !String(ln).trim()) return;
+      // «BANCO N:   1»: se la colonna prima finisce con «:» (o «N»), il valore che segue le appartiene
+      var segs = [];
+      String(ln).trim().split(/\s{3,}/).forEach(function (sg) {
+        sg = sg.trim(); if (!sg) return;
+        if (segs.length && /(?::|\bN[°º.]?)$/i.test(segs[segs.length - 1]) && sg.length <= 14) segs[segs.length - 1] += ' ' + sg; else segs.push(sg);
+      });
+      segs.forEach(function (seg) {
+        seg = seg.trim(); if (!seg || !keepable(seg, ctx)) return;
+        var t = tidyExtra(seg);
+        if (/\bIBAN\b/i.test(t)) {
+          var m = /\bIBAN\b\s*:?\s*(.*)$/i.exec(t), fx = fixIban(m ? m[1] : '');
+          if (fx.value.length >= 15) {
+            t = 'IBAN: ' + fx.value;
+            if (!fx.ok) warnings.push('L\'IBAN letto non passa il controllo: ricontrollalo sul documento.');
+            else if (fx.fixed) warnings.push('Una cifra dell\'IBAN era dubbia ed è stata corretta con il controllo automatico.');
+          }
+        }
+        if (!t || seen[t.toLowerCase()]) return; seen[t.toLowerCase()] = 1; out.push(t.slice(0, 90));
+      });
+    });
+    return out.slice(0, 40);
+  }
 
   /* ───────────── funzione principale ───────────── */
   function parse(text) {
@@ -37637,17 +37971,20 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     // zona articoli: dopo l'intestazione, fino alla prima riga di totale
     var firstTot = cands.length ? Math.min.apply(null, cands.map(function (c) { return c.line; })) : lines.length;
     var start = 0;
-    [merch.line, piva ? piva.line : -1].forEach(function (x) { if (x >= 0 && x < firstTot) start = Math.max(start, x + 1); });
+    [merch.hdrEnd - 1, piva ? piva.line : -1].forEach(function (x) { if (x >= 0 && x < firstTot) start = Math.max(start, x + 1); });
     for (var h = start; h < Math.min(firstTot, start + 6); h++) if (/DOCUMENTO\s+COMMERCIALE|DI\s+VENDITA|PRESTAZIONE|SCONTRINO\s+FISCALE|^\s*FATTURA|ESEMPIO/i.test(lines[h]) || (RX.addr.test(lines[h].trim()) && h === start) || /\(\s?[A-Z]{2}\s?\)\s*$/.test(lines[h])) start = h + 1;
-    var items = findItems(lines, start, firstTot);
-    var sum = r2(items.reduce(function (t, x) { return t + x.total; }, 0));
+    var ir = findItems(lines, start, firstTot), items = ir.items, sum = sumOf(items);
 
     // totale: la riga più autorevole, confermata dalla somma degli articoli quando c'è
     var total = null, totalKind = '', best = -1;
+    var totLine = -1;
     cands.forEach(function (c) {
       var score = c.kind + (items.length && Math.abs(c.v - sum) < 0.015 ? 3 : 0) + (cands.filter(function (d) { return Math.abs(d.v - c.v) < 0.005; }).length > 1 ? 1 : 0) + c.line / 1000;
-      if (score > best) { best = score; total = c.v; totalKind = c.kind >= 4 ? 'totale' : 'altra riga'; }
+      if (score > best) { best = score; total = c.v; totLine = c.line; totalKind = c.kind >= 4 ? 'totale' : 'altra riga'; }
     });
+    // colonne spostate, importo mancante, «unitario o totale?»: si completano col totale in mano
+    var comp = completeItems(ir, total); items = comp.items; sum = sumOf(items);
+    if (comp.notes.indexOf('dedotta') >= 0) warnings.push('Un importo non si leggeva: l\'ho ricavato dal totale. Controlla le righe segnate con «≈».');
     if (total === null && items.length) { total = sum; totalKind = 'somma articoli'; }
     if (total === null) {
       var all = []; lines.forEach(function (l, i) { if (!/IVA|CONTANT|RESTO|P\.?\s?IVA/i.test(l)) amounts(l).forEach(function (a) { all.push({ v: Math.abs(a.v), i: i }); }); });
@@ -37655,13 +37992,20 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
 
     var pay = findPayment(lines, total);
+    if (pay.badPaid != null) { warnings.push('I contanti letti (' + pay.badPaid.toFixed(2).replace('.', ',') + ') non tornano con il totale: non li ho riportati. Controlla sul documento.'); delete pay.badPaid; }
     var iva = findIva(lines);
     var doc = findDocNumber(lines);
     var type = /FATTURA/i.test(text) ? 'fattura' : /RICEVUTA/i.test(text) && !/DOCUMENTO\s+COMMERCIALE/i.test(text) ? 'ricevuta' : 'scontrino';
 
     // fiducia per campo (0–1). Il totale è tanto più sicuro quante fonti indipendenti dicono lo stesso numero:
     // riga «TOTALE», somma degli articoli, importo del pagamento (carta, oppure contanti meno resto), altre righe di totale
-    var sumOk = items.length > 1 && total !== null && Math.abs(sum - total) < 0.015, src = 0, near = function (x) { return x !== null && total !== null && Math.abs(x - total) < 0.015; };
+    var nInf = items.filter(function (x) { return x.inf; }).length, sumMatch = total !== null && Math.abs(sum - total) < 0.015, netOk = false;
+    // fattura: le voci sono al netto dell'IVA (somma = imponibile, imponibile + IVA = totale del documento)
+    if (!sumMatch && total !== null && items.length && iva.rates.length && iva.rates.every(function (x) { return x.base !== null; })) {
+      var sb = r2(iva.rates.reduce(function (t, x) { return t + x.base; }, 0)), st = iva.total !== null ? iva.total : r2(iva.rates.reduce(function (t, x) { return t + (x.tax || 0); }, 0));
+      if (Math.abs(sum - sb) < 0.015 && Math.abs(sb + st - total) < 0.015) { sumMatch = true; netOk = true; }
+    }
+    var sumOk = items.length > 1 && !nInf && sumMatch, src = 0, near = function (x) { return x !== null && total !== null && Math.abs(x - total) < 0.015; };
     if (total !== null) {
       if (totalKind === 'totale') src++;
       if (sumOk) src++;
@@ -37670,11 +38014,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     }
     conf.total = total === null ? 0 : totalKind === 'importo più alto' ? 0.35 : totalKind === 'somma articoli' ? 0.55 : src >= 3 ? 0.99 : src === 2 ? 0.93 : 0.7;
     conf.date = date ? (date.score >= 2 ? 0.97 : date.time ? 0.9 : 0.8) : 0;
-    conf.merchant = merch.name ? (merch.plausible ? (merch.line <= 1 ? 0.8 : 0.7) : 0.35) : 0;
+    conf.merchant = merch.name ? (merch.plausible ? (merch.trade ? 0.82 : merch.line <= 1 ? 0.8 : 0.7) : 0.35) : 0;
     conf.piva = piva ? (piva.valid ? (piva.fixed ? 0.75 : 1) : 0.3) : 0;
-    conf.items = items.length ? (sumOk ? 1 : 0.5) : 0;
+    conf.items = items.length ? (nInf ? 0.6 : sumMatch ? 1 : 0.5) : 0;
     conf.payment = pay.method ? 0.85 : 0;
-    if (items.length && total !== null && !sumOk) warnings.push('La somma degli articoli (' + sum.toFixed(2).replace('.', ',') + ') non coincide con il totale (' + total.toFixed(2).replace('.', ',') + '): controlla le righe.');
+    if (items.length && total !== null && !sumMatch) warnings.push('La somma degli articoli (' + sum.toFixed(2).replace('.', ',') + ') non coincide con il totale (' + total.toFixed(2).replace('.', ',') + '): controlla le righe.');
     if (piva && !piva.valid) warnings.push('La partita IVA letta non passa il controllo: ricontrollala.');
     if (piva && piva.fixed) warnings.push('Una cifra della partita IVA era dubbia ed è stata corretta con il controllo automatico.');
     if (!date) warnings.push('Data non trovata.');
@@ -37684,15 +38028,23 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var name = merch.name ? titleCase(merch.name) : '';
     if (!merch.plausible && merch.name) warnings.push('Il nome del negozio non è leggibile: controllalo.');
     var catText = (merch.name + ' ' + merch.legal + ' ' + items.map(function (x) { return x.desc; }).join(' ') + ' ' + lines.slice(0, 40).join(' '));
+
+    // le righe che non sono finite in nessun campo restano com'erano sul documento
+    var usedSet = {}; merch.idx.concat(comp.used).forEach(function (x) { usedSet[x] = 1; });
+    if (totLine >= 0 && !keepable(String(lines[totLine]).replace(/\b(?:FATTURA|DOCUMENTO|NETTO|DOVUTO|DOVUTI|PAGARE)\b/gi, ' '), { piva: piva ? piva.value : '' })) usedSet[totLine] = 1;
+    // niente totale, né data, né partita IVA, né articoli: non c'è un documento (rumore di una foto senza scritte), quindi nemmeno «altre righe»
+    var anchored = total !== null || !!date || !!piva || items.length > 0;
+    var extra = anchored ? collectExtras(lines, usedSet, { piva: piva ? piva.value : '' }, warnings) : [];
     return {
       type: type,
-      merchant: { name: name, plausible: !!merch.plausible, raw: merch.name, legal: merch.legal, address: merch.address, city: merch.city, piva: piva ? piva.value : '', pivaValid: !!(piva && piva.valid), pivaFixed: !!(piva && piva.fixed) },
+      merchant: { name: name, plausible: !!merch.plausible, raw: merch.name, legal: merch.legal, trade: merch.trade, address: merch.address, city: merch.city, zip: merch.zip, piva: piva ? piva.value : '', pivaValid: !!(piva && piva.valid), pivaFixed: !!(piva && piva.fixed) },
       date: date ? date.iso : '', time: date ? date.time : '',
       doc: doc,
-      items: items, itemsSum: sum,
-      total: total, totalKind: totalKind,
+      items: items.map(function (x) { var o = { desc: x.desc, qty: x.qty, unit: x.unit == null ? null : x.unit, total: x.total, vat: x.vat || '' }; if (x.inf) o.inf = true; return o; }), itemsSum: sum,
+      total: total, totalKind: totalKind, itemsNet: netOk,
       iva: iva,
       payment: pay,
+      extra: extra,
       category: guessCategory(catText),
       appPay: APP_PAY[pay.method] || '',
       conf: conf, review: review, warnings: warnings,
@@ -37731,14 +38083,18 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (r.merchant.pivaValid) q += 1.5;
     if (r.payment.method) q += 0.5;
     q += (r.conf.total || 0) * 2 + (r.conf.merchant >= 0.7 ? 1 : 0);
-    return q + Math.min(r.items.length, 6) * 0.1;
+    if (r.merchant.address) q += 0.3;
+    if (r.merchant.city) q += 0.3;
+    if (r.merchant.trade) q += 0.2;
+    return q + Math.min(r.items.length, 8) * 0.12 - (r.items.some(function (x) { return x.inf; }) ? 0.5 : 0);
   }
 
   function toExpense(r) {
     return { desc: r.merchant.name || 'Scontrino', amount: r.total, date: r.date, cat: r.category, pay: r.appPay };
   }
 
-  return { parse: parse, quality: quality, applyHistory: applyHistory, normalize: normalize, amounts: amounts, validPiva: validPiva, fixPiva: fixPiva, findDate: findDate, guessCategory: guessCategory, toExpense: toExpense, titleCase: titleCase };
+  return { parse: parse, quality: quality, applyHistory: applyHistory, normalize: normalize, amounts: amounts, validPiva: validPiva, fixPiva: fixPiva, findDate: findDate, guessCategory: guessCategory, toExpense: toExpense, titleCase: titleCase,
+    _t: { itemCols: itemCols, isColHead: isColHead, parseCity: parseCity, splitAddr: splitAddr, fixIban: fixIban, ibanOk: ibanOk, collectExtras: collectExtras, fixProv: fixProv, findItems: findItems, completeItems: completeItems, findMerchant: findMerchant } };
 });
 
 /* ═══════════════════════════════════════════════════════════════
@@ -37766,7 +38122,26 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // testo canonico su cui si calcola l'impronta (SHA-256): cambia una virgola e l'impronta cambia
   function canonical(d) {
     return ['EWSC1', d.id, d.date, d.time || '', (d.merchant && d.merchant.name) || '', (d.merchant && d.merchant.piva) || '', money(d.total)]
-      .concat((d.items || []).map(function (x) { return [x.desc, x.qty, money(x.total)].join('~'); })).join('|');
+      .concat((d.items || []).map(function (x) { return [x.desc, x.qty, money(x.total)].join('~'); }))
+      .concat(d.extra && d.extra.length ? ['XL~' + d.extra.join('~')] : []).join('|');
+  }
+  function qtyTxt(q) { return q % 1 ? String(q).replace('.', ',') : String(q); }
+  // «altre righe del documento» a COLS colonne, allineate a sinistra (le più lunghe vanno a capo con due spazi). max: se sono troppe per la pagina se ne mostra solo una parte
+  function extraLines(d, COLS, max) {
+    var all = (d.extra || []).filter(Boolean), cut = max != null && all.length > max, shown = cut ? all.slice(0, Math.max(1, max - 1)) : all, out = [];
+    shown.forEach(function (x) {
+      var cur = '', first = true;
+      String(x).split(' ').forEach(function (w) {
+        while (w.length > COLS - (first ? 0 : 2)) { var room = COLS - (first ? 0 : 2) - cur.length - (cur ? 1 : 0); if (room < 4 && cur) { out.push((first ? '' : '  ') + cur); first = false; cur = ''; continue; } var take = cur ? room : COLS - (first ? 0 : 2); cur = (cur ? cur + ' ' : '') + w.slice(0, take); w = w.slice(take); out.push((first ? '' : '  ') + cur); first = false; cur = ''; }
+        var lim = COLS - (first ? 0 : 2);
+        if (!w) return;
+        if (!cur) cur = w; else if ((cur + ' ' + w).length <= lim) cur += ' ' + w; else { out.push((first ? '' : '  ') + cur); first = false; cur = w; }
+      });
+      if (cur) out.push((first ? '' : '  ') + cur);
+    });
+    var res = out.map(function (t) { return { t: t }; });
+    if (cut) res.push({ t: '... e altre ' + (all.length - shown.length) + ' righe', mute: 1 });
+    return res;
   }
   function qrText(d) { return ['EWSC1', d.id, d.date, money(d.total), String(d.fingerprint || '').slice(0, 16).toUpperCase()].join('|'); }
 
@@ -37809,10 +38184,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     L.push({ t: rule });
     (d.items || []).forEach(function (x) {
       var amt = money(x.total) + (x.vat ? ' ' + x.vat : ''), desc = String(x.desc || ''), room = COLS - amt.length - 1;
+      if (x.qty !== 1 && !x.unit && x.qty) desc = qtyTxt(x.qty) + ' x ' + desc;
       var parts = []; while (desc.length > room) { var cut = desc.lastIndexOf(' ', room); if (cut < 6) cut = room; parts.push(desc.slice(0, cut)); desc = desc.slice(cut).trim(); }
       parts.push(desc);
       parts.forEach(function (p, i) { L.push({ t: i === parts.length - 1 && !(x.qty !== 1 && x.unit) ? row(p, amt) : p }); });
-      if (x.qty !== 1 && x.unit) L.push({ t: row('  ' + (x.qty % 1 ? String(x.qty).replace('.', ',') : x.qty) + ' x ' + money(x.unit).replace(/,00$/, ',00'), amt) });
+      if (x.qty !== 1 && x.unit) L.push({ t: row('  ' + qtyTxt(x.qty) + ' x ' + money(x.unit).replace(/,00$/, ',00'), amt) });
     });
     L.push({ t: rule });
     L.push({ t: row('TOTALE EURO', money(d.total), 28), b: 1, size: 11, lh: 5, w28: 1 });
@@ -37823,6 +38199,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (iva.rates && iva.rates.length) iva.rates.forEach(function (r) { L.push({ t: row('IVA ' + String(r.rate).replace('.', ',') + '%' + (r.base != null ? '  imp. ' + money(r.base) : ''), money(r.tax)) }); });
     if (iva.total != null) L.push({ t: row('DI CUI IVA', money(iva.total)) });
     L.push({ t: rule });
+    var xa = extraLines(d, COLS); if (xa.length) { xa.forEach(function (l) { L.push(l); }); L.push({ t: rule }); }
     var qrSize = 24, H0 = 8 + L.reduce(function (t, l) { return t + (l.lh || LH); }, 0);
     var info = ['ID  ' + d.id, 'Impronta', group4(d.fingerprint), (CAT[d.category] || d.category || ''), nowTxt(d.createdAt) ? 'Reg. ' + nowTxt(d.createdAt) : ''].filter(Boolean);
     var foot = ['Copia digitale personale creata da', 'E-Wallet Hub: non sostituisce il', 'documento fiscale originale.'];
@@ -37968,7 +38345,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
 
   /* ───────── M · mix A+B: scontrino riscritto (A) + scheda e foto originale (B) su A4 ───────── */
   // righe dello scontrino riscritto (font da cassa, 38 colonne). Se gli articoli sono troppi per la pagina ne mostra solo una parte.
-  function ticketLines(d, COLS, maxItems) {
+  function ticketLines(d, COLS, maxItems, maxExtra) {
     function center(s) { s = String(s); return s.length >= COLS ? s : ' '.repeat(Math.floor((COLS - s.length) / 2)) + s; }
     function row(l, r, w) { w = w || COLS; l = String(l); r = String(r); var room = w - r.length - 1; if (l.length > room) l = l.slice(0, room); return l + ' '.repeat(Math.max(1, w - l.length - r.length)) + r; }
     function wrap0(s) { var out = [], cur = ''; String(s).split(' ').forEach(function (w) { if ((cur + ' ' + w).trim().length > COLS) { out.push(cur); cur = w; } else cur = (cur + ' ' + w).trim(); }); if (cur) out.push(cur); return out; }
@@ -37984,10 +38361,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var cut = maxItems != null && all.length > maxItems, shown = cut ? all.slice(0, Math.max(1, maxItems - 1)) : all;
     shown.forEach(function (x) {
       var amt = money(x.total) + (x.vat ? ' ' + x.vat : ''), desc = String(x.desc || ''), room = COLS - amt.length - 1;
+      if (x.qty !== 1 && !x.unit && x.qty) desc = qtyTxt(x.qty) + ' x ' + desc;
       var parts = []; while (desc.length > room) { var c = desc.lastIndexOf(' ', room); if (c < 6) c = room; parts.push(desc.slice(0, c)); desc = desc.slice(c).trim(); }
       parts.push(desc);
       parts.forEach(function (p, i) { L.push({ t: i === parts.length - 1 && !(x.qty !== 1 && x.unit) ? row(p, amt) : p }); });
-      if (x.qty !== 1 && x.unit) L.push({ t: row('  ' + (x.qty % 1 ? String(x.qty).replace('.', ',') : x.qty) + ' x ' + money(x.unit), amt) });
+      if (x.qty !== 1 && x.unit) L.push({ t: row('  ' + qtyTxt(x.qty) + ' x ' + money(x.unit), amt) });
     });
     if (cut) L.push({ t: center('... e altre ' + (all.length - shown.length) + ' righe (vedi la foto)'), mute: 1 });
     L.push({ t: rule });
@@ -37999,6 +38377,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     if (iva.rates && iva.rates.length) iva.rates.forEach(function (r) { L.push({ t: row('IVA ' + String(r.rate).replace('.', ',') + '%' + (r.base != null ? '  imp. ' + money(r.base) : ''), money(r.tax)) }); });
     if (iva.total != null) L.push({ t: row('DI CUI IVA', money(iva.total)) });
     L.push({ t: rule });
+    var xa = extraLines(d, COLS, maxExtra); if (xa.length) { xa.forEach(function (l) { L.push(l); }); L.push({ t: rule }); }
     L.push({ t: center(d.id), mute: 1, size: 7.4 });
     return L;
   }
@@ -38031,8 +38410,9 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     doc.setFont('helvetica', 'normal'); doc.text(d.id, W - MX, 14, { align: 'right' });
 
     /* colonna sinistra: lo scontrino riscritto */
-    var usable = VY - 8 - TOP - 14, L = ticketLines(d, COLS), keep = (d.items || []).length, need = function (l) { return l.reduce(function (t, x) { return t + (x.lh || LH); }, 0); };
-    while (need(L) * 0.74 > usable && keep > 4) { keep--; L = ticketLines(d, COLS, keep); }
+    var usable = VY - 8 - TOP - 14, L = ticketLines(d, COLS), keep = (d.items || []).length, kex = (d.extra || []).length, need = function (l) { return l.reduce(function (t, x) { return t + (x.lh || LH); }, 0); };
+    while (need(L) * 0.74 > usable && keep > 4) { keep--; L = ticketLines(d, COLS, keep, kex); }
+    while (need(L) * 0.74 > usable && kex > 6) { kex = Math.max(6, kex - 2); L = ticketLines(d, COLS, keep, kex); }
     var sc = Math.min(1, usable / need(L)), ph = need(L) * sc + 14;
     tornPaper(doc, TX, TOP, TW, ph);
     var y = TOP + 6; setCol(doc, 'setTextColor', C.ink);
@@ -38095,7 +38475,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   }
 
   function build(J, style, d, o) { o = o || {}; return (style === 'A' ? buildA : style === 'B' ? buildB : style === 'M' ? buildM : buildC)(J, d, o); }
-  return { build: build, canonical: canonical, qrText: qrText, group4: group4, money: money };
+  return { build: build, canonical: canonical, qrText: qrText, group4: group4, money: money, ticketLines: ticketLines, extraLines: extraLines };
 });
 
 /* ═══════════════════════════════════════════════════════════════
@@ -38331,6 +38711,120 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return out;
   }
 
+  /* Fasce «in negativo»: testo bianco su fondo nero (tipico dell'intestazione «Pezzi Descrizione Prz.Unit Prz.Tot» o del nome del locale).
+     Il motore legge solo testo scuro su chiaro: la fascia si capovolge. g: grigi già uniformati (carta ≈ 238), modificato sul posto.
+     Una fascia vera è larga, bassa, quasi tutta scura, ha dentro dei tratti chiari (le lettere) e sopra o sotto la carta chiara:
+     un'ombra o il bordo del tavolo non hanno lettere e non si toccano. In foto la fascia è quasi sempre storta (mano, prospettiva):
+     i bordi si cercano come due rette inclinate, prima a bassa risoluzione, poi riga per riga a risoluzione piena.
+     Ritorna l'elenco delle fasce {x0,y0,x1,y1,slope}. */
+  // retta y = a·x + b ai minimi quadrati, scartando i punti lontani dalla retta (3 passate); tol = scarto minimo accettato
+  function fitLine(xs, ys, tol) {
+    var keep = [], a = 0, b = 0, pass, i, n, sx, sy, sxx, sxy, den, res, med, lim;
+    for (i = 0; i < xs.length; i++) keep.push(true);
+    for (pass = 0; pass < 3; pass++) {
+      n = sx = sy = sxx = sxy = 0;
+      for (i = 0; i < xs.length; i++) if (keep[i]) { n++; sx += xs[i]; sy += ys[i]; sxx += xs[i] * xs[i]; sxy += xs[i] * ys[i]; }
+      if (n < 6) return null;
+      den = n * sxx - sx * sx; if (Math.abs(den) < 1e-9) return null;
+      a = (n * sxy - sx * sy) / den; b = (sy - a * sx) / n;
+      res = []; for (i = 0; i < xs.length; i++) res.push(Math.abs(ys[i] - (a * xs[i] + b)));
+      med = res.slice().sort(function (p, q) { return p - q; })[res.length >> 1]; lim = Math.max(2 * med, tol);
+      for (i = 0; i < xs.length; i++) keep[i] = res[i] <= lim;
+    }
+    n = 0; for (i = 0; i < keep.length; i++) if (keep[i]) n++;
+    return { a: a, b: b, n: n, of: xs.length };
+  }
+  // bordo orizzontale più netto lungo la colonna x tra ya e yb: dir +1 = da chiaro (sopra) a scuro (sotto), −1 = da scuro a chiaro; −1 se non c'è
+  function edgeY(g, w, h, x, ya, yb, dir) {
+    var best = 40, by = -1, y, s, k, a, b, x0 = Math.max(0, x - 2), x1 = Math.min(w - 1, x + 2), cols = x1 - x0 + 1;
+    ya = Math.max(3, Math.round(ya)); yb = Math.min(h - 4, Math.round(yb));
+    for (y = ya; y <= yb; y++) {
+      a = 0; b = 0;
+      for (k = x0; k <= x1; k++) { a += g[(y - 3) * w + k] + g[(y - 2) * w + k] + g[(y - 1) * w + k]; b += g[(y + 1) * w + k] + g[(y + 2) * w + k] + g[(y + 3) * w + k]; }
+      s = dir * (a - b) / (3 * cols);
+      if (s > best) { best = s; by = y; }
+    }
+    return by;
+  }
+  function invertBands(g, w, h) {
+    var out = [], f = Math.max(2, Math.round(w / 380)), sm = shrink(g, w, h, f), sw = sm.w, sh = sm.h, n = sw * sh, i, x, y;
+    if (sw < 20 || sh < 6) return out;
+    var d = new Uint8ClampedArray(n);
+    for (i = 0; i < n; i++) d[i] = sm.g[i] < 135 ? 255 : 0;
+    d = rankFilter(rankFilter(d, sw, sh, 1, true), sw, sh, 1, false);
+    var lab = new Int32Array(n), st = new Int32Array(n), id = 0, sp, p, comps = [];
+    for (i = 0; i < n; i++) {
+      if (!d[i] || lab[i]) continue;
+      id++; sp = 0; st[sp++] = i; lab[i] = id; var c = { id: id, x0: sw, y0: sh, x1: -1, y1: -1, a: 0 };
+      while (sp) {
+        p = st[--sp]; x = p % sw; y = (p - x) / sw; c.a++;
+        if (x < c.x0) c.x0 = x; if (x > c.x1) c.x1 = x; if (y < c.y0) c.y0 = y; if (y > c.y1) c.y1 = y;
+        if (x > 0 && d[p - 1] && !lab[p - 1]) { lab[p - 1] = id; st[sp++] = p - 1; }
+        if (x < sw - 1 && d[p + 1] && !lab[p + 1]) { lab[p + 1] = id; st[sp++] = p + 1; }
+        if (y > 0 && d[p - sw] && !lab[p - sw]) { lab[p - sw] = id; st[sp++] = p - sw; }
+        if (y < sh - 1 && d[p + sw] && !lab[p + sw]) { lab[p + sw] = id; st[sp++] = p + sw; }
+      }
+      comps.push(c);
+    }
+    comps.forEach(function (c) {
+      var cw = c.x1 - c.x0 + 1, k, t, b, yy;
+      if (cw * f < 0.2 * w || c.a < 40) return;
+      // colonna per colonna (bassa risoluzione): dove comincia e dove finisce il nero
+      var px = [], pt = [], pb = [], cnt = 0, span = 0;
+      for (x = c.x0; x <= c.x1; x++) {
+        t = -1; b = -1; k = 0;
+        for (y = c.y0; y <= c.y1; y++) if (lab[y * sw + x] === c.id) { if (t < 0) t = y; b = y; k++; }
+        if (t >= 0) { px.push(x); pt.push(t); pb.push(b + 1); cnt += k; span += b - t + 1; }
+      }
+      if (px.length < 8) return;
+      var lt = fitLine(px, pt, 1.2), lb = fitLine(px, pb, 1.2);
+      if (!lt || !lb || lt.n < 0.6 * lt.of || lb.n < 0.6 * lb.of) return;
+      var xm = (c.x0 + c.x1) / 2, th = ((lb.a - lt.a) * xm + (lb.b - lt.b)) * f, slope = (lt.a + lb.a) / 2;
+      if (Math.abs(lb.a - lt.a) > 0.05 || Math.abs(slope) > 0.3) return;                       // bordi paralleli, inclinazione ragionevole
+      if (th < 0.011 * w || th > 0.1 * w || cw * f / th < 3.5 || cnt / span < 0.62) return;     // larga, bassa, piena
+      var up = 0, dn = 0, nu = 0, nd = 0;
+      for (x = c.x0; x <= c.x1; x++) {
+        yy = Math.round(lt.a * x + lt.b) - 2; if (yy >= 0) { up += sm.g[yy * sw + x] + sm.g[(yy + 1) * sw + x]; nu += 2; }
+        yy = Math.round(lb.a * x + lb.b); if (yy + 1 < sh) { dn += sm.g[yy * sw + x] + sm.g[(yy + 1) * sw + x]; nd += 2; }
+      }
+      up = nu ? up / nu : -1; dn = nd ? dn / nd : -1;
+      if (Math.max(up, dn) < 150 || Math.min(up < 0 ? 999 : up, dn < 0 ? 999 : dn) < 90) return;          // sopra/sotto c'è la carta chiara (o il bordo della foto)
+      // bordi esatti a risoluzione piena, colonna per colonna lungo le due rette
+      var ex = [], et = [], eb = [], stp = Math.max(2, f), xa = c.x0 * f + 2 * f, xb = (c.x1 + 1) * f - 2 * f, ya, yb, e1, e2;
+      for (x = xa; x <= xb; x += stp) {
+        ya = (lt.a * (x / f) + lt.b) * f; yb = (lb.a * (x / f) + lb.b) * f;
+        e1 = edgeY(g, w, h, x, ya - 2.5 * f, ya + 2.5 * f, 1); e2 = edgeY(g, w, h, x, yb - 2.5 * f, yb + 2.5 * f, -1);
+        if (e1 >= 0 && e2 >= 0 && e2 > e1 + 0.008 * w) { ex.push(x); et.push(e1); eb.push(e2); }
+      }
+      var ft = fitLine(ex, et, 2), fb = fitLine(ex, eb, 2);
+      if (!ft || !fb || ft.n < 0.6 * ft.of || fb.n < 0.6 * fb.of || Math.abs(fb.a - ft.a) > 0.04) return;
+      var xm2 = (ex[0] + ex[ex.length - 1]) / 2, thF = (fb.a - ft.a) * xm2 + (fb.b - ft.b);
+      if (thF < 0.008 * w || thF > 0.1 * w) return;
+      var topAt = function (xx) { return Math.max(0, Math.round(ft.a * xx + ft.b) + 1); }, botAt = function (xx) { return Math.min(h - 1, Math.round(fb.a * xx + fb.b)); };
+      // estremi sinistro e destro: una colonna è «fascia» se il nero domina tra i due bordi
+      var cx0 = -1, cx1 = -1, y0, y1, kk, tt;
+      for (x = Math.max(0, c.x0 * f - 3 * f); x <= Math.min(w - 1, (c.x1 + 1) * f + 3 * f); x++) {
+        y0 = topAt(x) + 1; y1 = botAt(x) - 1; kk = 0; tt = 0;
+        for (yy = y0; yy <= y1; yy += 2) { tt++; if (g[yy * w + x] < 120) kk++; }
+        if (tt && kk / tt >= 0.38) { if (cx0 < 0) cx0 = x; cx1 = x; }
+      }
+      if (cx0 < 0 || cx1 - cx0 < 0.18 * w) return;
+      // dentro: lettere chiare (5–45% dei pixel) e un nero di fondo
+      var light = 0, tot = 0, vals = [], v;
+      for (x = cx0; x <= cx1; x += 2) for (yy = topAt(x); yy <= botAt(x); yy += 2) { v = g[yy * w + x]; tot++; if (v > 165) light++; if (v < 120) vals.push(v); }
+      if (!tot || light / tot < 0.05 || light / tot > 0.45 || vals.length < 0.55 * tot) return;          // nero di fondo ≥ 55%: righe di testo molto grasso non sono una fascia
+      vals.sort(function (a, b2) { return a - b2; });
+      var bgv = vals[vals.length >> 1], k2 = 238 / Math.max(60, 255 - bgv), by0 = h, by1 = -1, q, nv;
+      for (x = cx0; x <= cx1; x++) {
+        y0 = topAt(x); y1 = botAt(x);
+        for (yy = y0; yy <= y1; yy++) { q = yy * w + x; nv = (255 - g[q]) * k2; g[q] = nv > 255 ? 255 : nv < 0 ? 0 : nv; }
+        if (y0 < by0) by0 = y0; if (y1 > by1) by1 = y1;
+      }
+      out.push({ x0: cx0, y0: by0, x1: cx1, y1: by1, slope: +slope.toFixed(4) });
+    });
+    return out;
+  }
+
   /* Curva di contrasto: il testo scuro, la carta bianca. mode 'gamma' (curva) o 'stretch' (stira da un nero scelto sull'inchiostro).
      Ritorna { lut, gamma|lo }. */
   function inkLut(g, T, n, mode, gmax) {
@@ -38450,6 +38944,103 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       out.push(t);
     });
     return { text: out.join('\n'), kept: out.length, dropped: dropped };
+  }
+
+  /* Scarta le «parole» che sono rumore: macchie di riflesso, pieghe, polvere lette come lettere sparse ai bordi della riga.
+     Non servono a nessuno e sporcano nomi, indirizzi e righe («TRATTORIA DEL PONTE 3», «CAPPUCCINO 1,50) Li»). Serve la posizione e la fiducia di ogni parola.
+     Gli importi non si toccano mai; una parola corta ma attaccata alle altre, o la prima della riga, nemmeno.
+     lines: [{t, c, w:[[testo, fiducia, x0, y0, x1, y1]]}] → stessa forma; le righe toccate hanno il testo rifatto dalle parole rimaste, spaziato in proporzione ai vuoti. */
+  var AMT_WORD = /^[^\d]{0,2}\d{1,3}(?:\.\d{3})*[,.]\d{2}[^\d]{0,2}$/, KEEP_SYM = /^[€%*#+\/=:;.,\-–()'"«»]+$/;
+  function denoise(lines) {
+    var hs = [], ws = [], dropped = 0, i;
+    (lines || []).forEach(function (l) { (l.w || []).forEach(function (x) {
+      var t = String(x[0] == null ? '' : x[0]), h = +x[5] - +x[3], wd = +x[4] - +x[2];
+      if (/[A-Za-z0-9À-ÿ]{3,}/.test(t) && h > 0) hs.push(h);
+      if (t.length >= 3 && wd > 0) ws.push(wd / t.length);
+    }); });
+    if (hs.length < 4) return { lines: lines, dropped: 0 };
+    function med(a) { a = a.slice().sort(function (p, q) { return p - q; }); return a[a.length >> 1]; }
+    var hm = med(hs), cw = ws.length ? med(ws) : hm * 0.55;
+    if (!(hm > 4) || !(cw > 1)) return { lines: lines, dropped: 0 };
+    var out = (lines || []).map(function (l) {
+      var arr = l.w || [], keep = [], prev = null, changed = false;
+      arr.forEach(function (x) {
+        var t = String(x[0] == null ? '' : x[0]).trim(), c = x[1] == null ? 100 : +x[1], x0 = +x[2], h = +x[5] - +x[3], wd = +x[4] - +x[2];
+        var alnum = /[A-Za-z0-9À-ÿ]/.test(t), isolated = prev !== null && (x0 - +prev[4]) >= 4 * cw, bad = false;
+        if (!t) bad = true;
+        else if (AMT_WORD.test(t)) bad = false;
+        else if (alnum && h > 0 && h < 0.4 * hm && wd < 0.6 * cw) bad = true;                                      // granello: più basso di metà lettera
+        else if (!alnum && t.length <= 2 && !KEEP_SYM.test(t) && prev !== null && (c < 85 || isolated)) bad = true; // «$», «|», «~» in fondo alla riga
+        else if (alnum && t.length <= 2 && c < 60 && isolated) bad = true;                                          // una o due lettere sole, lontane, poco sicure
+        else if (prev !== null && t.length <= 4 && c < 35) bad = true;                                              // pezzetto cortissimo e quasi illeggibile dopo altre parole
+        if (bad) { dropped++; changed = true; } else { keep.push(x); prev = x; }
+      });
+      if (!changed) return l;
+      var tx = '', pv = null;
+      keep.forEach(function (x) { if (pv) { var gap = +x[2] - +pv[4], sp = gap / cw < 1.5 ? 1 : Math.min(60, Math.round(gap / cw)); tx += new Array(sp + 1).join(' '); } tx += String(x[0]).trim(); pv = x; });
+      return { t: tx, c: l.c, w: keep };
+    });
+    return { lines: out, dropped: dropped };
+  }
+
+  /* Rimette in riga le parole lette. Il motore divide a volte una riga vera in pezzi (colonne dei prezzi staccate dalle descrizioni, foto inclinata:
+     i prezzi finiscono più in alto delle descrizioni). Qui si guardano solo le posizioni: inclinazione = mediana di quella delle righe lunghe,
+     poi le parole con la stessa «quota» (y − pendenza·x) fanno una riga, con gli spazi in proporzione ai vuoti (le colonne restano distanti).
+     lines: [{t, c, w:[[testo, fiducia, x0, y0, x1, y1]]}] → {text, rows, slope} oppure null se non c'è abbastanza o il risultato non è credibile. */
+  function relines(lines) {
+    var words = [], nl = 0, i, j;
+    (lines || []).forEach(function (l) {
+      var any = false;
+      (l.w || []).forEach(function (x) {
+        var t = String(x[0] == null ? '' : x[0]).trim(), x0 = +x[2], y0 = +x[3], x1 = +x[4], y1 = +x[5];
+        if (!t || !isFinite(x0 + y0 + x1 + y1) || x1 <= x0 || y1 <= y0) return;
+        words.push({ t: t, c: +x[1] || 0, x0: x0, y0: y0, x1: x1, y1: y1, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, h: y1 - y0, ln: nl }); any = true;
+      });
+      if (any) nl++;
+    });
+    if (words.length < 6 || nl < 2) return null;
+    function med(a) { a = a.slice().sort(function (p, q) { return p - q; }); return a.length ? a[a.length >> 1] : 0; }
+    var alnum = words.filter(function (w) { return /[A-Za-z0-9À-ÿ]/.test(w.t); }), hm = med((alnum.length >= 4 ? alnum : words).map(function (w) { return w.h; }));
+    var cw = med(words.filter(function (w) { return w.t.length >= 3; }).map(function (w) { return (w.x1 - w.x0) / w.t.length; })) || hm * 0.55;
+    if (!(hm > 4) || !(cw > 1)) return null;
+    // pendenza: regressione sulle parole di ogni riga lunga, mediana pesata dall'estensione
+    var sl = [], byLine = {};
+    words.forEach(function (w) { (byLine[w.ln] = byLine[w.ln] || []).push(w); });
+    Object.keys(byLine).forEach(function (k) {
+      var a = byLine[k]; if (a.length < 4) return;
+      var mx = 0, my = 0, sxx = 0, sxy = 0, mn = 1e9, mxx = -1e9;
+      a.forEach(function (w) { mx += w.cx; my += w.cy; if (w.cx < mn) mn = w.cx; if (w.cx > mxx) mxx = w.cx; }); mx /= a.length; my /= a.length;
+      a.forEach(function (w) { sxx += (w.cx - mx) * (w.cx - mx); sxy += (w.cx - mx) * (w.cy - my); });
+      if (mxx - mn < 8 * hm || sxx <= 0) return;
+      sl.push([sxy / sxx, mxx - mn]);
+    });
+    var slope = 0;
+    if (sl.length) {
+      sl.sort(function (p, q) { return p[0] - q[0]; });
+      var tot = 0, acc = 0; sl.forEach(function (x) { tot += x[1]; });
+      for (i = 0; i < sl.length; i++) { acc += sl[i][1]; if (acc >= tot / 2) { slope = sl[i][0]; break; } }
+      slope = clamp(slope, -0.09, 0.09);
+    }
+    words.forEach(function (w) { w.yc = w.cy - slope * w.cx; });
+    words.sort(function (p, q) { return p.yc - q.yc || p.x0 - q.x0; });
+    var rows = [], row = null;
+    words.forEach(function (w) {
+      if (row && Math.abs(w.yc - row.m) <= 0.5 * Math.max(hm, Math.min(w.h, row.h))) { row.w.push(w); row.m = (row.m * (row.w.length - 1) + w.yc) / row.w.length; row.h = Math.max(row.h, w.h); }
+      else { row = { w: [w], m: w.yc, h: w.h }; rows.push(row); }
+    });
+    if (rows.length > 1.7 * nl + 2 || rows.length < 0.5 * nl) return null;
+    var outl = rows.map(function (r) {
+      r.w.sort(function (p, q) { return p.x0 - q.x0; });
+      var t = '', c = 0;
+      for (j = 0; j < r.w.length; j++) {
+        var w2 = r.w[j]; c += w2.c;
+        if (j) { var gap = w2.x0 - r.w[j - 1].x1, sp = gap / cw < 1.5 ? 1 : Math.min(60, Math.round(gap / cw)); t += new Array(sp + 1).join(' '); }
+        t += w2.t;
+      }
+      return { t: t, c: Math.round(c / r.w.length) };
+    });
+    var cl = cleanLines(outl);
+    return { text: cl.text, rows: rows.length, slope: +slope.toFixed(4) };
   }
 
   /* ═════════════ PARTE BROWSER: foto → tela pronta per la lettura ═════════════ */
@@ -38577,6 +39168,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         var cf = drawRegion(D.img, region, ang + skew, sf, rot), GF = grayFromCanvas(cf);
         D.done(); freeCanvas(cf);
         var flat = opts.flat === false ? GF.g : flatField(GF.g, GF.w, GF.h, 30);
+        var bands = opts.bands === false ? [] : invertBands(flat, GF.w, GF.h); info.bands = bands.length;
         var mask = opts.mask === false ? null : paperMask(flat, GF.w, GF.h);
         var out = applyFinish(flat, GF.w, GF.h, cur.lut, 0.015, mask);
         var res = canvasFromGray(out, GF.w, GF.h);
@@ -38667,8 +39259,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
           (d.blocks || []).forEach(function (b) { (b.paragraphs || []).forEach(function (p) { (p.lines || []).forEach(function (l) {
             lines.push({ t: l.text.replace(/\s+$/, ''), c: Math.round(l.confidence || 0), w: (l.words || []).map(function (x) { var bb = x.bbox || {}; return [x.text, Math.round(x.confidence || 0), bb.x0, bb.y0, bb.x1, bb.y1]; }) });
           }); }); });
-          var cl = cleanLines(lines);
-          return { text: cl.text, raw: d.text || '', conf: Math.round(d.confidence || 0), lines: lines, dropped: cl.dropped, ms: Date.now() - t0 };
+          var dn = { lines: lines, dropped: 0 };
+          try { dn = denoise(lines); } catch (e) { dn = { lines: lines, dropped: 0 }; }
+          lines = dn.lines;
+          var cl = cleanLines(lines), rl = null;
+          try { rl = relines(lines); } catch (e) { rl = null; }
+          return { text: cl.text, text2: rl && rl.text && rl.text !== cl.text ? rl.text : '', slope: rl ? rl.slope : 0, raw: d.text || '', conf: Math.round(d.confidence || 0), lines: lines, dropped: cl.dropped, noise: dn.dropped, ms: Date.now() - t0 };
         });
       });
     });
@@ -38705,7 +39301,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     supported: supported, ready: ready, read: read, prepare: prepare, recognize: recognize, engine: engine, release: release,
     // parti pure, esposte per i collaudi
     _b: { decode: decode, drawSmall: drawSmall, grayFromCanvas: grayFromCanvas, drawRegion: drawRegion, canvasFromGray: canvasFromGray },
-    _px: { grayOf: grayOf, otsu: otsu, blurGray: blurGray, rankFilter: rankFilter, shrink: shrink, flatField: flatField, findPaper: findPaper, skewOf: skewOf, inkBox: inkBox, charHeight: charHeight, inkMap: inkMap, orientRatio: orientRatio, inkLut: inkLut, applyFinish: applyFinish, paperMask: paperMask, cleanLines: cleanLines }
+    _px: { grayOf: grayOf, otsu: otsu, blurGray: blurGray, rankFilter: rankFilter, shrink: shrink, flatField: flatField, findPaper: findPaper, skewOf: skewOf, inkBox: inkBox, charHeight: charHeight, inkMap: inkMap, orientRatio: orientRatio, inkLut: inkLut, applyFinish: applyFinish, paperMask: paperMask, cleanLines: cleanLines, invertBands: invertBands, relines: relines, denoise: denoise }
   };
 });
 
@@ -38727,6 +39323,7 @@ var EWSCO = (function () {
   var KEY = 'receipts';          // elenco degli scontrini (localStorage, con il backup)
   var DOCCAT = 'scontrini';      // categoria nell'archivio dei documenti (IndexedDB, sul dispositivo)
   var MAXITEMS = 150;            // articoli tenuti per scontrino
+  var MAXEXTRA = 40;             // righe «extra» (operatore, banco, IBAN…) tenute per scontrino
   var MAXSIDE = 1800;            // lato lungo massimo della foto (px)
   var PHOTO_Q = 0.8;             // qualità JPEG
   var DUPDAYS = 1;               // una spesa «uguale» può essere del giorno prima o dopo (la banca registra con un po' di ritardo)
@@ -38832,7 +39429,7 @@ var EWSCO = (function () {
   /* ───────────────────────── elenco ───────────────────────── */
   function sortRecs(list) { return (list || []).slice().sort(function (a, b) { return a.d < b.d ? 1 : a.d > b.d ? -1 : a.id < b.id ? 1 : a.id > b.id ? -1 : 0; }); }
   function haystack(r) {
-    return [r.n, r.id, f2(r.tot), String(r.tot), dmy(r.d), catOf(r.c)[1], (r.it || []).map(function (x) { return x[0]; }).join(' ')].join(' ').toLowerCase();
+    return [r.n, r.lg, r.ad, r.ci, r.id, f2(r.tot), String(r.tot), dmy(r.d), catOf(r.c)[1], (r.it || []).map(function (x) { return x[0]; }).join(' '), (r.xl || []).join(' ')].join(' ').toLowerCase();
   }
   // ricerca: ogni parola scritta deve comparire (negozio, importo, codice, categoria, articoli)
   function search(list, q, cat) {
@@ -38895,19 +39492,31 @@ var EWSCO = (function () {
       if (!x) return;
       var tot = x.total === '' || x.total == null ? NaN : +x.total, qty = x.qty == null ? 1 : +x.qty, unit = x.unit == null ? null : +x.unit;
       if (!isFinite(tot) || !isFinite(qty)) return;
-      out.push({ desc: String(x.desc == null ? '' : x.desc).slice(0, 80), qty: qty, unit: unit != null && isFinite(unit) ? unit : null, total: r2(tot), vat: String(x.vat || '').slice(0, 4) });
+      var o = { desc: String(x.desc == null ? '' : x.desc).slice(0, 80), qty: qty, unit: unit != null && isFinite(unit) ? unit : null, total: r2(tot), vat: String(x.vat || '').slice(0, 4) };
+      if (x.inf) o.inf = true;          // importo ricavato dal totale (solo nella scheda: «≈»)
+      out.push(o);
     });
     return out;
+  }
+  // «altre righe del documento»: tutto ciò che sul documento non ha un campo (operatore, banco, IBAN, scadenza…). Una riga per voce, senza doppioni
+  function cleanExtra(list) {
+    var out = [], seen = {};
+    (Array.isArray(list) ? list : String(list == null ? '' : list).split(/\r?\n/)).forEach(function (s) {
+      s = String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 90);
+      var k = s.toLowerCase(); if (!s || seen[k]) return; seen[k] = 1; out.push(s);
+    });
+    return out.slice(0, MAXEXTRA);
   }
   // dati nella forma che vuole il costruttore del PDF
   function buildD(f, c) {
     var pay = f.pay || '', cash = pay === 'contanti';
     return {
       id: c.id, createdAt: c.createdAt, source: f.src || 'mano',
-      merchant: { name: String(f.name || '').trim().slice(0, 80), legal: f.legal || '', address: f.address || '', city: f.city || '', piva: String(f.piva || '').replace(/\D/g, '') },
+      merchant: { name: String(f.name || '').trim().slice(0, 80), legal: String(f.legal || '').trim().slice(0, 80), address: String(f.address || '').trim().slice(0, 80), city: String(f.city || '').trim().slice(0, 60), piva: String(f.piva || '').replace(/\D/g, '') },
       date: f.date, time: f.time || '', doc: { number: (f.doc && f.doc.number) || '', rt: (f.doc && f.doc.rt) || '' },
       items: cleanItems(f.items), total: r2(f.total), iva: f.iva && ((f.iva.rates && f.iva.rates.length) || f.iva.total != null) ? f.iva : { rates: [], total: null },
       payment: { method: pay, last4: f.last4 || '', paid: cash && f.paid != null ? f.paid : null, change: cash && f.change != null ? f.change : null },
+      extra: cleanExtra(f.extra),
       category: f.cat || 'extra', expenseId: c.expenseId || null, fingerprint: c.fingerprint || ''
     };
   }
@@ -38921,6 +39530,7 @@ var EWSCO = (function () {
     if (d.doc && d.doc.number) r.dn = d.doc.number; if (d.doc && d.doc.rt) r.rt = d.doc.rt;
     if (iv.rates && iv.rates.length) r.iv = iv.rates.map(function (q) { return [q.rate, q.base == null ? null : q.base, q.tax == null ? null : q.tax]; });
     if (iv.total != null) r.ivt = iv.total;
+    if (d.extra && d.extra.length) r.xl = d.extra.slice();
     r.ex = d.expenseId || null; r.exk = x.exk || ''; r.own = x.own ? 1 : 0;
     r.pdf = x.pdf ? 1 : 0; r.ph = x.ph ? 1 : 0; r.sz = x.sz || 0; r.psz = x.psz || 0;
     return r;
@@ -38933,10 +39543,11 @@ var EWSCO = (function () {
       items: (r.it || []).map(function (i) { return { desc: i[0], qty: i[1], unit: i[2], total: i[3], vat: i[4] || '' }; }),
       total: r.tot, iva: { rates: (r.iv || []).map(function (q) { return { rate: q[0], base: q[1], tax: q[2] }; }), total: r.ivt == null ? null : r.ivt },
       payment: { method: r.p || '', last4: r.l4 || '', paid: r.pa == null ? null : r.pa, change: r.ch == null ? null : r.ch },
+      extra: (r.xl || []).slice(),
       category: r.c, expenseId: r.ex || null, fingerprint: r.fp || ''
     };
   }
-  // scontrino riscritto in testo (anteprima nella scheda): le stesse righe dell'A, a 36 colonne
+  // scontrino riscritto in testo (anteprima nella scheda): le stesse righe del PDF, a 36 colonne
   function ticketText(f, id, fp) {
     var COLS = 36, L = [], rule = new Array(COLS + 1).join('-');
     function ctr(s) { s = String(s); return s.length >= COLS ? s.slice(0, COLS) : new Array(Math.floor((COLS - s.length) / 2) + 1).join(' ') + s; }
@@ -38945,33 +39556,56 @@ var EWSCO = (function () {
       words.forEach(function (w) { while (w.length > COLS) { if (cur) { lines.push(cur); cur = ''; } lines.push(w.slice(0, COLS)); w = w.slice(COLS); } if (!cur) cur = w; else if ((cur + ' ' + w).length <= COLS) cur += ' ' + w; else { lines.push(cur); cur = w; } });
       if (cur) lines.push(cur); return lines.map(ctr);
     }
+    function wrapL(s) { return wrapC(s).map(function (x) { return x.replace(/^\s+/, ''); }); }
     function row(l, r) { l = String(l); r = String(r); var room = COLS - r.length - 1; if (l.length > room) l = l.slice(0, room); return l + new Array(Math.max(1, COLS - l.length - r.length) + 1).join(' ') + r; }
-    var items = f.items || [];
+    function qtyTx(q) { return q % 1 ? String(q).replace('.', ',') : String(q); }
+    var items = f.items || [], extra = cleanExtra(f.extra), nm = String(f.name || 'SCONTRINO').trim().toUpperCase();
     L.push(ctr('COPIA DIGITALE'), rule);
-    L = L.concat(wrapC(String(f.name || 'SCONTRINO').trim().toUpperCase()));
+    L = L.concat(wrapC(nm));
+    if (f.legal && String(f.legal).trim().toUpperCase() !== nm) L = L.concat(wrapC(String(f.legal).trim()));
     if (f.address) L = L.concat(wrapC(f.address)); if (f.city) L = L.concat(wrapC(f.city)); if (f.piva) L.push(ctr('P.IVA ' + f.piva)); L.push(rule);
     L.push(row((f.date ? dmy(f.date) : '--/--/----') + (f.time ? '  ' + f.time : ''), f.doc && f.doc.number ? 'DOC ' + f.doc.number : '')); L.push(rule);
     items.forEach(function (x) {
-      var amt = f2(x.total) + (x.vat ? ' ' + x.vat : ''), d = (x.qty && x.qty !== 1 ? String(x.qty).replace('.', ',') + ' x ' : '') + x.desc, room = COLS - amt.length - 1;
-      if (d.length > room) d = d.slice(0, room - 1) + '.'; L.push(row(d, amt));
+      var amt = f2(x.total) + (x.vat ? ' ' + x.vat : ''), d = String(x.desc || ''), room = COLS - amt.length - 1, parts = [], two = x.qty !== 1 && x.unit;
+      if (x.qty !== 1 && !x.unit && x.qty) d = qtyTx(x.qty) + ' x ' + d;
+      while (d.length > room) { var cut = d.lastIndexOf(' ', room); if (cut < 6) cut = room; parts.push(d.slice(0, cut)); d = d.slice(cut).trim(); }
+      parts.push(d);
+      parts.forEach(function (p, i) { L.push(i === parts.length - 1 && !two ? row(p, amt) : p); });
+      if (two) L.push(row('  ' + qtyTx(x.qty) + ' x ' + f2(x.unit), amt));
     });
     if (items.length) L.push(rule);
-    L.push(row('TOTALE EURO', f.total == null ? '--,--' : f2(f.total)), row('PAGAMENTO', payName(f.pay)), rule);
+    L.push(row('TOTALE EURO', f.total == null ? '--,--' : f2(f.total)), row('PAGAMENTO', payName(f.pay) + (f.last4 ? ' ****' + f.last4 : '')));
+    if (f.pay === 'contanti' && f.paid != null) { L.push(row('CONTANTI', f2(f.paid))); if (f.change != null) L.push(row('RESTO', f2(f.change))); }
+    var iva = f.iva || {};
+    (iva.rates || []).forEach(function (r) { L.push(row('IVA ' + String(r.rate).replace('.', ',') + '%' + (r.base != null ? '  imp. ' + f2(r.base) : ''), f2(r.tax))); });
+    if (iva.total != null) L.push(row('DI CUI IVA', f2(iva.total)));
+    L.push(rule);
+    if (extra.length) { extra.forEach(function (x) { L = L.concat(wrapL(x)); }); L.push(rule); }
     L.push(ctr('ID  ' + (id || 'SC-aaaammgg-001')), ctr('Impronta  ' + (fp || '____-____-____-____')));
     return L.join('\n');
   }
-  function sumCheck(items, total) {        // {ok, sum, diff} oppure null se non c'è nulla da confrontare
+  function sumCheck(items, total, tax) {        // {ok, sum, diff, net} oppure null se non c'è nulla da confrontare. tax: IVA del documento (fattura: voci al netto)
     if (!items || !items.length || total == null) return null;
     var sum = 0; items.forEach(function (x) { sum += cents(x.total); }); sum /= 100;
-    var diff = r2(total - sum); return { ok: Math.abs(diff) < 0.015, sum: sum, diff: diff };
+    var diff = r2(total - sum), ok = Math.abs(diff) < 0.015, net = false;
+    if (!ok && tax != null && tax > 0 && Math.abs(r2(total - tax - sum)) < 0.015) { ok = true; net = true; }
+    return { ok: ok, sum: sum, diff: diff, net: net };
   }
   function lvl(c) { return !c ? 'none' : c >= 0.9 ? 'ok' : c >= 0.75 ? 'check' : 'warn'; }
+  // Foto senza scritte (grigio, tavolo, venature): il motore «legge» lo stesso qualcosa. Con fiducia di lettura bassissima (media delle parole sotto 40; i documenti veri, anche brutti, stanno sopra 45)
+  // e nessun dato sicuro (partita IVA valida, totale confermato da più righe) non è un documento: si tratta come se non avesse letto nulla
+  var JUNK_CONF = 40;
+  function ocrJunk(r, conf) {
+    if (typeof conf !== 'number' || !(conf < JUNK_CONF)) return false;
+    var m = (r && r.merchant) || {}, cf = (r && r.conf) || {};
+    return !m.pivaValid && !(cf.total >= 0.9);
+  }
 
   var core = {
     num: num, moneyIssue: moneyIssue, validIso: validIso, dmy: dmy, f2: f2, r2: r2, monthKey: monthKey, addDays: addDays, dayDiff: dayDiff, normDate: normDate, slug: slug, srcOf: srcOf,
     sha256: sha256, sha256Sync: sha256Sync, search: search, sortRecs: sortRecs, totalOf: totalOf, nextId: nextId, knownFrom: knownFrom,
     findDupExpenses: findDupExpenses, findDupReceipt: findDupReceipt, validate: validate, cleanItems: cleanItems, buildD: buildD, toRec: toRec, toD: toD,
-    ticketText: ticketText, sumCheck: sumCheck, lvl: lvl, bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, CATS: CATS, PAYS: PAYS, CONST: { KEY: KEY, DOCCAT: DOCCAT, DUPDAYS: DUPDAYS, MAXITEMS: MAXITEMS }
+    ticketText: ticketText, sumCheck: sumCheck, cleanExtra: cleanExtra, lvl: lvl, ocrJunk: ocrJunk, bytesToB64: bytesToB64, b64ToBytes: b64ToBytes, CATS: CATS, PAYS: PAYS, CONST: { KEY: KEY, DOCCAT: DOCCAT, DUPDAYS: DUPDAYS, MAXITEMS: MAXITEMS, MAXEXTRA: MAXEXTRA }
   };
 
   var hasDom = typeof document !== 'undefined' && typeof window !== 'undefined';
@@ -39131,9 +39765,9 @@ var EWSCO = (function () {
       f: blankForm(last && last.p || 'bancomat'), warns: [], note: '', dupExp: [], dupChoice: 0, dupRcpt: null, dupOk: false, dupUpdate: false, usePhoto: true, drive: false,
       detailId: '', result: null, pdfUrl: '', verify: '', local: null, fileFor: null, errs: {}, orig: null, ocr: newOcr() };
   }
-  function newOcr() { return { st: 'none', id: 0, job: null, rot: null, first: false, stage: 'foto', fr: {}, pct: 0, base: 0, t0: 0, ms: 0, code: '', found: null, nitems: 0, nothing: false, part: false, hint: '', tries: 0, keep: null }; }
+  function newOcr() { return { st: 'none', id: 0, job: null, rot: null, first: false, stage: 'foto', fr: {}, pct: 0, base: 0, t0: 0, ms: 0, code: '', found: null, nitems: 0, nextra: 0, nothing: false, part: false, hint: '', tries: 0, keep: null }; }
   function blankForm(pay) {
-    return { name: '', date: todayIso(), time: '', total: null, totalRaw: null, cat: 'supermercato', pay: pay, piva: '', legal: '', address: '', city: '', doc: null, iva: null, last4: '', paid: null, change: null, items: [],
+    return { name: '', date: todayIso(), time: '', total: null, totalRaw: null, cat: 'supermercato', pay: pay, piva: '', legal: '', address: '', city: '', extra: [], usr: {}, doc: null, iva: null, last4: '', paid: null, change: null, items: [],
       b: { name: 'none', date: 'you', total: 'none', piva: 'none' }, bt: { name: 'scrivilo', date: '✎ oggi', total: 'scrivilo' }, touchedCat: false, touchedPay: false };
   }
   var BADGE = { ok: '✓ sicuro', check: '◐ controlla', warn: '! da correggere', none: 'non trovato', you: '✎ confermato da te' };
@@ -39149,6 +39783,8 @@ var EWSCO = (function () {
     modal.addEventListener('input', onInput);
     modal.addEventListener('change', onChange);
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && S && !modal.hidden) { e.preventDefault(); askClose(); } });
+    modal.addEventListener('keydown', function (e) { if (e.key === 'Enter' && e.target && e.target.classList && e.target.classList.contains('sco-i-d')) { e.preventDefault(); try { e.target.blur(); } catch (x) { } } });
+    window.addEventListener('resize', function () { if (S && !modal.hidden) fitDescs(); });
     // le due caselle di scelta del file (fotocamera e libreria) restano fuori dal foglio, nel documento
     fileInput = document.createElement('input'); fileInput.type = 'file'; fileInput.accept = 'image/*'; fileInput.setAttribute('capture', 'environment'); fileInput.hidden = true; fileInput.id = 'scoFileCam';
     libInput = document.createElement('input'); libInput.type = 'file'; libInput.accept = 'image/*'; libInput.hidden = true; libInput.id = 'scoFileLib';
@@ -39199,7 +39835,7 @@ var EWSCO = (function () {
     else if (S.view === 'detail') html = vDetail();
     else if (S.view === 'pdf') html = vPdf();
     else if (S.view === 'photo') html = vPhotoView();
-    bd.innerHTML = html; ft.innerHTML = foot; ft.hidden = !foot; paintChrome();
+    bd.innerHTML = html; ft.innerHTML = foot; ft.hidden = !foot; paintChrome(); fitDescs();
     if (S.view === 'sheet') { paintSum(); paintDup(); paintPrev(); }
     if (S.view === 'detail') afterDetail();
     if (S.view === 'pdf') { var fr = $('scoFrame'); if (fr && S.pdfUrl) fr.src = S.pdfUrl; }
@@ -39244,29 +39880,56 @@ var EWSCO = (function () {
       '<div class="sco-fld" id="sco-w-total"><div class="sco-lr"><label for="sco-f-total">Totale in euro</label>' + fbadge('total') + '</div><input id="sco-f-total" class="big" type="text" inputmode="decimal" autocomplete="off" placeholder="0,00" value="' + (f.total == null ? '' : f2(f.total)) + '"><div class="sco-err" id="sco-e-total"></div></div>' +
       '<div class="sco-g2"><div class="sco-fld"><div class="sco-lr"><label for="sco-f-cat">Categoria</label></div><select id="sco-f-cat">' + CATS.filter(function (c) { return c[0] !== 'rata'; }).map(function (c) { return '<option value="' + c[0] + '"' + (c[0] === f.cat ? ' selected' : '') + '>' + esc(c[1]) + '</option>'; }).join('') + '</select></div>' +
       '<div class="sco-fld"><div class="sco-lr"><label for="sco-f-pay">Pagamento</label></div><select id="sco-f-pay">' + PAYS.map(function (c) { return '<option value="' + c[0] + '"' + (c[0] === f.pay ? ' selected' : '') + '>' + esc(payName(c[0])) + '</option>'; }).join('') + '</select></div></div>' +
-      '<div class="sco-fld" id="sco-w-piva"><div class="sco-lr"><label for="sco-f-piva">Partita IVA</label>' + fbadge('piva') + '</div><input id="sco-f-piva" type="text" inputmode="numeric" autocomplete="off" placeholder="11 cifre (facoltativa)" value="' + esc(f.piva) + '"></div>';
+      '<div class="sco-fld" id="sco-w-piva"><div class="sco-lr"><label for="sco-f-piva">Partita IVA</label>' + fbadge('piva') + '</div><input id="sco-f-piva" type="text" inputmode="numeric" autocomplete="off" placeholder="11 cifre (facoltativa)" value="' + esc(f.piva) + '"></div>' +
+      '<details class="sco-det" id="sco-shopdet"' + (detOpen('shop', !!(f.legal || f.address || f.city)) ? ' open' : '') + '><summary>🏪 Dati del negozio</summary>' +
+      '<div class="sco-fld"><div class="sco-lr"><label for="sco-f-legal">Ragione sociale</label></div><input id="sco-f-legal" type="text" autocomplete="off" autocapitalize="characters" maxlength="80" placeholder="Es. Rossi e Figli SRL" value="' + esc(f.legal) + '"></div>' +
+      '<div class="sco-fld"><div class="sco-lr"><label for="sco-f-address">Indirizzo</label></div><input id="sco-f-address" type="text" autocomplete="off" autocapitalize="characters" maxlength="80" placeholder="Via o corso e numero" value="' + esc(f.address) + '"></div>' +
+      '<div class="sco-fld"><div class="sco-lr"><label for="sco-f-city">CAP, città e provincia</label></div><input id="sco-f-city" type="text" autocomplete="off" autocapitalize="characters" maxlength="60" placeholder="Es. 10100 Torino (TO)" value="' + esc(f.city) + '"></div></details>';
   }
-  function vItems() {
-    var it = S.f.items; if (!it.length) return '<div id="sco-itemsbox"></div><div id="sco-sum"></div>';
-    return '<div class="sco-sec" id="sco-itemsbox">' + itemsInner() + '</div><div id="sco-sum"></div>';
+  // parti ripiegabili: aperte da sole quando c'è qualcosa da vedere, a meno che tu le abbia aperte o chiuse
+  function detOpen(key, has) { var v = S && S.open && S.open[key]; return v === 1 ? true : v === 0 ? false : !!has; }
+  function vExtra() {
+    var f = S.f, n = f.extra.length;
+    return '<details class="sco-det" id="sco-xdet"' + (detOpen('x', n > 0) ? ' open' : '') + '><summary>📝 <span id="sco-xsum">' + extraSum(n) + '</span></summary>' +
+      '<p class="sco-fine">Tutto ciò che c\'è sul documento e non ha un campo: operatore, tavolo, IBAN, scadenza, note… Una riga per volta. Finisce nella copia digitale e nel PDF.</p>' +
+      '<textarea id="sco-f-extra" rows="5" spellcheck="false" autocapitalize="off" autocomplete="off" placeholder="Es. Operatore: Mario">' + esc(f.extra.join('\n')) + '</textarea></details>';
   }
+  function extraSum(n) { return 'Altre righe del documento' + (n ? ' (' + n + ')' : ''); }
+  function vItems() { return '<div class="sco-sec" id="sco-itemsbox">' + itemsInner() + '</div><div id="sco-sum"></div>'; }
+  function qtyTx(q) { return q % 1 ? String(q).replace('.', ',') : String(q); }
   function itemsInner() {
     var it = S.f.items;
-    return '<div class="sco-lr"><span class="sco-eyebrow">Articoli letti</span><span class="sco-fine">' + it.length + (it.length === 1 ? ' riga' : ' righe') + '</span></div><ul class="sco-items">' +
-      it.map(function (x, i) { return '<li class="' + (x.total < 0 ? 'neg' : '') + '"><span>' + esc((x.qty && x.qty !== 1 ? String(x.qty).replace('.', ',') + ' × ' : '') + x.desc) + '</span><b>' + f2(x.total) + (x.vat ? ' ' + esc(x.vat) : '') + '</b><button type="button" class="sco-rm" data-act="rmitem" data-i="' + i + '" aria-label="Togli questa riga">✕</button></li>'; }).join('') + '</ul>';
+    return '<div class="sco-lr"><span class="sco-eyebrow">Articoli</span><span class="sco-fine">' + (it.length ? it.length + (it.length === 1 ? ' riga' : ' righe') : 'facoltativi') + '</span></div>' +
+      (it.length ? '<ul class="sco-items sco-ed">' + it.map(function (x, i) {
+        return '<li class="' + (x.total < 0 ? 'neg' : '') + (x.inf ? ' est' : '') + '">' +
+          '<input class="sco-i-q" data-i="' + i + '" data-k="qty" type="text" inputmode="decimal" autocomplete="off" value="' + esc(qtyTx(x.qty)) + '" aria-label="Quantità, riga ' + (i + 1) + '">' +
+          '<textarea class="sco-i-d" rows="1" data-i="' + i + '" data-k="desc" autocomplete="off" autocapitalize="characters" spellcheck="false" enterkeyhint="done" maxlength="80" aria-label="Descrizione, riga ' + (i + 1) + '">' + esc(x.desc) + '</textarea>' +
+          '<input class="sco-i-t" data-i="' + i + '" data-k="total" type="text" inputmode="decimal" autocomplete="off" value="' + f2(x.total) + '" aria-label="Importo' + (x.inf ? ' (ricavato dal totale)' : '') + ', riga ' + (i + 1) + '"' + (x.inf ? ' title="Importo ricavato dal totale: controllalo"' : '') + '>' +
+          '<button type="button" class="sco-rm" data-act="rmitem" data-i="' + i + '" aria-label="Togli la riga ' + (i + 1) + '">✕</button></li>';
+      }).join('') + '</ul>' : '') +
+      (it.some(function (x) { return x.inf; }) ? '<p class="sco-fine">Le righe con il bordo tratteggiato hanno l\'importo ricavato dal totale: controllale.</p>' : '') +
+      '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="additem">+ ' + (it.length ? 'Aggiungi una riga' : 'Aggiungi un articolo') + '</button></div>';
   }
+  // le descrizioni lunghe vanno a capo e il campo cresce: si vede tutto quello che è stato letto
+  function fitDescs() {
+    try {
+      var ds = document.querySelectorAll('#sco-itemsbox .sco-i-d');
+      for (var i = 0; i < ds.length; i++) { var t = ds[i]; if (!t.offsetParent) continue; t.style.height = 'auto'; t.style.height = Math.min(120, t.scrollHeight + 2) + 'px'; }
+    } catch (e) { }
+  }
+  function setItemsBox(box) { box.innerHTML = itemsInner(); fitDescs(); }
   function vSheet() {
     var h = '<div class="sco-sec" id="sco-src">' + vPhoto() + '</div>';
     if (S.photo) h += '<div class="sco-read ' + readCls() + '" id="sco-read" role="status"' + (S.ocr.st === 'none' ? ' hidden' : '') + '>' + readInner() + '</div>';
     h += '<div class="sco-sec" id="sco-txt">' + vTextDet() + '</div><div id="sco-notes">' + notesHtml() + '</div>';
-    h += '<div class="sco-sec">' + vFields() + '</div>' + vItems();
+    h += '<div class="sco-sec">' + vFields() + '</div>' + vItems() + '<div class="sco-sec" id="sco-xbox">' + vExtra() + '</div>';
     h += '<ul class="sco-warns" id="sco-warns">' + S.warns.map(function (w) { return '<li>' + esc(w) + '</li>'; }).join('') + '</ul>';
     h += '<div id="sco-dup"></div>';
     var o = '';
     if (S.photo) o += '<label class="sco-opt"><input type="checkbox" id="sco-usephoto"' + (S.usePhoto ? ' checked' : '') + '><span>Allega la foto<small>Pagina 2 del PDF e archivio di questo dispositivo</small></span></label>';
     if (driveOn()) o += '<label class="sco-opt"><input type="checkbox" id="sco-drive"' + (S.drive ? ' checked' : '') + '><span>Salva anche su Google Drive<small>Cartella «Scontrini»</small></span></label>';
     if (o) h += '<div class="sco-sec">' + o + '</div>';
-    h += '<details class="sco-det"><summary>🧾 Anteprima dello scontrino riscritto</summary><pre class="sco-prev" id="sco-prev"></pre><p class="sco-fine">Si aggiorna mentre correggi i campi. È la parte sinistra del PDF.</p></details>';
+    h += '<details class="sco-det"><summary>🧾 Anteprima dello scontrino riscritto</summary><pre class="sco-prev" id="sco-prev"></pre><p class="sco-fine">Si aggiorna mentre correggi i campi. È la parte sinistra del PDF: ci sono tutte le righe, anche quelle extra.</p></details>';
     return h;
   }
   function notesHtml() {
@@ -39276,10 +39939,10 @@ var EWSCO = (function () {
     return h;
   }
   function paintSum() {
-    var el = $('sco-sum'); if (!el) return; var c = sumCheck(S.f.items, S.f.total);
+    var el = $('sco-sum'); if (!el) return; var c = sumCheck(S.f.items, S.f.total, S.f.iva && S.f.iva.total);
     if (!c) { el.className = ''; el.innerHTML = ''; return; }
     el.className = 'sco-sumline ' + (c.ok ? 'ok' : 'warn');
-    el.textContent = c.ok ? '✓ La somma degli articoli (' + eur(c.sum) + ') torna con il totale.' :
+    el.textContent = c.ok ? (c.net ? '✓ Gli articoli sommano ' + eur(c.sum) + ' (IVA esclusa): con l\'IVA fanno il totale.' : '✓ La somma degli articoli (' + eur(c.sum) + ') torna con il totale.') :
       'Gli articoli sommano ' + eur(c.sum) + ', il totale è ' + eur(S.f.total) + ': ' + (c.diff > 0 ? 'mancano ' + eur(c.diff) : 'sono ' + eur(-c.diff) + ' in più') + '. Controlla le righe, oppure tienile così: il PDF ha comunque il totale giusto.';
   }
   function paintPrev() { var el = $('sco-prev'); if (el) el.textContent = ticketText(S.f, S.f.date ? nextId(loadList(), S.f.date) : '', ''); }
@@ -39326,13 +39989,18 @@ var EWSCO = (function () {
     if ((v = g('sco-f-cat')) !== null) f.cat = v;
     if ((v = g('sco-f-pay')) !== null) f.pay = v;
     if ((v = g('sco-f-piva')) !== null) f.piva = v.replace(/\D/g, '');
+    if ((v = g('sco-f-legal')) !== null) f.legal = v.trim().slice(0, 80);
+    if ((v = g('sco-f-address')) !== null) f.address = v.trim().slice(0, 80);
+    if ((v = g('sco-f-city')) !== null) f.city = v.trim().slice(0, 60);
+    if ((v = g('sco-f-extra')) !== null) f.extra = cleanExtra(v);
+    S.open = S.open || {}; [['shop', 'sco-shopdet'], ['x', 'sco-xdet']].forEach(function (k) { var el = $(k[1]); if (el) S.open[k[0]] = el.open ? 1 : 0; });
     if ($('sco-usephoto')) S.usePhoto = $('sco-usephoto').checked;
     if ($('sco-drive')) S.drive = $('sco-drive').checked;
   }
   // la lettura del testo (o della foto) riempie la scheda
   function fillFrom(r) {
     var f = S.f; f.name = r.merchant.name || ''; f.date = r.date || ''; f.time = r.time || ''; f.total = r.total; f.cat = r.category || 'extra'; f.pay = r.appPay || f.pay || 'bancomat';
-    f.piva = r.merchant.piva || ''; f.legal = r.merchant.legal || ''; f.address = r.merchant.address || ''; f.city = r.merchant.city || '';
+    f.piva = r.merchant.piva || ''; f.legal = r.merchant.legal || ''; f.address = r.merchant.address || ''; f.city = r.merchant.city || ''; f.extra = cleanExtra(r.extra); f.usr = {};
     f.doc = r.doc || null; f.iva = r.iva || null; f.last4 = (r.payment && r.payment.last4) || ''; f.paid = r.payment && r.payment.paid != null ? r.payment.paid : null; f.change = r.payment && r.payment.change != null ? r.payment.change : null;
     f.items = cleanItems(r.items); f.totalRaw = null; f.touchedCat = false; f.touchedPay = false;
     f.b = { name: lvl(r.conf.merchant), date: lvl(r.conf.date), total: lvl(r.conf.total), piva: r.merchant.piva ? (r.merchant.pivaValid ? (r.merchant.pivaFixed ? 'check' : 'ok') : 'warn') : 'none' }; f.bt = {};
@@ -39392,7 +40060,7 @@ var EWSCO = (function () {
       var got = (o.found || []).map(function (x) { return x; }), miss = FOUND.slice(0, 3).filter(function (x) { return (o.found || []).indexOf(x[1]) < 0; }).map(function (x) { return x[1]; });
       var head = o.nothing ? 'Non sono riuscito a leggere i dati' : o.part ? '◐ Foto letta: controlla i campi segnati' : '✓ Foto letta';
       msg = o.nothing ? 'Rifai la foto con tutto lo scontrino in vista, ben illuminato e su un piano scuro. Oppure scrivi i dati a mano.' :
-        'Trovati: ' + got.join(', ') + (o.nitems ? ', ' + o.nitems + (o.nitems === 1 ? ' articolo' : ' articoli') : '') + '.' + (miss.length ? ' Non trovati: ' + miss.join(', ') + '.' : '') + (o.ms ? ' (' + Math.max(1, Math.round(o.ms / 1000)) + ' s)' : '');
+        'Trovati: ' + got.join(', ') + (o.nitems ? ', ' + o.nitems + (o.nitems === 1 ? ' articolo' : ' articoli') : '') + (o.nextra ? ', ' + o.nextra + (o.nextra === 1 ? ' altra riga' : ' altre righe') : '') + '.' + (miss.length ? ' Non trovati: ' + miss.join(', ') + '.' : '') + (o.ms ? ' (' + Math.max(1, Math.round(o.ms / 1000)) + ' s)' : '');
       return '<div class="sco-rhd"><b>' + esc(head) + '</b></div><p>' + esc(msg) + '</p>' + (o.hint ? '<p>' + esc(o.hint) + '</p>' : '') +
         '<div class="sco-row"><button type="button" class="sco-btn sm" data-act="ocrretry">⟳ Rileggi la foto</button></div>';
     }
@@ -39426,7 +40094,7 @@ var EWSCO = (function () {
   }
 
   function nameOk(r) { var m = r.merchant || {}; return !!(m.name && (m.plausible || (r.conf && r.conf.merchant >= 0.9))); }       // un nome fatto di sillabe a caso non si scrive nella scheda
-  function ocrScore(r) { return (r.total != null ? 3 : 0) + (r.date ? 2 : 0) + (nameOk(r) ? 1 : 0) + (r.merchant && r.merchant.piva ? 1 : 0) + (r.items && r.items.length ? 1 : 0); }
+  function ocrScore(r) { return (r.total != null ? 3 : 0) + (r.date ? 2 : 0) + (nameOk(r) ? 1 : 0) + (r.merchant && r.merchant.piva ? 1 : 0) + (r.items && r.items.length ? 1 + Math.min(r.items.length, 8) * 0.1 : 0) + (r.items && r.items.length && r.total != null && Math.abs((r.itemsSum || 0) - r.total) < 0.015 ? 1 : 0) + (r.merchant && r.merchant.address ? 0.3 : 0); }
   function ocrWeak(r) { return r.total == null && !r.date; }                       // niente totale e niente data: di solito foto capovolta o illeggibile
   function ocrStart(opt) {
     if (!S || !S.orig) return;
@@ -39457,6 +40125,17 @@ var EWSCO = (function () {
   function ocrDone(rec, opt) {
     var o = S.ocr, r, cand;
     try { r = EWRCPT.applyHistory(EWRCPT.parse(rec.text), S.known); } catch (e) { o.st = 'err'; o.code = 'motore'; paintRead(); return; }
+    // seconda lettura dello stesso testo: righe rimesse in ordine dalle posizioni delle parole (colonne dei prezzi, foto inclinata). Vince solo se è chiaramente migliore
+    if (rec.text2) {
+      try {
+        var r2 = EWRCPT.applyHistory(EWRCPT.parse(rec.text2), S.known);
+        if (EWRCPT.quality(r2) > EWRCPT.quality(r) + 0.25) { var c2 = {}; for (var k in rec) c2[k] = rec[k]; c2.text1 = rec.text; c2.text = rec.text2; c2.alt = true; rec = c2; r = r2; }
+      } catch (e) { }
+    }
+    if (ocrJunk(r, rec.conf)) {                                                    // rumore, non un documento: niente nome inventato e niente righe di sporco
+      var c0 = {}; for (var k0 in rec) c0[k0] = rec[k0]; c0.text = ''; c0.text2 = ''; c0.junk = true; rec = c0;
+      try { r = EWRCPT.applyHistory(EWRCPT.parse(''), S.known); } catch (e) { o.st = 'err'; o.code = 'motore'; paintRead(); return; }
+    }
     cand = { rec: rec, r: r, score: ocrScore(r) };
     if (o.keep && o.keep.score >= cand.score) cand = o.keep;                       // una lettura di prima era migliore: la tengo
     if (ocrWeak(cand.r) && (o.tries || 0) < 2) {                                   // niente totale né data: foto girata? Ritento (al massimo due volte)
@@ -39472,8 +40151,8 @@ var EWSCO = (function () {
     S.text = rec.text; S.src = 'foto'; S.textUser = false; S.textRead = true;
     fillAuto(r, rec);
     var got = [];
-    if (nameOk(r)) got.push('negozio'); if (r.date) got.push('data'); if (r.total != null) got.push('totale'); if (r.merchant && r.merchant.piva) got.push('partita IVA');
-    o.found = got; o.nitems = (r.items || []).length;
+    if (nameOk(r)) got.push('negozio'); if (r.date) got.push('data'); if (r.total != null) got.push('totale'); if (r.merchant && r.merchant.piva) got.push('partita IVA'); if (r.merchant && (r.merchant.address || r.merchant.city)) got.push('indirizzo');
+    o.found = got; o.nitems = (r.items || []).length; o.nextra = (r.extra || []).length;
     o.nothing = r.total == null && !r.date && !nameOk(r);
     o.part = !o.nothing && !(r.ready && r.total != null && r.date && nameOk(r));
     var sc = rec.info && rec.info.scale;
@@ -39495,7 +40174,8 @@ var EWSCO = (function () {
     if (!mine('total')) { f.total = r.total; f.totalRaw = null; b.total = r.total != null ? cap(lvl(r.conf.total)) : 'none'; bt.total = r.total != null ? '' : 'scrivilo'; }
     if (!mine('piva')) { f.piva = m.piva || ''; b.piva = m.piva ? (m.pivaValid ? (m.pivaFixed ? 'check' : 'ok') : 'warn') : 'none'; }
     if (r.time && !f.time) f.time = r.time;
-    f.legal = m.legal || ''; f.address = m.address || ''; f.city = m.city || '';
+    var usr = f.usr || (f.usr = {});
+    if (!usr.legal) f.legal = m.legal || ''; if (!usr.address) f.address = m.address || ''; if (!usr.city) f.city = m.city || ''; if (!usr.extra) f.extra = cleanExtra(r.extra);
     f.doc = r.doc || null; f.iva = r.iva || null; f.last4 = (r.payment && r.payment.last4) || ''; f.paid = r.payment && r.payment.paid != null ? r.payment.paid : null; f.change = r.payment && r.payment.change != null ? r.payment.change : null;
     f.items = cleanItems(r.items);
     if (!f.touchedCat) f.cat = r.category || 'extra';
@@ -39510,8 +40190,11 @@ var EWSCO = (function () {
     var f = S.f;
     function set(id, v) { var el = $(id); if (el && el.value !== v) el.value = v; }
     set('sco-f-name', f.name); set('sco-f-date', f.date); set('sco-f-time', f.time); set('sco-f-total', f.total == null ? '' : f2(f.total)); set('sco-f-cat', f.cat); set('sco-f-pay', f.pay); set('sco-f-piva', f.piva);
+    set('sco-f-legal', f.legal); set('sco-f-address', f.address); set('sco-f-city', f.city); set('sco-f-extra', f.extra.join('\n'));
+    [['sco-shopdet', 'shop', !!(f.legal || f.address || f.city)], ['sco-xdet', 'x', f.extra.length > 0]].forEach(function (k) { var el = $(k[0]); if (el) el.open = detOpen(k[1], k[2]); });
+    var xs = $('sco-xsum'); if (xs) xs.textContent = extraSum(f.extra.length);
     ['name', 'date', 'total', 'piva'].forEach(function (k) { setBadge(k, f.b[k], f.bt && f.bt[k]); });
-    var box = $('sco-itemsbox'); if (box) { box.className = f.items.length ? 'sco-sec' : ''; box.innerHTML = f.items.length ? itemsInner() : ''; }
+    var box = $('sco-itemsbox'); if (box) setItemsBox(box);
     var w = $('sco-warns'); if (w) w.innerHTML = S.warns.map(function (x) { return '<li>' + esc(x) + '</li>'; }).join('');
     var nt = $('sco-notes'); if (nt) nt.innerHTML = notesHtml();
     paintSum(); paintPrev(); recalcDup(); syncBack();
@@ -39558,7 +40241,7 @@ var EWSCO = (function () {
     var cand = (S.dupExp.length && S.dupChoice !== 'new' && S.dupExp[S.dupChoice]) ? S.dupExp[S.dupChoice].e : null;
     var hit = cand ? findExpense({ ex: cand.id, exk: monthKey(normDate(cand.date) || f.date), d: f.date }) : null;   // spesa già presente da collegare (se non si trova, se ne crea una)
     var exId = hit ? hit.arr[hit.i].id : Date.now();
-    var d = buildD({ name: f.name, date: f.date, time: f.time, total: f.total, cat: f.cat, pay: f.pay, piva: f.piva, legal: f.legal, address: f.address, city: f.city, doc: f.doc, iva: f.iva, items: f.items, last4: f.last4, paid: f.paid, change: f.change, src: S.src }, { id: id, createdAt: createdAt, expenseId: exId });
+    var d = buildD({ name: f.name, date: f.date, time: f.time, total: f.total, cat: f.cat, pay: f.pay, piva: f.piva, legal: f.legal, address: f.address, city: f.city, extra: f.extra, doc: f.doc, iva: f.iva, items: f.items.filter(function (x) { return String(x.desc || '').trim() || x.total; }), last4: f.last4, paid: f.paid, change: f.change, src: S.src }, { id: id, createdAt: createdAt, expenseId: exId });
     var useIt = !!(hit && S.dupUpdate);
     ocrStop(); if (S.ocr.st === 'cancel') S.ocr.st = 'none';
     setBusy('Creo lo scontrino…');
@@ -39616,7 +40299,7 @@ var EWSCO = (function () {
       else { var ea = ex.arr[ex.i]; exLine = (r.own ? 'creata con lo scontrino' : 'collegata a una spesa già presente') + (cents(ea.amount) !== cents(r.tot) ? ' · ora ' + eur(ea.amount) : ''); }
     }
     var h = '<div class="sco-dhead"><span class="sco-dot" style="background:' + c[3] + '"></span><div><b>' + esc(r.n) + '</b><span>' + dmy(r.d) + (r.t ? ' · ' + esc(r.t) : '') + ' · ' + esc(c[1]) + '</span></div><strong>' + eur(r.tot) + '</strong></div>';
-    h += '<dl class="sco-dl"><dt>Pagamento</dt><dd>' + esc(payName(r.p)) + (r.l4 ? ' ****' + esc(r.l4) : '') + '</dd>' + (r.pv ? '<dt>Partita IVA</dt><dd>' + esc(r.pv) + '</dd>' : '') + '<dt>Articoli</dt><dd>' + items.length + '</dd><dt>Codice</dt><dd><code>' + esc(r.id) + '</code></dd>' + (r.fp ? '<dt>Impronta</dt><dd><code>' + esc(fpTxt(r.fp)) + '</code></dd>' : '') + '</dl>';
+    h += '<dl class="sco-dl">' + (r.lg ? '<dt>Ragione sociale</dt><dd>' + esc(r.lg) + '</dd>' : '') + (r.ad || r.ci ? '<dt>Indirizzo</dt><dd>' + esc([r.ad, r.ci].filter(Boolean).join(' · ')) + '</dd>' : '') + (r.dn ? '<dt>Documento</dt><dd>' + esc(r.dn) + '</dd>' : '') + '<dt>Pagamento</dt><dd>' + esc(payName(r.p)) + (r.l4 ? ' ****' + esc(r.l4) : '') + '</dd>' + (r.pv ? '<dt>Partita IVA</dt><dd>' + esc(r.pv) + '</dd>' : '') + '<dt>Articoli</dt><dd>' + items.length + '</dd><dt>Codice</dt><dd><code>' + esc(r.id) + '</code></dd>' + (r.fp ? '<dt>Impronta</dt><dd><code>' + esc(fpTxt(r.fp)) + '</code></dd>' : '') + '</dl>';
     h += '<ul class="sco-links"><li><b>Spesa GoBank</b><span>' + esc(exLine) + '</span></li><li><b>PDF (mix A+B)</b><span>' + esc(pdfLine) + '</span></li><li><b>Foto</b><span>' + esc(phLine) + '</span></li></ul>';
     if (S.verify) h += '<div class="sco-sumline ' + (S.verify.ok ? 'ok' : 'warn') + '">' + esc(S.verify.text) + '</div>';
     h += '<div class="sco-acts">';
@@ -39626,7 +40309,8 @@ var EWSCO = (function () {
     else h += '<button type="button" class="sco-btn pri" data-act="rebuild">Rifai il PDF su questo dispositivo' + (r.ph ? ' (senza foto)' : '') + '</button>';
     if (hasPhoto) h += '<button type="button" class="sco-btn" data-act="openphoto">Vedi la foto</button>';
     h += '<button type="button" class="sco-btn" data-act="' + (ex ? 'gospesa' : 'remake') + '">' + (ex ? 'Vai alla spesa' : 'Ricrea la spesa') + '</button></div>';
-    if (items.length) h += '<details class="sco-det"><summary>Articoli (' + items.length + ')</summary><ul class="sco-items">' + items.map(function (x) { return '<li class="' + (x[3] < 0 ? 'neg' : '') + '"><span>' + esc((x[1] && x[1] !== 1 ? String(x[1]).replace('.', ',') + ' × ' : '') + x[0]) + '</span><b>' + f2(x[3]) + (x[4] ? ' ' + esc(x[4]) : '') + '</b></li>'; }).join('') + '</ul></details>';
+    if (items.length) h += '<details class="sco-det"' + (items.length <= 12 ? ' open' : '') + '><summary>Articoli (' + items.length + ')</summary><ul class="sco-items">' + items.map(function (x) { return '<li class="' + (x[3] < 0 ? 'neg' : '') + '"><span>' + esc((x[1] && x[1] !== 1 ? qtyTx(x[1]) + ' × ' : '') + x[0]) + (x[1] && x[1] !== 1 && x[2] ? ' <small>(' + f2(x[2]) + ' cad.)</small>' : '') + '</span><b>' + f2(x[3]) + (x[4] ? ' ' + esc(x[4]) : '') + '</b></li>'; }).join('') + '</ul></details>';
+    if (r.xl && r.xl.length) h += '<details class="sco-det" open><summary>Altre righe del documento (' + r.xl.length + ')</summary><ul class="sco-items sco-xl">' + r.xl.map(function (x) { return '<li><span>' + esc(x) + '</span></li>'; }).join('') + '</ul></details>';
     h += '<div class="sco-more"><button type="button" class="sco-btn quiet" data-act="verify">Verifica l\'impronta</button>' + (r.pdf && hasPdf ? '<button type="button" class="sco-btn quiet" data-act="rebuild">Rifai il PDF</button>' : '') + '</div>';
     h += '<div class="sco-del">' + (S.confirmDel ? '<p class="sco-fine">Eliminare lo scontrino' + (r.own && ex ? ' e, se vuoi, anche la spesa collegata' : '') + '? Non si può annullare.</p><div class="sco-acts"><button type="button" class="sco-btn dng" data-act="delrec">Elimina lo scontrino' + (r.own && ex ? ' (tieni la spesa)' : '') + '</button>' + (r.own && ex ? '<button type="button" class="sco-btn dng" data-act="delboth">Elimina scontrino e spesa</button>' : '') + '<button type="button" class="sco-btn quiet" data-act="delno">Annulla</button></div>' : '<button type="button" class="sco-btn quiet dngtx" data-act="delask">Elimina…</button>') + '</div>';
     return h;
@@ -39735,7 +40419,12 @@ var EWSCO = (function () {
     else if (a === 'ocrretry') { ocrStart(); }
     else if (a === 'readtext') readText();
     else if (a === 'cleartext') { S.text = ''; var tx = $('sco-f-text'); if (tx) { tx.value = ''; try { tx.focus(); } catch (x) { } } }
-    else if (a === 'rmitem') { var i = +b.getAttribute('data-i'); S.f.items.splice(i, 1); var box = $('sco-itemsbox'); if (box) { box.className = S.f.items.length ? 'sco-sec' : ''; box.innerHTML = S.f.items.length ? itemsInner() : ''; } paintSum(); paintPrev(); }
+    else if (a === 'rmitem') { var i = +b.getAttribute('data-i'); S.f.items.splice(i, 1); var box = $('sco-itemsbox'); if (box) setItemsBox(box); paintSum(); paintPrev(); }
+    else if (a === 'additem') {
+      if (S.f.items.length >= MAXITEMS) { flash('Il massimo è ' + MAXITEMS + ' righe.'); return; }
+      S.f.items.push({ desc: '', qty: 1, unit: null, total: 0, vat: '' }); var bx = $('sco-itemsbox'); if (bx) setItemsBox(bx); paintSum(); paintPrev();
+      var ds = document.querySelectorAll('#sco-itemsbox .sco-i-d'); var nd = ds[ds.length - 1]; if (nd) try { nd.focus(); nd.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (x) { }
+    }
     else if (a === 'create') create();
     else if (a === 'another') { dropPhoto(S.photo); var k = S.known; S = fresh(); S.known = knownFrom(loadList()); void k; paint(); }
     else if (a === 'openpdf') actOpenPdf();
@@ -39759,6 +40448,19 @@ var EWSCO = (function () {
     else if (id === 'sco-f-total') { S.f.total = num(e.target.value); S.f.totalRaw = e.target.value; setBadge('total', 'you'); paintSum(); }
     else if (id === 'sco-f-piva') { S.f.piva = e.target.value.replace(/\D/g, ''); setBadge('piva', S.f.piva ? 'you' : 'none'); }
     else if (id === 'sco-f-text') { S.text = e.target.value; syncBack(); return; }
+    else if (id === 'sco-f-legal') { S.f.legal = e.target.value.trim(); S.f.usr.legal = true; }
+    else if (id === 'sco-f-address') { S.f.address = e.target.value.trim(); S.f.usr.address = true; }
+    else if (id === 'sco-f-city') { S.f.city = e.target.value.trim(); S.f.usr.city = true; }
+    else if (id === 'sco-f-extra') { S.f.extra = cleanExtra(e.target.value); S.f.usr.extra = true; var xs = $('sco-xsum'); if (xs) xs.textContent = extraSum(S.f.extra.length); paintPrev(); return; }
+    else if (e.target.getAttribute && e.target.getAttribute('data-k')) {          // una riga degli articoli
+      var k = e.target.getAttribute('data-k'), x = S.f.items[+e.target.getAttribute('data-i')]; if (!x) return;
+      if (k === 'desc') { x.desc = e.target.value.replace(/\s*[\r\n]+\s*/g, ' ').slice(0, 80); fitDescs(); }
+      else if (k === 'qty') { var q = num(e.target.value); x.qty = q != null && q > 0 ? q : 1; }
+      else if (k === 'total') { var tv = num(e.target.value); x.total = tv == null ? 0 : tv; }
+      if (k !== 'desc') { x.unit = x.qty !== 1 ? r2(x.total / x.qty) : null; if (x.inf) { delete x.inf; var li = e.target.closest('li'); if (li) li.classList.remove('est'); } }
+      var lg = e.target.closest('li'); if (lg) lg.classList.toggle('neg', x.total < 0);
+      paintSum(); paintPrev(); return;
+    }
     else return;
     syncBack();
     var w = e.target.closest('.sco-fld'); if (w) { w.classList.remove('has-err'); var er = w.querySelector('.sco-err'); if (er) er.textContent = ''; }
@@ -39784,6 +40486,7 @@ var EWSCO = (function () {
         recalcDup();
       }
       else if (id === 'sco-f-date') recalcDup();
+      else if (t.classList && t.classList.contains('sco-i-t')) { var xi = S.f.items[+t.getAttribute('data-i')]; if (xi && num(t.value) != null && !moneyIssue(t.value)) t.value = f2(xi.total); }
       else if (id === 'sco-usephoto') S.usePhoto = t.checked;
       else if (id === 'sco-drive') S.drive = t.checked;
       else if (id === 'sco-dupok') S.dupOk = t.checked;
