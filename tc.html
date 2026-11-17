@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261117-v324-righe-complete';
+  var BUILD = '20261117-v325-conti-tornano';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -36892,10 +36892,10 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v325', d: '17 nov 2026', t: 'Conti dello scontrino che tornano', x: 'Letto meglio lo scontrino fotografato storto o piegato, anche nei ristoranti con la colonna IVA: tutte le righe con quantità e prezzi, totale, IVA, pagamento, data e numero del documento. L’app controlla che somma delle righe, totale e pagamento tornino; se una cifra letta male fa sbagliare i conti, la rilegge da sola e ti segnala quelle dubbie.' },
     { v: 'v324', d: '17 nov 2026', t: 'Scontrino letto per intero', x: 'Dalla foto l’app prende ora tutto quello che c’è scritto: negozio e insegna, indirizzo, tutte le righe con quantità e importi, IVA, pagamento e le altre righe (operatore, tavolo, IBAN…). Prima di creare lo scontrino puoi correggere ogni riga. Copia digitale e PDF riportano tutto. Vale anche per fatture e ricevute del POS.' },
     { v: 'v323', d: '15 nov 2026', t: 'Lettura automatica dello scontrino', x: 'Scatti la foto e l’app legge da sola negozio, data e totale (il motore gira sul telefono: la foto non viene inviata a nessuno). Tu controlli la scheda e crei lo scontrino; quello che scrivi tu non viene mai cambiato. La prima volta scarica il motore di lettura, circa 6 MB.' },
     { v: 'v322', d: '14 nov 2026', t: 'Scontrino digitale', x: 'Fotografa uno scontrino (o incolla il testo di «Scansiona testo» di iOS): controlli i dati e l’app crea la spesa in GoBank e un PDF con lo scontrino riscritto più la foto. Lo trovi in Documenti, scheda Scontrini.' },
-    { v: 'v321', d: '9 nov 2026', t: 'Rimanenza sempre aggiornata', x: 'Quando aggiungi un’entrata o una spesa, l’avviso dice anche di quanto cambia la rimanenza (▲ +€200,00 → €357,00). La Dashboard è sempre aggiornata quando la apri, anche dopo l’entrata rapida di Spese Settimanali.' }
   ];
 
   var cur = 'info', timer = 0, bound = false;
@@ -37360,7 +37360,20 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   function normalize(text) {
     var t = String(text == null ? '' : text).replace(/\r\n?/g, '\n').replace(/\t/g, '  ').replace(/ /g, ' ');
     t = t.replace(/[‚﹐，]/g, ',').replace(/[−–—]/g, '-').replace(/[‘’´`]/g, "'");
-    return t.split('\n').map(function (l) { return fixLine(l).replace(/\s+$/, ''); });
+    return t.split('\n').map(function (l) { return cutTail(fixLine(l).replace(/\s+$/, '').replace(/^\s*(?:[^\s\d]{1,2}\s{3,})+(?=[A-Za-zÀ-ÿ])/, '')); });
+  }
+  // «VINO CASA     12,50   4», «BISTECCA   25,00  Mi"», «RISOTTO   3,20 ;»: dopo l'ultimo importo di una riga con descrizione possono stare solo
+  // la valuta, il codice IVA (A–F), «*» o un'aliquota; uno o due pezzetti corti in più (≤ 3 caratteri) sono sporco del bordo della carta e si tolgono
+  function cutTail(l) {
+    if (!/\d[,.]\d{2}/.test(l)) return l;
+    var a = amounts(l); if (!a.length) return l;
+    var last = a[a.length - 1], rest = l.slice(last.end);
+    if (!/\S/.test(rest) || !/[A-Za-zÀ-ÿ]{3,}/.test(l.slice(0, last.i))) return l;
+    var ok = /^(?:\s*-)?(?:\s*(?:EUR|€))?(?:\s*(?:[A-F]|\*|\d{1,2}(?:[,.]\d+)?\s?%)(?![A-Za-zÀ-ÿ0-9]))?/.exec(rest)[0], junk = rest.slice(ok.length).trim();
+    if (!junk || junk.length > 8) return l;
+    var tk = junk.split(/\s+/);
+    if (tk.length > 2 || tk.some(function (x) { return x.length > 3; }) || /\d[,.:]\d/.test(junk)) return l;
+    return l.slice(0, last.end) + ok;
   }
   // «2O,45» → «20,45», «23 ,45» → «23,45», «l,29» → «1,29» (solo dentro a gettoni che sembrano importi o date)
   function fixLine(l) {
@@ -37373,6 +37386,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       return m.replace(/[Oo]/g, '0').replace(/[Il]/g, '1');
     });
     l = l.replace(/(\d)\s+([,.])(\d{2})(?!\d)/g, '$1$2$3').replace(/(\d[,.])\s+(\d{2})(?!\d)/g, '$1$2');
+    // «Pagamento elettronico      55 00»: la virgola letta come spazio. Solo su righe di importi, dopo una colonna di spazi e a fine riga
+    if (/TOTAL|IMPORTO|PAGAM|CONTANT|RESTO|CARTA|BANCOMAT|ELETTRONIC|PAGARE|COMPLESS/i.test(l)) l = l.replace(/(\s{2,})(\d{1,3}) (\d{2})\s*$/, '$1$2,$3');
     return l;
   }
 
@@ -37420,7 +37435,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     for (var i = 0; i < lines.length; i++) {
       var s = lines[i], m = /(?:P\.?\s?IVA|PARTITA\s+IVA|P\.\s?I\.|VAT)\s*[:.\-]?\s*(?:IT)?\s*([0-9OoIlSB][0-9OoIlSB \-]{9,14}[0-9OoIlSB])/i.exec(s);
       var raw = m ? m[1] : null;
-      if (!raw) { var m2 = /(?:^|[^\d])(\d{11})(?!\d)/.exec(s); if (m2 && !/C\.?F\.?|CODICE\s+FISCALE|TEL|FAX/i.test(s)) raw = m2[1]; }
+      if (!raw) {
+        var m2 = /(?:^|[^\d])(\d{11})(?!\d)/.exec(s);
+        // su una riga «C.F./P.I.» letta male l'etichetta non si riconosce, ma 11 cifre che superano il controllo della partita IVA (per le società coincide col codice fiscale) vanno bene
+        if (m2 && !/TEL|FAX/i.test(s) && (!/C\.?F\.?|CODICE\s+FISCALE/i.test(s) || validPiva(m2[1]))) raw = m2[1];
+      }
       if (!raw) continue;
       var digits = raw.replace(/[ \-]/g, '').replace(/[Oo]/g, '0').replace(/[Il]/g, '1').replace(/S/g, '5').replace(/B/g, '8');
       if (digits.length !== 11) continue;
@@ -37475,7 +37494,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     totBad: /SUB\s?-?\s?TOT|TOTALE\s+(IVA|IMPOSTA|SCONTO|SCONTI|ARTICOL|PEZZI|ART\b|IMPONIBILE|NON\s+PAGATO|NON\s+RISC)|N\.?\s*ART|TOT\.?\s*(ART|PEZZ)/i,
     compl: /C[O0]MPLESSIV/i,
     pay: /^(PAGAMENT|CARTA\s+DI\s+(CRED|DEB)|CARTA\s+(CRED|DEB)|BANCOMAT|PAGOBANCOMAT|POS\b|CONTANT|RESTO|ELETTRONIC|TICKET|BUON[OI]|SATISPAY|VISA|MASTERCARD|MAESTRO|AMEX|CREDIT|DEBIT|CARTA\s*\*|PAGATO|DA\s+PAGARE|IMPORTO)/i,
-    head: /^(DOCUMENTO|DOC\b|SCONTRINO|COMMERCIALE|FISCALE|RICEVUTA|COPIA|CASSA|OP(ERATORE)?\b|DATA|ORA\b|TEL|FAX|WWW|HTTP|P\.?\s?IVA|PARTITA|C\.?F\.?\b|CODICE|ARTICOLI|PEZZI|N\.?\s*ART|PUNTI|SALDO|TESSERA|CARD|RT\b|MATR|ARROTOND|GRAZIE|ARRIVEDERCI|LOTTERIA|IVA\b|IMPONIBILE|ALIQUOTA|DI\s+CUI|CODICE)/i,
+    head: /^(DOCUMENTO|DOC\b|SCONTRINO|COMMERCIALE|FISCALE|RICEVUTA|COPIA|CASSA|OP(ERATORE)?\b|DATA|ORA\b|TEL|FAX|WWW|HTTP|P\.?\s?IVA|PARTITA|C\.?F\.?\b|CODICE|ARTICOLI|PEZZI|N\.?\s*ART|PUNTI|SALDO|TESSERA|CARD|RT\b|MATR|ARROTOND|GRAZIE|ARRIVEDERCI|LOTTERIA|IVA\b|IMPONIBILE|ALIQUOTA|DI\s+CUI|CODICE|D[I1L]\s+C\S{1,3}\s+(?:IVA|IMA|1VA|LVA|IVÀ)\b)/i,
     addr: /^(VIA|VIALE|V\.LE|V\.\s|PIAZZA|P\.ZZA|P\.ZA|CORSO|C\.SO|C[\s.]{0,2}[S5][O0](?=[\s.,])|PZA|PIAZZALE|LUNGOMARE|LUNGARNO|LARGO|LOC\b|LOC\.|LOCALIT|STRADA|S\.S\.|SS\s?\d|VICOLO|BORGO|CONTRADA|FRAZ)/i,
     legal: /(S\.?\s?R\.?\s?L\.?S?|S\.?\s?P\.?\s?A\.?|S\.?\s?N\.?\s?C\.?|S\.?\s?A\.?\s?S\.?|S\.?\s?S\.?)\s*$/i
   };
@@ -37609,11 +37628,23 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   /* ───────────── articoli ───────────── */
   function r3(v) { return Math.round((+v || 0) * 1000) / 1000; }
   function sumOf(items) { return r2(items.reduce(function (t, x) { return t + (x.total || 0); }, 0)); }
+  // «ACQUA MINERALE    10%    2,00»: l'aliquota IVA sta in una colonna prima del prezzo (solo aliquote vere: 4, 5, 10, 22)
+  var RX_VATMID = /\s+((?:4|5|10|22)(?:[,.]0{1,2})?\s?%)(?=\s+(?:-\s?)?(?:\d{1,3}(?:\.\d{3})+|\d+)[,.]\d{2}-?\s*(?:EUR|€|E)?\s*$)/;
+  // «i      CAFFE», «Pim-----     BISTECCA»: pezzi di rumore a sinistra, staccati dalla descrizione vera da molti spazi (margine della carta, altri fogli nella foto)
+  function cleanDesc(d) {
+    var segs = String(d).split(/\s{4,}/);
+    function junk(g) { var t = g.trim(); return !/\d/.test(t) && (t.length <= 4 || /[^\sA-Za-zÀ-ÿ.,'\/&%+()]{2,}/.test(t) || !/[A-Za-zÀ-ÿ]{3,}/.test(t)); }
+    while (segs.length > 1 && junk(segs[0]) && segs.slice(1).some(function (g) { return /[A-Za-zÀ-ÿ]{3,}/.test(g); })) segs.shift();
+    // un segno attaccato davanti alla descrizione («| VINO», «\\ CAFFE») è il bordo della carta; un «$» dentro una parola è una «S»
+    return segs.join(' ').replace(/\s{2,}/g, ' ').replace(/^[\s|!\\\/\[\]{}_~^`´'"]+(?=[A-Za-zÀ-ÿ0-9])/, '').replace(/([A-Za-zÀ-ÿ])\$(?=[A-Za-zÀ-ÿ\s]|$)/g, '$1S').trim();
+  }
   function itemOf(s) {
+    var vatMid = '', mv = RX_VATMID.exec(s);
+    if (mv) { vatMid = mv[1].replace(/\s/g, ''); s = s.slice(0, mv.index) + ' ' + s.slice(mv.index + mv[0].length); }
     var m = new RegExp('^(.*?[' + LET + '].*?)\\s+(?:-\\s?)?(\\d{1,3}(?:\\.\\d{3})+|\\d+)[,.](\\d{2})(-?)\\s*(?:EUR|€|E)?\\s*([A-F]|\\d{1,2}(?:[,.]\\d+)?\\s?%|\\*)?\\s*$').exec(s);
     if (!m) return null;
     var all = amounts(s); if (!all.length) return null;
-    var last = all[all.length - 1], desc = m[1].replace(/[\s.…_\-]+$/g, '').trim(), qty = 1, unit = null;
+    var last = all[all.length - 1], desc = cleanDesc(m[1].replace(/[\s.…_\-]+$/g, '').trim()), qty = 1, unit = null;
     // «2 X ARANCE», «3 PZ ...»
     var q = /^(\d{1,3})\s*(?:[xX*]|PZ\.?)\s+(.*)$/.exec(desc);
     if (q) { qty = +q[1]; desc = q[2]; }
@@ -37621,9 +37652,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var u = /^(.*?)\s+(\d+(?:[,.]\d{1,3})?)\s*[xX*]\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2})\s*$/.exec(desc);
     if (u) { desc = u[1]; qty = parseFloat(u[2].replace(',', '.')); unit = parseFloat(u[3].replace(/\./g, '').replace(',', '.')); }
     if ((desc.match(new RegExp('[' + LET + ']', 'g')) || []).length < 2) return null;
-    return { desc: desc, qty: qty, unit: unit, total: last.v, vat: (m[5] || '').replace(/\s/g, '') };
+    return { desc: desc, qty: qty, unit: unit, total: last.v, vat: vatMid || (m[5] || '').replace(/\s/g, '') };
   }
   var RX_QTYLINE = /^\s*(\d+(?:[,.]\d{1,3})?)\s*(?:KG|HG|G|L|LT|PZ)?\s*[xX*]\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2,3})(?:\s*(?:€|EUR))?(?:\s*\/\s*(?:KG|HG|L|LT|PZ))?\s*(?:=?\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2}))?\s*([A-F])?\s*$/i;
+  // «n.2 * 2,00» sotto «COPERTO ... 4,00»: dettaglio quantità × prezzo unitario dell'articolo sopra (con un po' di rumore davanti)
+  var RX_QTYDET = /^\s*(?:[^\sA-Za-z0-9]{0,3}\s*|(?:[A-Za-z|!1]{1,3}\s+){1,5})?(?:N[°º.:]?|Q\.?T[AÀ]'?\.?|QTA)\s*(\d{1,3})\s*[xX*×]\s*(\d{1,3}(?:\.\d{3})*[,.]\d{2})\s*(?:€|EUR)?\s*$/i;
   var RX_AMTONLY = /^\s*(-\s?)?(\d{1,3}(?:\.\d{3})+|\d+)[,.](\d{2})(-?)\s*(?:EUR|€)?\s*([A-F])?\s*$/;
   var RX_AMT2 = /^\s*-?(?:\d{1,3}(?:\.\d{3})+|\d+)[,.]\d{2}-?\s+-?(?:\d{1,3}(?:\.\d{3})+|\d+)[,.]\d{2}-?\s*(?:EUR|€)?\s*[A-F]?\s*$/;
 
@@ -37696,14 +37729,22 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return { desc: desc, qty: r3(qty), unit: qty === 1 ? null : unit, total: r2(total), vat: vat, amb: amb, inf: inf, chk: chk };
   }
 
+  function isWordDesc(d) { return /^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' .\/&-]{2,38}$/.test(d) && /[A-Za-zÀ-ÿ]{3,}/.test(d); }
   /* Legge la zona articoli [from, to). Ritorna {items, used (righe usate), hdr (c'è l'intestazione delle colonne),
      unpriced (descrizioni con quantità ma senza importo), leftAmts (righe di soli importi non abbinate)}. */
   function findItems(lines, from, to) {
-    var items = [], pending = null, pendAt = -1, used = [], hdr = false, unp = [], left = [], blk = false;
-    function push(it, ln, extraUsed) { it.ln = ln; items.push(it); used.push(ln); if (extraUsed != null && extraUsed >= 0) used.push(extraUsed); }
+    var items = [], pending = null, pendAt = -1, used = [], hdr = false, unp = [], left = [], blk = false, carry = null;
+    function push(it, ln, extraUsed) { it.ln = ln; items.push(it); used.push(ln); if (extraUsed != null && extraUsed >= 0) used.push(extraUsed); carry = null; }
     for (var i = from; i < to; i++) {
       var s = lines[i].trim(); if (!s) { pending = null; continue; }
       if (isColHead(s)) { hdr = true; used.push(i); pending = null; continue; }
+      var qd = RX_QTYDET.exec(s);
+      if (qd && !pending && items.length && items[items.length - 1].ln != null && i - items[items.length - 1].ln <= 2) {
+        var lastIt = items[items.length - 1], dq = +qd[1], du = parseFloat(qd[2].replace(/\./g, '').replace(',', '.'));
+        if (dq >= 1 && Math.abs(dq * du - lastIt.total) <= 0.0112 + 0.0001 * Math.abs(lastIt.total)) { lastIt.qty = dq; lastIt.unit = du; }
+        else { lastIt.chk = true; lastIt.det = { q: dq, u: du }; }                       // quantità × prezzo non fa il totale della riga: una delle cifre è letta male
+        used.push(i); continue;
+      }
       if (RX.head.test(s) || RX.pay.test(s)) { pending = null; continue; }
       if (RX.tot.test(s)) { pending = null; continue; }
       if (/^\s*(DATA|ORA)\b|\d{1,2}\s*[\/\-]\s*\d{1,2}\s*[\/\-]\s*\d{2,4}/i.test(s)) { pending = null; continue; }
@@ -37730,7 +37771,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       // riga di sola descrizione: il prezzo arriva sulla riga dopo («2 x 1,20  2,40»)
       if (new RegExp('^[' + LET + '0-9][^\\n]{2,}$').test(s) && !/\d[,.]\d{2}\s*$/.test(s)) {
         if (pending && QTYDEC.test(pending.split(' ')[0]) && QTYDEC.test(s.split(/\s+/)[0])) blk = true;      // due descrizioni di fila: i prezzi vengono tutti dopo
-        pending = s.replace(/\s+/g, ' '); pendAt = i;
+        pending = s.replace(/\s+/g, ' '); pendAt = i; if (isWordDesc(pending)) carry = { desc: pending, i: i };      // la «voce senza prezzo» si ricorda solo se è una descrizione vera, non una riga sporca
         var ud = /^(\d{1,3}[,.]\d{2,3})\s+(\S.*)$/.exec(pending);
         if (ud && /[A-Za-zÀ-ÿ]{2}/.test(ud[2])) unp.push({ i: i, desc: ud[2].replace(/[\s.…_\-|!]+$/g, '').trim(), qty: tv(ud[1]) });
       } else pending = null;
@@ -37738,7 +37779,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     // chi è già stato letto come articolo non resta «senza importo»
     var usedSet = {}; used.forEach(function (x) { usedSet[x] = 1; });
     unp = unp.filter(function (u) { return !usedSet[u.i]; });
-    return { items: items, used: used, hdr: hdr, unpriced: unp, leftAmts: left };
+    return { items: items, used: used, hdr: hdr, unpriced: unp, leftAmts: left, tail: pending && !usedSet[pendAt] && isWordDesc(pending) ? { desc: pending, i: pendAt } : (carry && !usedSet[carry.i] ? { desc: carry.desc, i: carry.i } : null) };
   }
   /* Dopo aver trovato il totale: colonne separate (descrizioni e prezzi su righe diverse, foto inclinata), un importo mancante
      ricavato dalla differenza, importo «unitario o totale?» deciso dalla somma. Ritorna {items, used, notes}. */
@@ -37758,6 +37799,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if (diff > 0.005) {
         u = res.unpriced[0];
         items.push({ desc: u.desc, qty: r3(u.qty), unit: u.qty === 1 ? null : r2(diff / u.qty), total: diff, vat: '', ln: u.i, inf: true }); used.push(u.i); notes.push('dedotta');
+      }
+    }
+    else if (!res.unpriced.length && res.tail && total != null && items.length && isWordDesc(res.tail.desc)) {
+      var diff3 = r2(total - sumOf(items));          // «DOLCE» in fondo all'elenco, il prezzo non si legge: quello che manca per arrivare al totale
+      if (diff3 > 0.005 && diff3 <= total) {
+        items.push({ desc: res.tail.desc, qty: 1, unit: null, total: diff3, vat: '', ln: res.tail.i, inf: true }); used.push(res.tail.i); notes.push('dedotta');
       }
     }
     if (total != null && items.length && Math.abs(sumOf(items) - total) >= 0.015) {
@@ -37805,7 +37852,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     for (var i = 0; i < lines.length; i++) {
       var s = lines[i];
       if (/P\.?\s?IVA|PARTITA/i.test(s)) continue;
-      var word = /IVA|IMPOSTA|IMPONIBILE|ALIQ/i.test(s), lead = /^\s*\d{1,2}(?:[,.]\d{1,2})?\s?%/.test(s);
+      var word = /IVA|IMPOSTA|IMPONIBILE|ALIQ|D[I1L]\s+C\S{1,3}\s+(?:IMA|1VA|LVA)\b/i.test(s), lead = /^\s*\d{1,2}(?:[,.]\d{1,2})?\s?%/.test(s);
       if (!word && !lead) continue;          // «Consulenza 2 50,00 100,00 22%»: è una voce, non il riepilogo IVA
       var a = amounts(s), rm = /(\d{1,2}(?:[,.]\d{1,2})?)\s?%/.exec(s);
       if (rm && a.length) {
@@ -37817,7 +37864,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         else { e.base = Math.max(vals[0], vals[1]); e.tax = Math.min(vals[0], vals[1]); }
         put(e);
       } else if (/IMPONIBILE/i.test(s) && a.length && !/IMPOSTA/i.test(s)) baseOnly = Math.abs(a[a.length - 1].v);
-      else if (/(DI\s+CUI\s+IVA|TOTALE\s+IVA|IMPOSTA)/i.test(s) && a.length) total = Math.abs(a[a.length - 1].v);
+      else if (/(DI\s+CUI\s+IVA|D[I1L]\s+C\S{1,3}\s+(?:IVA|IMA|1VA|LVA|IVÀ)\b|TOTALE\s+IVA|IMPOSTA)/i.test(s) && a.length) total = Math.abs(a[a.length - 1].v);
     }
     if (baseOnly !== null && rates.length === 1 && rates[0].base === null) rates[0].base = baseOnly;
     if (total === null && rates.length && rates.every(function (x) { return x.tax !== null; })) total = r2(rates.reduce(function (t, x) { return t + x.tax; }, 0));
@@ -37887,6 +37934,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return false;
   }
   function keepable(seg, ctx) {
+    if (/^\W*d[i1l]\s+c\S{1,3}\s+(?:IVA|IMA|1VA|LVA|IVÀ)\b/i.test(String(seg))) return false;          // «di cui IVA» letto male: l'importo ha già il suo campo
     var t = stripData(seg, ctx).replace(KNOWN, ' ').replace(/[^A-Za-zÀ-ÿ0-9]+/g, ' ').trim();
     t = t.split(' ').filter(function (w) { return !fuzzyLabel(w); }).join(' ');
     var L = lettersOf(t);
@@ -37960,6 +38008,82 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return out.slice(0, 40);
   }
 
+  /* Un solo importo letto male di una cifra confondibile (5,50 → 5,58): se il totale è sicuro e la somma delle righe non torna, si prova a cambiare UNA cifra
+     di UN articolo con una confondibile (stessa tabella della partita IVA). Si accetta solo se c'è una sola correzione che fa tornare la somma esatta. */
+  function repairItems(items, total) {
+    var sum = sumOf(items); if (!items.length || Math.abs(sum - total) < 0.015) return null;
+    var cands = [];
+    items.forEach(function (it, k) {
+      if (it.inf || it.amb || it.chk || (it.unit != null && it.qty !== 1) || !(it.total > 0)) return;
+      var sd = String(Math.round(it.total * 100)), p, q;
+      for (p = 0; p < sd.length; p++) {
+        var alts = CONFUSE[sd.charAt(p)] || '';
+        for (q = 0; q < alts.length; q++) {
+          var ns = sd.slice(0, p) + alts.charAt(q) + sd.slice(p + 1);
+          if (ns.charAt(0) === '0') continue;
+          var nv = parseInt(ns, 10) / 100;
+          if (Math.abs(r2(sum - it.total + nv) - total) < 0.015) cands.push({ k: k, v: nv });
+        }
+      }
+    });
+    var seen = {}, uniq = cands.filter(function (c) { var key = c.k + ':' + c.v; if (seen[key]) return false; seen[key] = 1; return true; });
+    return uniq.length === 1 ? uniq[0] : null;
+  }
+
+  /* Una sola mossa che fa tornare la somma col totale, usando l'informazione ridondante dello scontrino:
+     (a) «n.3 * 7,80» sotto la riga dice 23,40 mentre la riga ne riporta un altro: vale quantità × prezzo;
+     (b) una riga di troppo: è proprio la riga del totale con l'etichetta letta male (importo = totale e le altre righe fanno già il totale),
+         oppure, a totale sicuro, una riga con una descrizione che non è una parola («SR: 3,20»).
+     Serve sempre una sola soluzione. Ritorna {kind: 'qty'|'drop', k, v} o null. */
+  function closeSum(items, total, sure) {
+    var sum = sumOf(items); if (items.length < 2 || Math.abs(sum - total) < 0.015) return null;
+    var qs = [], ds = [];
+    items.forEach(function (it, k) {
+      if (it.det && !it.inf && Math.abs(r2(sum - it.total + it.det.q * it.det.u) - total) < 0.015) qs.push({ kind: 'qty', k: k, v: r2(it.det.q * it.det.u) });
+      if (items.length >= 3 && Math.abs(r2(sum - it.total) - total) < 0.015) {
+        var letters = (String(it.desc).match(/[A-Za-zÀ-ÿ]/g) || []).length, word = /[A-Za-zÀ-ÿ]{4,}/.test(it.desc);
+        if (Math.abs(it.total - total) < 0.015 || (sure && letters <= 4 && !word)) ds.push({ kind: 'drop', k: k });
+      }
+    });
+    return qs.length === 1 && !ds.length ? qs[0] : ds.length === 1 && !qs.length ? ds[0] : null;
+  }
+
+  /* ───────────── controllo incrociato del totale ───────────── */
+  // righe che dicono quanto è stato pagato: carta/elettronico, «Importo pagato», «Importo transazione»; contanti meno resto
+  var RX_PAYEV = /BANCOMAT|PAGOBANCOMAT|MAESTRO|V\s?PAY|DEBIT|CARTA\s+DI\s+(?:CRED|DEB)|CARTA\s+(?:CRED|DEB)|VISA|MASTERCARD|AMEX|\bPOS\b|ELETTRONIC|SATISPAY|PAGAMENT|IMPORTO\s+(?:PAGATO|TRANSAZ)|^\s*PAGATO\b/i;
+  var RX_PAYNO = /\bIVA\b|RESTO|CAMBIO|SCONT|ARROTOND|SUB\s?-?\s?TOT|BUON[OI]|TICKET|PUNTI|CREDITO|ENTRO|SCAD|RATA|ACCONTO|ANTICIPO|SALDO|NON\s+(?:PAGAT|RISC)/i;
+  function payEvidence(lines) {
+    var out = [], cash = null, change = null;
+    for (var i = 0; i < lines.length; i++) {
+      var s = lines[i], a = amounts(s); if (!a.length) continue;
+      var v = Math.abs(a[a.length - 1].v);
+      if (/RESTO|CAMBIO/i.test(s)) { if (change === null) change = v; continue; }
+      if (/CONTANT|\bCASH\b/i.test(s)) { if (cash === null) cash = v; continue; }
+      if (RX_PAYEV.test(s) && !RX_PAYNO.test(s) && v > 0) out.push({ v: v, i: i });
+    }
+    if (cash !== null && change !== null && cash > change) out.push({ v: r2(cash - change), i: -2 });
+    return out;
+  }
+  /* Il totale può essere letto male (cifre grandi a carattere doppio: «64,00» → «4,00») o mancare. Lo confronto con le altre fonti indipendenti:
+     la somma delle righe e gli importi del pagamento. Lo cambio solo se quello letto è isolato e un altro valore ha almeno due fonti;
+     senza totale letto prendo l'importo del pagamento (da solo vale quanto la somma delle righe, ma una somma con righe mancanti vale meno).
+     Ritorna {v, n} oppure null (nessuna correzione). */
+  function crossCheckTotal(total, kind, totLine, sum, items, ev) {
+    var vals = [];
+    // ogni fonte conta una volta sola: la stessa riga («Importo pagato») può essere sia riga di totale sia importo del pagamento
+    function add(v, id, pay) { for (var k = 0; k < vals.length; k++) if (Math.abs(vals[k].v - v) < 0.015) { if (vals[k].ids.indexOf(id) < 0) vals[k].ids.push(id); if (pay) vals[k].pay = true; return; } vals.push({ v: v, ids: [id], pay: !!pay }); }
+    var itemsOk = items.length >= 2 && !items.some(function (x) { return x.inf || x.amb; });
+    if (total !== null && (kind === 'totale' || kind === 'altra riga')) add(total, 'L' + totLine, false);
+    if (itemsOk) add(sum, 'sum', false);
+    ev.forEach(function (e) { add(e.v, 'L' + e.i, true); });
+    if (!vals.length) return null;
+    var best = vals.slice().sort(function (p, q) { return q.ids.length - p.ids.length || (q.pay ? 1 : 0) - (p.pay ? 1 : 0); })[0];
+    if (total === null) return best.pay ? { v: best.v, n: best.ids.length } : null;
+    var cur = vals.filter(function (x) { return Math.abs(x.v - total) < 0.015; })[0];
+    if (cur && best !== cur && cur.ids.length <= 1 && best.ids.length >= 2) return { v: best.v, n: best.ids.length };
+    return null;
+  }
+
   /* ───────────── funzione principale ───────────── */
   function parse(text) {
     var lines = normalize(text), warnings = [], conf = {};
@@ -37982,9 +38106,35 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       var score = c.kind + (items.length && Math.abs(c.v - sum) < 0.015 ? 3 : 0) + (cands.filter(function (d) { return Math.abs(d.v - c.v) < 0.005; }).length > 1 ? 1 : 0) + c.line / 1000;
       if (score > best) { best = score; total = c.v; totLine = c.line; totalKind = c.kind >= 4 ? 'totale' : 'altra riga'; }
     });
+    // controllo incrociato: il totale letto è isolato e somma delle righe + pagamento dicono un altro importo? (cifra grande letta male, totale non letto)
+    var xr = /FATTURA/i.test(text) ? null : crossCheckTotal(total, totalKind, totLine, sum, items, payEvidence(lines));
+    if (xr) {
+      if (total !== null) warnings.push('Il totale letto (' + total.toFixed(2).replace('.', ',') + ') non tornava con le righe e con il pagamento: ho usato ' + xr.v.toFixed(2).replace('.', ',') + '. Controlla sul documento.');
+      total = xr.v; totalKind = 'riscontrato';
+    }
     // colonne spostate, importo mancante, «unitario o totale?»: si completano col totale in mano
     var comp = completeItems(ir, total); items = comp.items; sum = sumOf(items);
     if (comp.notes.indexOf('dedotta') >= 0) warnings.push('Un importo non si leggeva: l\'ho ricavato dal totale. Controlla le righe segnate con «≈».');
+    // somma che non torna: una cifra confondibile letta male in un articolo (con il totale sicuro: almeno due righe dicono lo stesso importo),
+    // oppure un\'informazione ridondante (quantità × prezzo, la riga del totale letta come articolo) che fa tornare i conti
+    if (total !== null && items.length >= 2 && Math.abs(sum - total) >= 0.015 && !/FATTURA/i.test(text)) {
+      var tsrc = {}; tsrc['L' + totLine] = 1; payEvidence(lines).forEach(function (e) { if (Math.abs(e.v - total) < 0.015) tsrc['L' + e.i] = 1; });
+      var sure = Object.keys(tsrc).length >= 2;
+      var rp = sure ? repairItems(items, total) : null;
+      if (rp) {
+        var old0 = items[rp.k].total; items[rp.k].total = rp.v; items[rp.k].inf = true; sum = sumOf(items);
+        warnings.push('Un importo (' + old0.toFixed(2).replace('.', ',') + ') non tornava con il totale: l\'ho corretto in ' + rp.v.toFixed(2).replace('.', ',') + '. Controlla le righe segnate con «≈».');
+      } else {
+        var fx = closeSum(items, total, sure);
+        if (fx && fx.kind === 'qty') {
+          var o1 = items[fx.k].total, dt = items[fx.k].det; items[fx.k].total = fx.v; items[fx.k].qty = dt.q; items[fx.k].unit = dt.u; items[fx.k].inf = true; delete items[fx.k].chk; sum = sumOf(items);
+          warnings.push('Un importo (' + o1.toFixed(2).replace('.', ',') + ') non tornava con quantità × prezzo (' + dt.q + ' × ' + dt.u.toFixed(2).replace('.', ',') + '): ho usato ' + fx.v.toFixed(2).replace('.', ',') + '. Controlla le righe segnate con «≈».');
+        } else if (fx && fx.kind === 'drop') {
+          var gone = items.splice(fx.k, 1)[0]; sum = sumOf(items);
+          warnings.push('Una riga («' + String(gone.desc).slice(0, 30) + ' ' + gone.total.toFixed(2).replace('.', ',') + '») non sembrava un articolo e non l\'ho contata: così i conti tornano.');
+        }
+      }
+    }
     if (total === null && items.length) { total = sum; totalKind = 'somma articoli'; }
     if (total === null) {
       var all = []; lines.forEach(function (l, i) { if (!/IVA|CONTANT|RESTO|P\.?\s?IVA/i.test(l)) amounts(l).forEach(function (a) { all.push({ v: Math.abs(a.v), i: i }); }); });
@@ -38089,11 +38239,18 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     return q + Math.min(r.items.length, 8) * 0.12 - (r.items.some(function (x) { return x.inf; }) ? 0.5 : 0);
   }
 
+  /* I conti non tornano, o il totale non è confermato da almeno due fonti? Allora conviene la verifica degli importi (rilettura di ogni cifra da sola). */
+  function shaky(r) {
+    if (!r || r.total == null) return true;
+    if (r.type !== 'fattura' && r.items.length && Math.abs(r.itemsSum - r.total) >= 0.015) return true;
+    return (r.conf.total || 0) < 0.9;
+  }
+
   function toExpense(r) {
     return { desc: r.merchant.name || 'Scontrino', amount: r.total, date: r.date, cat: r.category, pay: r.appPay };
   }
 
-  return { parse: parse, quality: quality, applyHistory: applyHistory, normalize: normalize, amounts: amounts, validPiva: validPiva, fixPiva: fixPiva, findDate: findDate, guessCategory: guessCategory, toExpense: toExpense, titleCase: titleCase,
+  return { parse: parse, quality: quality, shaky: shaky, applyHistory: applyHistory, normalize: normalize, amounts: amounts, validPiva: validPiva, fixPiva: fixPiva, findDate: findDate, guessCategory: guessCategory, toExpense: toExpense, titleCase: titleCase,
     _t: { itemCols: itemCols, isColHead: isColHead, parseCity: parseCity, splitAddr: splitAddr, fixIban: fixIban, ibanOk: ibanOk, collectExtras: collectExtras, fixProv: fixProv, findItems: findItems, completeItems: completeItems, findMerchant: findMerchant } };
 });
 
@@ -38510,7 +38667,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     GMAX: 2.5,              // 3 ingrassa i caratteri delle scansioni a bassa risoluzione, 2 schiarisce troppo le foto con poca luce
     MAX_SIDE: 5200,         // limiti dell'immagine data al motore (scontrini lunghi: supermercato)
     MAX_PIXELS: 8e6,
+    SKEW_WIDE: 24,          // oltre ±4° (±10° senza carta) l'inclinazione si accetta solo se il profilo delle righe è nettamente più nitido: foto scattate di traverso
     PSM: '6',
+    VERIFY_MAX: 28,         // al massimo tanti importi si rileggono da soli (verifica dei conti)
+    VERIFY_MS: 8000,        // e al massimo per tanto tempo: sui telefoni lenti si smette prima
+    VERIFY_H: 46,           // altezza (px) a cui si porta la cifra ritagliata: dove il motore legge meglio
     TIMEOUT: 240000,
     IDLE_MS: 90000          // dopo tanto tempo senza letture libero la memoria del motore
   };
@@ -38887,28 +39048,104 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     var a = cv(rs), b = cv(cs); return b > 0 ? a / b : (a > 0 ? 9 : 1);
   }
 
-  /* Inclinazione residua del testo (gradi, ±maxDeg): massimizzo la «nitidezza» del profilo a righe di una mappa inchiostro. */
-  function skewOf(T, w, h, maxDeg) {
-    maxDeg = maxDeg || 6;
+  /* Inclinazione residua del testo (gradi): massimizzo la «nitidezza» del profilo a righe di una mappa inchiostro.
+     Cerco prima entro ±maxDeg. Se wide > maxDeg cerco anche più lontano (foto scattata di traverso: la carta non si distingue o il suo
+     rettangolo non segue l'inclinazione), ma un angolo fuori da ±maxDeg vale solo se il profilo è nettamente più nitido (WIDE_GAIN):
+     così un bordo del tavolo o una riga lunga non spostano il risultato. info (facoltativo) riceve i punteggi per i collaudi. */
+  var WIDE_GAIN = 1.12;
+  function skewPts(T, w, h) {
     var xs = [], ys = [], wt = [], x, y, step = Math.max(1, Math.floor(Math.sqrt(w * h / 90000))), v;
     for (y = 0; y < h; y += step) for (x = 0; x < w; x += step) { v = T[y * w + x]; if (v > 20) { xs.push(x - w / 2); ys.push(y - h / 2); wt.push(v); } }
-    var L = xs.length; if (L < 300) return 0;
-    var nb = Math.ceil(Math.sqrt(w * w + h * h) / step) + 4;
+    if (xs.length < 300) return null;
+    return { xs: xs, ys: ys, wt: wt, L: xs.length, step: step, nb: Math.ceil(Math.sqrt(w * w + h * h) / step) + 4 };
+  }
+  function skewScan(P, lo, hi) {
+    var xs = P.xs, ys = P.ys, wt = P.wt, L = P.L, step = P.step, nb = P.nb, hist = new Float64Array(nb);
     function score(deg) {
-      var s = Math.sin(deg * Math.PI / 180), c = Math.cos(deg * Math.PI / 180), hist = new Float64Array(nb), k, b, mean = 0, ss = 0, tot = 0;
+      var s = Math.sin(deg * Math.PI / 180), c = Math.cos(deg * Math.PI / 180), k, b, mean = 0, ss = 0, tot = 0;
+      hist.fill(0);
       for (k = 0; k < L; k++) { b = ((ys[k] * c - xs[k] * s) / step + nb / 2) | 0; if (b >= 0 && b < nb) { hist[b] += wt[k]; tot += wt[k]; } }
       mean = tot / nb; for (k = 0; k < nb; k++) ss += (hist[k] - mean) * (hist[k] - mean);
       return ss;
     }
-    var best = -1, ba = 0, a;
-    for (a = -maxDeg; a <= maxDeg + 1e-9; a += 0.5) { var sc = score(a); if (sc > best) { best = sc; ba = a; } }
+    var best = -1, ba = 0, a, all = [];
+    for (a = lo; a <= hi + 1e-9; a += 0.5) { var sc = score(a); all.push(sc); if (sc > best) { best = sc; ba = a; } }
     var b2 = best, a2 = ba;
     for (a = ba - 0.5; a <= ba + 0.5 + 1e-9; a += 0.1) { var sc2 = score(a); if (sc2 > b2) { b2 = sc2; a2 = a; } }
-    return a2;
+    return { a: a2, s: b2, all: all, lo: lo };
+  }
+  function skewOf(T, w, h, maxDeg, wide, info) {
+    maxDeg = maxDeg || 6;
+    var P = skewPts(T, w, h); if (!P) return 0;
+    var n = skewScan(P, -maxDeg, maxDeg), res = n.a;
+    if (info) { info.s0 = n.s; info.a0 = n.a; }
+    if (wide && wide > maxDeg) {
+      var f = skewScan(P, -wide, wide);
+      if (info) { info.sw = f.s; info.aw = f.a; }
+      if (Math.abs(f.a) > maxDeg + 0.25 && f.s >= WIDE_GAIN * n.s) res = f.a;
+    }
+    return res;
   }
 
-  /* Altezza tipica dei caratteri (px): mediana delle altezze dei componenti connessi di una mappa inchiostro. null se pochi. */
-  function charHeight(T, w, h) {
+  /* Carta incurvata (scontrino arrotolato o tenuto in mano): dopo la rotazione globale le righe in alto e in basso restano storte, in senso opposto.
+     Misuro l'inclinazione a fasce orizzontali, con lo stesso criterio di skewOf (nitidezza del profilo a righe) ma solo con i punti di ogni fascia,
+     e ne ricavo una curva liscia: tangente dell'inclinazione per ogni riga dell'immagine (positiva = la riga scende verso destra).
+     Ritorna { tn: Float32Array(h), max: gradi, bands: [[riga, gradi, affidabilità]] }, oppure null se le righe sono già dritte o le misure non convincono. */
+  var ROW_RANGE = 14, ROW_MIN_RATIO = 1.2, ROW_MIN_DEG = 1.2;
+  function rowSlopes(T, w, h) {
+    var P = skewPts(T, w, h); if (!P) return null;
+    var bandH = clamp(Math.round(h / 8), 200, 420), hop = Math.round(bandH / 2), bands = [], c, k, a, i;
+    var idx = []; for (k = 0; k < P.L; k++) idx.push(k);
+    for (c = Math.round(bandH / 2); c < h + hop / 2; c += hop) {
+      var y0 = c - bandH / 2 - h / 2, y1 = c + bandH / 2 - h / 2, xs = [], ys = [], wt = [];
+      for (k = 0; k < P.L; k++) if (P.ys[k] >= y0 && P.ys[k] < y1) { xs.push(P.xs[k]); ys.push(P.ys[k]); wt.push(P.wt[k]); }
+      if (xs.length < 250) continue;
+      var Pb = { xs: xs, ys: ys, wt: wt, L: xs.length, step: P.step, nb: P.nb };
+      var sc = skewScan(Pb, -ROW_RANGE, ROW_RANGE);
+      // affidabilità: quanto il profilo migliore è più nitido del profilo «tipico» (mediana dei punteggi sull'intero campo di angoli)
+      var srt = sc.all.slice().sort(function (p1, p2) { return p1 - p2; }), med = srt[srt.length >> 1] || 1;
+      bands.push({ y: Math.min(h - 1, c), a: sc.a, r: sc.s / med });
+    }
+    var good = bands.filter(function (b) { return b.r >= ROW_MIN_RATIO; });
+    if (good.length < 3) return null;
+    // mediana mobile a tre: toglie le fasce isolate fuori posto. Ai bordi la fascia resta com'è (l'inclinazione cambia in fretta vicino all'intestazione:
+    // la mediana la appiattirebbe), salvo che sia lontana dalla vicina di più di 6°
+    var ang = good.map(function (b) { return b.a; }), sm = ang.map(function (v, j) {
+      var n = ang.length;
+      if (j === 0) return Math.abs(v - ang[1]) > 6 ? ang[1] : v;
+      if (j === n - 1) return Math.abs(v - ang[n - 2]) > 6 ? ang[n - 2] : v;
+      var t = [ang[j - 1], v, ang[j + 1]].sort(function (p1, p2) { return p1 - p2; }); return t[1];
+    });
+    var mx = 0; sm.forEach(function (v) { if (Math.abs(v) > mx) mx = Math.abs(v); });
+    if (mx < ROW_MIN_DEG) return null;
+    var tn = new Float32Array(h), j = 0, y;
+    for (y = 0; y < h; y++) {
+      while (j < good.length - 2 && good[j + 1].y < y) j++;
+      var A = good[j], B = good[Math.min(good.length - 1, j + 1)], u = B.y > A.y ? clamp((y - A.y) / (B.y - A.y), 0, 1) : 0;
+      var ai = sm[j] * (1 - u) + sm[Math.min(sm.length - 1, j + 1)] * u;
+      tn[y] = Math.tan(clamp(ai, -ROW_RANGE, ROW_RANGE) * Math.PI / 180);
+    }
+    return { tn: tn, max: +mx.toFixed(1), bands: bands.map(function (b) { return [b.y, +b.a.toFixed(1), +b.r.toFixed(2)]; }) };
+  }
+  /* Raddrizza le righe: ogni riga di uscita pesca nella riga di partenza spostata di (x − centro)·tangente. Solo interpolazione verticale (x non cambia). */
+  function dewarpRows(g, w, h, tn) {
+    var out = new Uint8ClampedArray(w * h), xc = w / 2, x, y, t, ys, y0, fy, row, v0, v1;
+    for (y = 0; y < h; y++) {
+      t = tn[y]; row = y * w;
+      for (x = 0; x < w; x++) {
+        ys = y + (x - xc) * t;
+        if (ys <= 0) { out[row + x] = g[x]; continue; }
+        if (ys >= h - 1) { out[row + x] = g[(h - 1) * w + x]; continue; }
+        y0 = ys | 0; fy = ys - y0; v0 = g[y0 * w + x]; v1 = g[(y0 + 1) * w + x];
+        out[row + x] = v0 + (v1 - v0) * fy + 0.5;
+      }
+    }
+    return out;
+  }
+
+  /* Componenti «da lettera» di una mappa inchiostro: connessi (8 vicini), alti 6–150 px, larghi 2–160, con proporzioni da carattere, almeno 10 pixel.
+     Righe del quaderno, venature, granelli e macchie larghe restano fuori. Ritorna [{x0,y0,x1,y1,a}]. */
+  function glyphComps(T, w, h) {
     var n = w * h, lab = new Int32Array(n), par = [0], x, y, i, nxt = 1;
     function find(a) { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; }
     for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
@@ -38924,11 +39161,191 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       k = lab[y * w + x]; if (!k) continue; k = find(k);
       var o = bb[k]; if (!o) bb[k] = { x0: x, x1: x, y0: y, y1: y, a: 1 }; else { if (x < o.x0) o.x0 = x; if (x > o.x1) o.x1 = x; if (y < o.y0) o.y0 = y; if (y > o.y1) o.y1 = y; o.a++; }
     }
-    var hs = [];
-    for (k in bb) { var o2 = bb[k], bw = o2.x1 - o2.x0 + 1, bh = o2.y1 - o2.y0 + 1; if (bh >= 6 && bh <= 150 && bw >= 2 && bw <= 160 && bw / bh >= 0.2 && bw / bh <= 2.2 && o2.a >= 10) hs.push(bh); }
-    if (hs.length < 25) return null;
-    hs.sort(function (p1, p2) { return p1 - p2; });
-    return { h: hs[hs.length >> 1], n: hs.length };
+    var out = [];
+    for (k in bb) { var o2 = bb[k], bw = o2.x1 - o2.x0 + 1, bh = o2.y1 - o2.y0 + 1; if (bh >= 6 && bh <= 150 && bw >= 2 && bw <= 160 && bw / bh >= 0.2 && bw / bh <= 2.2 && o2.a >= 10) out.push(o2); }
+    return out;
+  }
+  function medOf(a) { a = a.slice().sort(function (p1, p2) { return p1 - p2; }); return a[a.length >> 1]; }
+
+  /* Altezza tipica dei caratteri (px): mediana delle altezze dei componenti connessi di una mappa inchiostro. null se pochi. */
+  function charHeight(T, w, h) {
+    var g = glyphComps(T, w, h);
+    if (g.length < 25) return null;
+    return { h: medOf(g.map(function (o) { return o.y1 - o.y0 + 1; })), n: g.length };
+  }
+
+  /* Dove sta il testo: i centri delle «lettere» (glyphComps) si contano in celle, le celle vicine si uniscono, vince il gruppo con più lettere
+     (e quelli grandi almeno il 15% del primo). Più robusto di inkBox con sfondi rumorosi o righe di un quaderno accanto allo scontrino.
+     Ritorna {x0,y0,x1,y1 (scatola delle lettere), ch (altezza mediana), n} oppure null se le lettere sono poche. */
+  function glyphBox(T, w, h) {
+    var g = glyphComps(T, w, h); if (g.length < 40) return null;
+    var cs = clamp(Math.round(Math.max(w, h) / 70), 8, 40), gw = Math.ceil(w / cs), gh = Math.ceil(h / cs), cnt = new Int32Array(gw * gh), i, cx, cy, dx, dy;
+    g.forEach(function (o) { o.c = clamp(((o.x0 + o.x1) / 2 / cs) | 0, 0, gw - 1) + gw * clamp(((o.y0 + o.y1) / 2 / cs) | 0, 0, gh - 1); cnt[o.c]++; });
+    var dl = new Uint8Array(gw * gh);
+    for (cy = 0; cy < gh; cy++) for (cx = 0; cx < gw; cx++) if (cnt[cy * gw + cx]) for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) { var yy = cy + dy, xx = cx + dx; if (yy >= 0 && yy < gh && xx >= 0 && xx < gw) dl[yy * gw + xx] = 1; }
+    var lab = new Int32Array(gw * gh), id = 0, st = [], ws = [0], bestId = 0, bestW = 0, p, k;
+    for (i = 0; i < dl.length; i++) {
+      if (!dl[i] || lab[i]) continue;
+      id++; st.length = 0; st.push(i); lab[i] = id; var wsum = 0;
+      while (st.length) {
+        p = st.pop(); wsum += cnt[p]; cx = p % gw; cy = (p - cx) / gw;
+        for (dy = -1; dy <= 1; dy++) for (dx = -1; dx <= 1; dx++) { var y2 = cy + dy, x2 = cx + dx; if (y2 < 0 || y2 >= gh || x2 < 0 || x2 >= gw) continue; k = y2 * gw + x2; if (dl[k] && !lab[k]) { lab[k] = id; st.push(k); } }
+      }
+      ws[id] = wsum; if (wsum > bestW) { bestW = wsum; bestId = id; }
+    }
+    if (!bestId) return null;
+    var x0 = 1e9, y0 = 1e9, x1 = -1, y1 = -1, hs = [];
+    g.forEach(function (o) { if (ws[lab[o.c]] >= 0.15 * bestW) { if (o.x0 < x0) x0 = o.x0; if (o.x1 > x1) x1 = o.x1; if (o.y0 < y0) y0 = o.y0; if (o.y1 > y1) y1 = o.y1; hs.push(o.y1 - o.y0 + 1); } });
+    if (x1 < 0 || hs.length < 40) return null;
+    return { x0: x0, y0: y0, x1: x1 + 1, y1: y1 + 1, ch: medOf(hs), n: hs.length };
+  }
+
+  /* ── Pulizia del foglio già raddrizzato ──────────────────────────────────────────────────────────────────────────────
+     1) Linee di separazione («- - - - -», «_____», «=====», «.......»): fondono due righe di testo in una sola e il motore perde il prezzo
+        della riga sopra. Si cercano fra i componenti connessi (a metà risoluzione) come catene fitte e regolari di trattini o punti allineati,
+        lunghe almeno un quarto del foglio, oppure come tratti continui lunghi e sottili; si cancellano.
+     2) Righe stampate a «doppia altezza» (TOTALE COMPLESSIVO, importi grandi): lettere alte e strette che il motore legge male. Si riconoscono
+        dalla loro altezza rispetto alle altre righe e dalla larghezza ridotta rispetto all'altezza, e si schiacciano in verticale fino a
+        riportarle alle proporzioni normali. Le righe grandi in proporzione (tutto ingrandito) restano com'erano. */
+  function inkHalf(g, w, h, thr) {
+    var sw = w >> 1, sh = h >> 1, B = new Uint8Array(sw * sh), x, y, p, m, a, b, c, d;
+    for (y = 0; y < sh; y++) for (x = 0; x < sw; x++) {
+      p = (y * 2) * w + x * 2; a = g[p]; b = g[p + 1]; c = g[p + w]; d = g[p + w + 1];
+      m = a < b ? a : b; if (c < m) m = c; if (d < m) m = d;                  // il più scuro dei quattro: i tratti sottili restano
+      B[y * sw + x] = m < thr ? 1 : 0;
+    }
+    return { B: B, w: sw, h: sh };
+  }
+  /* Tutti i componenti connessi (8 vicini) di una mappa 0/1: [{x0,y0,x1,y1,a}] */
+  function allComps(B, w, h) {
+    var n = w * h, lab = new Int32Array(n), par = [0], x, y, i, nxt = 1;
+    function find(a) { while (par[a] !== a) { par[a] = par[par[a]]; a = par[a]; } return a; }
+    function uni(p, q) { var r1 = find(p), r2 = find(q); if (r1 !== r2) par[r1] = r2; }
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      i = y * w + x; if (!B[i]) continue;
+      var a = x > 0 ? lab[i - 1] : 0, b = y > 0 ? lab[i - w] : 0, c = (y > 0 && x > 0) ? lab[i - w - 1] : 0, d = (y > 0 && x < w - 1) ? lab[i - w + 1] : 0;
+      var m = a || b || c || d;
+      if (!m) { lab[i] = nxt; par[nxt] = nxt; nxt++; continue; }
+      lab[i] = m;
+      if (a && a !== m) uni(a, m); if (b && b !== m) uni(b, m); if (c && c !== m) uni(c, m); if (d && d !== m) uni(d, m);
+    }
+    var X0 = new Int32Array(nxt).fill(1 << 30), Y0 = new Int32Array(nxt).fill(1 << 30), X1 = new Int32Array(nxt).fill(-1), Y1 = new Int32Array(nxt).fill(-1), A = new Int32Array(nxt), k;
+    for (y = 0; y < h; y++) for (x = 0; x < w; x++) {
+      k = lab[y * w + x]; if (!k) continue; k = find(k);
+      if (x < X0[k]) X0[k] = x; if (x > X1[k]) X1[k] = x; if (y < Y0[k]) Y0[k] = y; if (y > Y1[k]) Y1[k] = y; A[k]++;
+    }
+    var out = [];
+    for (k = 1; k < nxt; k++) if (par[k] === k && A[k]) out.push({ x0: X0[k], y0: Y0[k], x1: X1[k], y1: Y1[k], a: A[k] });
+    return out;
+  }
+  function isGlyphLike(o) { var bw = o.x1 - o.x0 + 1, bh = o.y1 - o.y0 + 1; return bh >= 7 && bh <= 90 && bw >= 2 && bw <= 70 && bw / bh <= 1.7 && o.a >= 8; }
+  /* Linee di separazione. Ritorna [{boxes: [[x0,y0,x1,y1]...], n}] in pixel della mappa a metà risoluzione. */
+  function findRules(comps, sw, sh, ch) {
+    var minSpan = 0.25 * sw, flat = [], rules = [], maxGap = Math.max(14, 0.9 * ch), ytol = Math.max(2.5, 0.2 * ch), i, j;
+    comps.forEach(function (o) {
+      var bw = o.x1 - o.x0 + 1, bh = o.y1 - o.y0 + 1;
+      if (bh <= 8 && bw >= minSpan) { rules.push({ boxes: [[o.x0, o.y0, o.x1, o.y1]], n: 1 }); return; }                  // tratto continuo
+      if ((bh <= 6 && bw >= 4 && bw >= 1.7 * bh && bw <= 3 * ch) || (bh <= 6 && bw <= 7 && o.a >= 2)) flat.push({ x0: o.x0, y0: o.y0, x1: o.x1, y1: o.y1, yc: (o.y0 + o.y1) / 2, bw: bw });      // trattino o punto
+    });
+    if (flat.length > 0.45 * comps.length) return rules;                    // testo «a puntini» (stampa ad aghi): non sono righe
+    flat.sort(function (p, q) { return p.x0 - q.x0; });
+    var chains = [];
+    flat.forEach(function (c) {
+      var best = null, bd = 1e9;
+      for (i = 0; i < chains.length; i++) {
+        var l = chains[i].last, gap = c.x0 - l.x1;
+        if (gap < -1 || gap > maxGap || Math.abs(c.yc - l.yc) > ytol) continue;
+        if (gap < bd) { bd = gap; best = chains[i]; }
+      }
+      if (best) { best.m.push(c); best.last = c; } else chains.push({ m: [c], last: c });
+    });
+    chains.forEach(function (c) {
+      var m = c.m; if (m.length < 8 || m[m.length - 1].x1 - m[0].x0 < minSpan) return;
+      var pit = [], mp = 0, sd = 0;
+      for (j = 1; j < m.length; j++) pit.push(m[j].x0 - m[j - 1].x0);
+      pit.forEach(function (v) { mp += v; }); mp /= pit.length;
+      pit.forEach(function (v) { sd += (v - mp) * (v - mp); }); sd = Math.sqrt(sd / pit.length);
+      if (mp <= 0 || sd / mp > 0.45) return;                              // passo irregolare: è testo, non una linea
+      rules.push({ boxes: m.map(function (q) { return [q.x0, q.y0, q.x1, q.y1]; }), n: m.length });
+    });
+    return rules;
+  }
+  /* Righe a doppia altezza. Si guardano le singole lettere: quelle molto più alte della norma (≥ 1,5 × l'altezza tipica) e allo stesso tempo strette
+     (proporzioni larghezza/altezza sotto l'80% di quelle normali) si raggruppano per riga; un gruppo di almeno 5 lettere è una riga a doppia altezza.
+     Ritorna [{y0, y1, f}] (righe della mappa a metà risoluzione, fattore di schiacciamento verticale). */
+  function tallBands(comps, sw, sh) {
+    var G = comps.filter(isGlyphLike);
+    if (G.length < 60) return [];
+    function pct(a, q) { a = a.slice().sort(function (p1, p2) { return p1 - p2; }); return a[Math.min(a.length - 1, Math.floor(a.length * q))]; }
+    var hpg = pct(G.map(function (o) { return o.y1 - o.y0 + 1; }), 0.75);
+    var caps = G.filter(function (o) { return o.y1 - o.y0 + 1 >= 0.8 * hpg && o.y1 - o.y0 + 1 <= 1.3 * hpg; });
+    if (caps.length < 40) return [];
+    var wp = medOf(caps.map(function (o) { return o.x1 - o.x0 + 1; })), asp = wp / hpg;
+    var tall = G.filter(function (o) { var bh = o.y1 - o.y0 + 1, bw = o.x1 - o.x0 + 1; return bh >= 1.5 * hpg && bh <= 3.6 * hpg && bw / bh <= 0.85 * asp * 1.25; });
+    if (tall.length < 5) return [];
+    tall.forEach(function (o) { o.cy = (o.y0 + o.y1) / 2; });
+    tall.sort(function (p, q) { return p.cy - q.cy; });
+    var groups = [], cur = null;
+    tall.forEach(function (o) {
+      if (cur && o.cy - cur.cy <= 0.6 * hpg) { cur.m.push(o); cur.cy = (cur.cy * (cur.m.length - 1) + o.cy) / cur.m.length; }
+      else { cur = { m: [o], cy: o.cy }; groups.push(cur); }
+    });
+    var out = [];
+    groups.forEach(function (gr) {
+      if (gr.m.length < 5) return;
+      var hh = pct(gr.m.map(function (o) { return o.y1 - o.y0 + 1; }), 0.75), ww = medOf(gr.m.map(function (o) { return o.x1 - o.x0 + 1; })), rel = (ww / hh) / asp;
+      if (rel > 0.8) return;                                          // alte ma larghe in proporzione: tutto ingrandito, il motore le legge già
+      var y0 = Math.min.apply(null, gr.m.map(function (o) { return o.y0; })), y1 = Math.max.apply(null, gr.m.map(function (o) { return o.y1; }));
+      out.push({ y0: y0, y1: y1, f: clamp(Math.max(rel, 0.85 * hpg / hh), 0.34, 0.9), rh: +(hh / hpg).toFixed(2), rw: +rel.toFixed(2) });
+    });
+    return out;
+  }
+  /* Schiaccia in verticale le fasce indicate (righe di pixel a risoluzione piena), al loro posto: la riga schiacciata resta centrata nella fascia
+     e il resto della fascia diventa carta bianca, così la distanza fra le righe non cambia (righe troppo vicine si fondono nella lettura). Ritorna g. */
+  function squeezeRows(g, w, h, bands) {
+    var out = new Uint8ClampedArray(g), acc = new Float32Array(w), x, r, i, last = 0;
+    bands.sort(function (p, q) { return p.y0 - q.y0; });
+    bands.forEach(function (b) {
+      var a = Math.max(last, b.y0 * 2 - 1), z = Math.min(h, b.y1 * 2 + 3), span = z - a, hn = Math.max(6, Math.round(span * b.f));
+      if (span < 6) return;
+      last = z;
+      var off = Math.floor((span - hn) / 2), k = span / hn, ro;
+      for (r = a; r < z; r++) { ro = r * w; for (x = 0; x < w; x++) out[ro + x] = 255; }
+      for (r = 0; r < hn; r++) {
+        var a0 = a + r * k, a1 = a + (r + 1) * k, i0 = Math.floor(a0), i1 = Math.min(z, Math.ceil(a1)), tw = 0;
+        acc.fill(0);
+        for (i = i0; i < i1; i++) {
+          var wt = Math.min(i + 1, a1) - Math.max(i, a0); if (wt <= 0) continue; tw += wt;
+          ro = i * w; for (x = 0; x < w; x++) acc[x] += g[ro + x] * wt;
+        }
+        var oo = (a + off + r) * w; for (x = 0; x < w; x++) out[oo + x] = tw > 0 ? acc[x] / tw + 0.5 : 255;
+      }
+    });
+    return out;
+  }
+  /* Tutto insieme su una tela di grigi (paper bianca, inchiostro scuro). opts: {rules:false, tall:false}. Ritorna {g, w, h, rules, tall}. */
+  function cleanSheet(g, w, h, opts) {
+    opts = opts || {};
+    var res = { g: g, w: w, h: h, rules: 0, tall: 0 };
+    if (w < 200 || h < 200) return res;
+    var m = inkHalf(g, w, h, 175), comps = allComps(m.B, m.w, m.h);
+    if (comps.length < 30 || comps.length > 80000) return res;
+    var G = comps.filter(isGlyphLike), ch = G.length >= 20 ? medOf(G.map(function (o) { return o.y1 - o.y0 + 1; })) : 17;
+    if (opts.rules !== false) {
+      var rl = findRules(comps, m.w, m.h, ch), i, j;
+      rl.forEach(function (r) {
+        r.boxes.forEach(function (b) {
+          var X0 = Math.max(0, b[0] * 2 - 2), X1 = Math.min(w - 1, b[2] * 2 + 3), Y0 = Math.max(0, b[1] * 2 - 2), Y1 = Math.min(h - 1, b[3] * 2 + 3), x, y;
+          for (y = Y0; y <= Y1; y++) for (x = X0; x <= X1; x++) if (g[y * w + x] < 215) g[y * w + x] = 255;
+        });
+      });
+      res.rules = rl.length;
+    }
+    if (opts.tall !== false) {
+      var tb = tallBands(comps, m.w, m.h);
+      if (tb.length) { res.g = squeezeRows(g, w, h, tb); res.tall = tb.length; res.tallInfo = tb.map(function (b) { return [b.y0 * 2, b.y1 * 2, +b.f.toFixed(2), b.rh, b.rw]; }); }
+    }
+    return res;
   }
 
   /* Toglie dal testo letto le righe che sono solo «rumore» (bordi del tavolo, venature): nessuna lettera o cifra, oppure lettura quasi nulla.
@@ -38941,6 +39358,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       if (!t.trim()) return;
       var alnum = (t.match(/[A-Za-z0-9À-ÿ]/g) || []).length;
       if (!alnum || ((l.c || 0) < 12 && alnum < 4)) { dropped++; return; }
+      // riga poco sicura fatta solo di pezzetti («LE   Lai   =»: la trama del tavolo sopra il foglio): nessuna parola vera, nessun importo, nessun numero lungo
+      if ((l.c || 0) < 35 && !/[A-Za-zÀ-ÿ]{4,}/.test(t) && !/\d[,.]\d{2}/.test(t) && !/\d{4,}/.test(t)) { dropped++; return; }
       out.push(t);
     });
     return { text: out.join('\n'), kept: out.length, dropped: dropped };
@@ -38962,6 +39381,12 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     function med(a) { a = a.slice().sort(function (p, q) { return p - q; }); return a[a.length >> 1]; }
     var hm = med(hs), cw = ws.length ? med(ws) : hm * 0.55;
     if (!(hm > 4) || !(cw > 1)) return { lines: lines, dropped: 0 };
+    // margine sinistro del testo: dove cominciano le righe vere (prima parola sicura, con almeno 3 lettere o cifre). Segni isolati più a sinistra
+    // (bordo della carta, altri fogli, ombre) sono rumore: «È  ACQUA MINERALE», «| VINO AL CALICE»
+    var starts = [];
+    (lines || []).forEach(function (l) { var f = (l.w || [])[0]; if (f && +f[1] >= 80 && /[A-Za-z0-9À-ÿ]{3,}/.test(String(f[0]))) starts.push(+f[2]); });
+    var colStart = null;
+    if (starts.length >= 8) { starts.sort(function (p, q) { return p - q; }); colStart = starts[Math.floor(starts.length * 0.2)]; }
     var out = (lines || []).map(function (l) {
       var arr = l.w || [], keep = [], prev = null, changed = false;
       arr.forEach(function (x) {
@@ -38969,6 +39394,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         var alnum = /[A-Za-z0-9À-ÿ]/.test(t), isolated = prev !== null && (x0 - +prev[4]) >= 4 * cw, bad = false;
         if (!t) bad = true;
         else if (AMT_WORD.test(t)) bad = false;
+        else if (colStart !== null && !/\d/.test(t) && t.length <= 4 && +x[4] < colStart - 3 * cw && (t.length <= 2 || c < 70)) bad = true;     // sporco nel margine sinistro
         else if (alnum && h > 0 && h < 0.4 * hm && wd < 0.6 * cw) bad = true;                                      // granello: più basso di metà lettera
         else if (!alnum && t.length <= 2 && !KEEP_SYM.test(t) && prev !== null && (c < 85 || isolated)) bad = true; // «$», «|», «~» in fondo alla riga
         else if (alnum && t.length <= 2 && c < 60 && isolated) bad = true;                                          // una o due lettere sole, lontane, poco sicure
@@ -39109,7 +39535,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         var ow = D.w, oh = D.h, region, ang = 0, paper = null, F1, T1, G1, s1, R1 = 4, ks = 1, A = null;
         info.orig = [ow, oh];
         var abs = opts.rot != null, flip = ((opts.flip || 0) % 360 + 360) % 360, auto = 0;
+        var s1key = '';
         function stage1(rot) {
+          var key = [region.cx, region.cy, region.w, region.h, ang, rot].join('|');
+          if (key === s1key && G1) return;                    // stessa finestra, stesso angolo, stesso giro: l'immagine di misura è già pronta
+          s1key = key;
           s1 = Math.min(1, CFG.STAGE1 / Math.max(region.w, region.h));
           var c1 = drawRegion(D.img, region, ang, s1, rot); G1 = grayFromCanvas(c1); freeCanvas(c1);
           F1 = flatField(G1.g, G1.w, G1.h, 28 * Math.max(0.5, s1 * 1.5)); T1 = inkMap(F1, G1.w, G1.h, R1);
@@ -39153,26 +39583,77 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
         var rot = (((abs ? ((opts.rot % 360) + 360) % 360 : auto)) + flip) % 360;
         info.region = { r: region, ang: ang, auto: auto };
         stage1(rot);
-        var skew = skewOf(T1, G1.w, G1.h, (paper || opts.region) ? 4 : 10), ch = charHeight(T1, G1.w, G1.h);
+        var sk = {}, skew = skewOf(T1, G1.w, G1.h, (paper || opts.region) ? 4 : 10, CFG.SKEW_WIDE, sk), ch = charHeight(T1, G1.w, G1.h);
         info.skew = +skew.toFixed(2); info.ch1 = ch ? ch.h : null;
+        var chPx = ch ? ch.h / s1 : null;                  // altezza delle lettere in pixel della foto originale
+        if (sk.aw != null) info.skewScan = [+sk.a0.toFixed(1), +(sk.s0 / 1e6).toFixed(2), +sk.aw.toFixed(1), +(sk.sw / 1e6).toFixed(2)];
         var cur = inkLut(F1, T1, G1.w * G1.h, opts.curve || CFG.CURVE, opts.gmax || CFG.GMAX); info.gamma = cur.gamma; info.lo = cur.lo; info.med = cur.med;
+        // la finestra ruota insieme al testo: se l'inclinazione è grande gli angoli finiscono fuori dal rettangolo e la prima riga si taglia. Allargo la finestra
+        // fino a contenere il rettangolo ruotato; se la carta trovata era sbagliata (le lettere occupano molto meno della finestra) stringo sulle lettere, già raddrizzate.
+        // Il bianco che resta si toglie dopo, con la maschera della carta. La scala si calcola dalla finestra di partenza (larghezza della carta).
+        var rg = region, ska = Math.abs(skew) * Math.PI / 180;
+        if (ska > 0.008) { var ck = Math.cos(ska), sk2 = Math.sin(ska); rg = { cx: region.cx, cy: region.cy, w: region.w * ck + region.h * sk2, h: region.w * sk2 + region.h * ck }; info.grown = [Math.round(rg.w), Math.round(rg.h)]; }
+        if (ska > 0.04 && rot === 0 && opts.refit !== false) {
+          var rgOld = region, angOld = ang;
+          try {
+            region = rg; ang = angOld + skew; stage1(0);
+            var gb = glyphBox(T1, G1.w, G1.h);
+            if (gb) {
+              var bw2 = gb.x1 - gb.x0, bh2 = gb.y1 - gb.y0;
+              info.glyphs = [gb.n, gb.ch]; if (opts.dbg) info.gbox = [gb.x0, gb.y0, gb.x1, gb.y1, G1.w, G1.h];
+              if (bw2 * bh2 * 1.8 < G1.w * G1.h) {
+                var pd = Math.max(10, 0.05 * Math.max(bw2, bh2)), rx0 = Math.max(0, gb.x0 - pd), ry0 = Math.max(0, gb.y0 - pd), rx1 = Math.min(G1.w, gb.x1 + pd), ry1 = Math.min(G1.h, gb.y1 + pd);
+                var rdx = ((rx0 + rx1) / 2 - G1.w / 2) / s1, rdy = ((ry0 + ry1) / 2 - G1.h / 2) / s1, rca = Math.cos(ang * Math.PI / 180), rsa = Math.sin(ang * Math.PI / 180);
+                rg = { cx: rg.cx + rdx * rca - rdy * rsa, cy: rg.cy + rdx * rsa + rdy * rca, w: (rx1 - rx0) / s1, h: (ry1 - ry0) / s1 }; info.refit = [Math.round(rg.w), Math.round(rg.h)];
+              }
+              if (gb.ch >= 6) chPx = gb.ch / s1;                                       // altezza delle lettere misurata sul testo già dritto
+            }
+          } catch (e) { } finally { region = rgOld; ang = angOld; }
+        }
         // scala finale: la larghezza della carta (lungo le righe) diventa ~WIDTH px; poi controllo con l'altezza dei caratteri
         var along = (rot % 180) ? region.h : region.w;
         var target = opts.width || CFG.WIDTH, sf = target / along;
-        var chOut = ch ? ch.h * sf / s1 : null;
+        var chOut = chPx ? chPx * sf : null;
         if (chOut && chOut < CFG.CH_MIN) sf = sf * CFG.CH_MIN / chOut;
         else if (chOut && chOut > CFG.CH_MAX) sf = sf * CFG.CH_MAX / chOut;
-        var maxS = Math.min(CFG.MAX_SIDE / Math.max(region.w, region.h), Math.sqrt(CFG.MAX_PIXELS / (region.w * region.h)));
+        var maxS = Math.min(CFG.MAX_SIDE / Math.max(rg.w, rg.h), Math.sqrt(CFG.MAX_PIXELS / (rg.w * rg.h)));
         sf = clamp(sf, 0.1, Math.min(maxS, 3));
         info.scale = +sf.toFixed(3); info.chOut = chOut ? Math.round(chOut) : null;
-        var cf = drawRegion(D.img, region, ang + skew, sf, rot), GF = grayFromCanvas(cf);
+        var cf = drawRegion(D.img, rg, ang + skew, sf, rot), GF = grayFromCanvas(cf);
         D.done(); freeCanvas(cf);
         var flat = opts.flat === false ? GF.g : flatField(GF.g, GF.w, GF.h, 30);
+        if (opts.dewarp !== false) {                      // righe che restano storte in modo diverso in alto e in basso (carta incurvata)
+          try {
+            var sh2 = shrink(flat, GF.w, GF.h, 2), rs = rowSlopes(inkMap(sh2.g, sh2.w, sh2.h, 2), sh2.w, sh2.h);
+            if (rs) {
+              var tn2 = new Float32Array(GF.h), yy2;
+              for (yy2 = 0; yy2 < GF.h; yy2++) tn2[yy2] = rs.tn[Math.min(rs.tn.length - 1, (yy2 / 2) | 0)];
+              flat = dewarpRows(flat, GF.w, GF.h, tn2); info.dewarp = rs.max; if (opts.dbg) info.rows = rs.bands;
+            } else if (opts.dbg) info.rows = 'no';
+          } catch (e) { }
+        }
         var bands = opts.bands === false ? [] : invertBands(flat, GF.w, GF.h); info.bands = bands.length;
         var mask = opts.mask === false ? null : paperMask(flat, GF.w, GF.h);
-        var out = applyFinish(flat, GF.w, GF.h, cur.lut, 0.015, mask);
-        var res = canvasFromGray(out, GF.w, GF.h);
-        info.out = [GF.w, GF.h]; info.masked = !!mask; info.ms = Date.now() - t0;
+        var out = applyFinish(flat, GF.w, GF.h, cur.lut, 0.015, mask), ow2 = GF.w, oh2 = GF.h;
+        // tolgo il bianco in più (finestra allargata): resta il rettangolo della carta con un piccolo margine
+        if (mask && rg !== region) {
+          var bx0 = ow2, by0 = oh2, bx1 = -1, by1 = -1, xx, yy, rw;
+          for (yy = 0; yy < oh2; yy++) { rw = yy * ow2; for (xx = 0; xx < ow2; xx++) if (mask[rw + xx]) { if (xx < bx0) bx0 = xx; if (xx > bx1) bx1 = xx; if (yy < by0) by0 = yy; if (yy > by1) by1 = yy; } }
+          if (bx1 >= 0) {
+            var mg = Math.round(0.02 * Math.min(ow2, oh2)); bx0 = Math.max(0, bx0 - mg); by0 = Math.max(0, by0 - mg); bx1 = Math.min(ow2 - 1, bx1 + mg); by1 = Math.min(oh2 - 1, by1 + mg);
+            var cw2 = bx1 - bx0 + 1, ch2 = by1 - by0 + 1;
+            if (cw2 * ch2 < 0.92 * ow2 * oh2 && cw2 > 200 && ch2 > 200) {
+              var oc = new Uint8ClampedArray(cw2 * ch2), r2;
+              for (r2 = 0; r2 < ch2; r2++) oc.set(out.subarray((by0 + r2) * ow2 + bx0, (by0 + r2) * ow2 + bx0 + cw2), r2 * cw2);
+              out = oc; ow2 = cw2; oh2 = ch2; info.cropped = [bx0, by0, cw2, ch2];
+            }
+          }
+        }
+        if (opts.clean !== false) {                       // linee di separazione e righe a doppia altezza
+          try { var cs = cleanSheet(out, ow2, oh2, opts); out = cs.g; oh2 = cs.h; info.rules = cs.rules; info.tall = cs.tall; if (opts.dbg && cs.tallInfo) info.tallInfo = cs.tallInfo; } catch (e) { }
+        }
+        var res = canvasFromGray(out, ow2, oh2);
+        info.out = [ow2, oh2]; info.masked = !!mask; info.ms = Date.now() - t0;
         return { canvas: res, info: info };
       } catch (e) { try { D.done(); } catch (x) { } throw e; }
     });
@@ -39181,6 +39662,11 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   /* ═════════════ MOTORE (Tesseract.js) ═════════════ */
 
   var E = { T: null, worker: null, pending: null, idle: null, busy: false };
+  // Un solo lavoro alla volta sul motore: la rilettura dei pezzetti (rescue) e degli importi (verifica) cambiano i parametri del motore (riga singola,
+  // solo cifre) e li rimettono a posto alla fine. Se una lettura nuova partisse mentre quella scartata (cambio di giro, «Rifai la foto») è ancora a metà,
+  // leggerebbe la pagina con quei parametri. La coda riparte da zero quando il motore viene liberato (release): i lavori vecchi non servono più.
+  var QUEUE = Promise.resolve();
+  function turn(fn) { var p = QUEUE.then(function () { return fn(); }, function () { return fn(); }); QUEUE = p.then(function () { }, function () { }); return p; }
 
   function ready() { try { return !!localStorage.getItem('ewocr_ready'); } catch (e) { return false; } }
   function markReady() { try { localStorage.setItem('ewocr_ready', String(Date.now())); } catch (e) { } }
@@ -39207,7 +39693,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
   // libera il motore (memoria) — anche durante una lettura per annullarla
   function release() {
     dropIdle();
-    var w = E.worker; E.worker = null; E.pending = null;
+    var w = E.worker; E.worker = null; E.pending = null; QUEUE = Promise.resolve();
     if (w) { try { w.terminate(); } catch (e) { } }
   }
 
@@ -39249,24 +39735,239 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     });
   }
 
-  /* Legge una tela già preparata. Ritorna {text, conf, lines:[{t,c,w:[[t,c]...]}], ms} */
-  function recognize(canvas, onP) {
+  function linesOf(d) {
+    var lines = [];
+    ((d && d.blocks) || []).forEach(function (b) { (b.paragraphs || []).forEach(function (p) { (p.lines || []).forEach(function (l) {
+      lines.push({ t: l.text.replace(/\s+$/, ''), c: Math.round(l.confidence || 0), w: (l.words || []).map(function (x) { var bb = x.bbox || {}; return [x.text, Math.round(x.confidence || 0), bb.x0, bb.y0, bb.x1, bb.y1]; }) });
+    }); }); });
+    return lines;
+  }
+  function lineTop(l) { var t = 1e9; (l.w || []).forEach(function (x) { if (x[3] < t) t = x[3]; }); return t; }
+
+  /* Righe che il motore non ha letto per niente: righe di pixel con inchiostro che nessuna parola riconosciuta copre (di solito righe piccole
+     e fitte dell'intestazione, o una riga con la scritta più grande del resto). Ritorna [{y0, y1, x0, x1}] in pixel della tela. */
+  function missedBands(canvas, lines) {
+    var G = grayFromCanvas(canvas), g = G.g, w = G.w, h = G.h, y, x, hs = [];
+    lines.forEach(function (l) { (l.w || []).forEach(function (q) { if (q[1] >= 25 && /[A-Za-z0-9]{2}/.test(q[0])) hs.push(q[5] - q[3]); }); });
+    if (hs.length < 8) return [];
+    var ch = medOf(hs), cov = new Uint8Array(h + 1), ink = new Int32Array(h), rx0 = new Int32Array(h).fill(w), rx1 = new Int32Array(h).fill(-1), mg = Math.round(0.02 * w), thr = 140;
+    lines.forEach(function (l) { (l.w || []).forEach(function (q) { if (q[1] >= 25 && /[A-Za-z0-9]{2}/.test(q[0])) for (y = Math.max(0, q[3] - 2); y <= Math.min(h - 1, q[5] + 2); y++) cov[y] = 1; }); });
+    for (y = 0; y < h; y++) {
+      var ro = y * w, n = 0;
+      for (x = mg; x < w - mg; x++) if (g[ro + x] < thr) { n++; if (x < rx0[y]) rx0[y] = x; if (x > rx1[y]) rx1[y] = x; }
+      ink[y] = n;
+    }
+    var bands = [], cur = null, gap = 0, maxGap = Math.max(4, Math.round(0.25 * ch)), minInk = Math.max(6, Math.round(0.004 * w));
+    for (y = 0; y < h; y++) {
+      if (!cov[y] && ink[y] >= minInk) { if (!cur) cur = { y0: y, y1: y, x0: rx0[y], x1: rx1[y], ink: 0 }; cur.y1 = y; cur.ink += ink[y]; if (rx0[y] < cur.x0) cur.x0 = rx0[y]; if (rx1[y] > cur.x1) cur.x1 = rx1[y]; gap = 0; }
+      else if (cur) { gap++; if (gap > maxGap) { bands.push(cur); cur = null; gap = 0; } }
+    }
+    if (cur) bands.push(cur);
+    var out = [];
+    bands.forEach(function (b) {
+      var bh = b.y1 - b.y0 + 1, bw = b.x1 - b.x0 + 1;
+      if (bh < 0.55 * ch || bh > 3.6 * ch || bw < 0.1 * w || b.ink < 100) return;
+      // «lettere» dentro la fascia (a metà risoluzione): poche o nessuna = una riga del bordo, una macchia
+      var cw = bw, cwh = Math.min(h - b.y0, bh), sub = new Uint8ClampedArray(cw * cwh), yy;
+      for (yy = 0; yy < cwh; yy++) sub.set(g.subarray((b.y0 + yy) * w + b.x0, (b.y0 + yy) * w + b.x0 + cw), yy * cw);
+      var hm = inkHalf(sub, cw, cwh, 175), cs = allComps(hm.B, hm.w, hm.h), gl = cs.filter(function (o) { var q = o.y1 - o.y0 + 1; return q >= 0.35 * ch / 2 && isGlyphLikeLoose(o); });
+      if (gl.length < 4) return;
+      b.n = gl.length; b.ch = ch; out.push(b);
+    });
+    out.sort(function (p, q) { return q.ink - p.ink; });
+    return out.slice(0, 6).sort(function (p, q) { return p.y0 - q.y0; });
+  }
+  function isGlyphLikeLoose(o) { var bw = o.x1 - o.x0 + 1, bh = o.y1 - o.y0 + 1; return bh >= 5 && bh <= 90 && bw >= 2 && bw <= 70 && bw / bh <= 1.8 && o.a >= 6; }
+
+  /* Rilegge le fasce non lette ritagliandole (una riga: PSM 7; più righe: PSM 6) e le inserisce fra le righe già lette, al posto giusto. */
+  function rescue(w, canvas, lines, isOff) {
+    var bands;
+    try { bands = missedBands(canvas, lines); } catch (e) { bands = []; }
+    if (!bands.length) return Promise.resolve({ lines: lines, n: 0, bands: [] });
+    var added = [], seq = Promise.resolve();
+    bands.forEach(function (b) {
+      seq = seq.then(function () {
+        if (isOff && isOff()) return;
+        var ch = b.ch, pad = Math.round(0.7 * ch), m = 24, sx = Math.max(0, b.x0 - 3 * ch), ex = Math.min(canvas.width, b.x1 + 3 * ch), sy = Math.max(0, b.y0 - pad), ey = Math.min(canvas.height, b.y1 + pad);
+        var cv = mkCanvas(ex - sx + 2 * m, ey - sy + 2 * m), cx = cv.getContext('2d');
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.drawImage(canvas, sx, sy, ex - sx, ey - sy, m, m, ex - sx, ey - sy);
+        var multi = (b.y1 - b.y0 + 1) > 1.7 * ch;
+        return w.setParameters({ tessedit_pageseg_mode: multi ? '6' : '7' }).then(function () { return pngBlob(cv); }).then(function (bl) { return w.recognize(bl, {}, { text: true, blocks: true }); }).then(function (r) {
+          freeCanvas(cv);
+          linesOf(r.data).forEach(function (l) {
+            var alnum = (l.t.match(/[A-Za-zÀ-ÿ0-9]/g) || []).length, big = (l.t.match(/[A-Za-zÀ-ÿ0-9]{3,}/g) || []).length;
+            if (l.c < 45 || alnum < 3 || !big) return;
+            l.w = l.w.map(function (q) { return [q[0], q[1], q[2] + sx - m, q[3] + sy - m, q[4] + sx - m, q[5] + sy - m]; });
+            // il ritaglio include un po' di margine: le righe vicine, già lette, non si aggiungono due volte
+            var cyl = 0; l.w.forEach(function (q) { cyl += (q[3] + q[5]) / 2; }); cyl = l.w.length ? cyl / l.w.length : -1e9;
+            if (cyl < b.y0 - 0.3 * ch || cyl > b.y1 + 0.3 * ch) return;
+            l.rescued = true; added.push(l);
+          });
+        }, function () { freeCanvas(cv); });
+      });
+    });
+    return seq.then(function () { return w.setParameters({ tessedit_pageseg_mode: CFG.PSM }); }).catch(function () { }).then(function () {
+      var out = lines.slice();
+      added.forEach(function (l) {
+        var top = lineTop(l), at = out.length, i;
+        for (i = 0; i < out.length; i++) if (lineTop(out[i]) > top) { at = i; break; }
+        out.splice(at, 0, l);
+      });
+      return { lines: out, n: added.length, bands: bands.map(function (b) { return [b.y0, b.y1, b.x0, b.x1, b.n]; }) };
+    });
+  }
+
+  /* ───── verifica degli importi ─────
+     Il motore a volte legge male una cifra («22,78» → «22,10») o aggiunge un segno in fondo («12,50» → «12,508») e i conti non tornano.
+     Qui ogni importo si rilegge da solo, ritagliato e ingrandito, con la sola scelta di cifre e segni: senza lettere intorno non scambia più
+     7 con 1 e non aggiunge niente. La lettura nuova prende il posto della vecchia solo se è un importo ben formato, sicuro, e più sicuro
+     dell'altra (o se l'altra non era un importo); poi sarà il lettore dei dati a scegliere il testo che fa tornare i conti. */
+  var AMT_OK = /^-?\d+[,.]\d{2}-?$/, AMT_LIKE = /^[^\d-]{0,2}-?\d[\d.]*[,.]\d{2,3}[^\d]{0,2}$/, AMT_DAMAGED = /^[^\d-]{0,2}-?\d[\d.]*[,.]?\d{0,2}[^\d\s]{0,2}$/;
+  function amtVal(t) { var m = /(\d[\d.]*)[,.](\d{2,3})/.exec(String(t)); return m ? parseFloat(m[1].replace(/\./g, '') + '.' + m[2]) * (/-/.test(String(t)) ? -1 : 1) : NaN; }
+  function medOf2(a) { a = a.slice().sort(function (p, q) { return p - q; }); return a.length ? a[a.length >> 1] : 0; }
+  /* Le parole-importo da rileggere. Ritorna [{li, wi, k0, t, c, x0, y0, x1, y1, miss}] (wi = ultima parola dell'importo, k0 = prima; miss = il prezzo non c'è):
+     - le ultime due parole-importo di ogni riga (gettoni come «22,10» o «12,508»), ritagliate così come sono;
+     - nella colonna dei prezzi (se ce n'è una: almeno tre importi) anche l'importo rovinato o spezzato («18,9%», «59», «10,» «28») e, per le righe fra il primo
+       e l'ultimo importo che il prezzo non ce l'hanno più, la fetta della colonna alla loro altezza. lines: [{t,c,w:[[testo,fiducia,x0,y0,x1,y1]]}] */
+  function amountWords(lines) {
+    var out = [], clean = [], has = {};
+    (lines || []).forEach(function (l, li) {
+      var ws = l.w || [], n = 0, wi;
+      for (wi = ws.length - 1; wi >= 0 && n < 2; wi--) {
+        var x = ws[wi], t = String(x[0] == null ? '' : x[0]).trim();
+        if (!AMT_LIKE.test(t) || !(+x[5] - +x[3] >= 8) || !(+x[4] > +x[2])) continue;
+        out.push({ li: li, wi: wi, k0: wi, t: t, c: +x[1] || 0, x0: +x[2], y0: +x[3], x1: +x[4], y1: +x[5] }); has[li] = 1; n++;
+        if (n === 1 && AMT_OK.test(t.replace(/^[^\d-]+|[^\d]+$/g, ''))) clean.push({ li: li, x0: +x[2], x1: +x[4], h: +x[5] - +x[3] });
+      }
+    });
+    if (clean.length < 3) return out;
+    // colonna dei prezzi: gli importi allineati a destra (non il «2 x 12,50» che sta a sinistra sotto la descrizione)
+    var hh = medOf2(clean.map(function (q) { return q.h; })), x1s = clean.map(function (q) { return q.x1; }).sort(function (p, q) { return p - q; }), ref = x1s[Math.floor((x1s.length - 1) * 0.8)];
+    var col = clean.filter(function (q) { return q.x1 >= ref - 4 * hh; });
+    if (col.length < 3) return out;
+    var cx1 = medOf2(col.map(function (q) { return q.x1; })), x0s = col.map(function (q) { return q.x0; }).sort(function (p, q) { return p - q; }), cx0 = x0s[Math.floor(x0s.length * 0.2)];
+    var first = Math.min.apply(null, col.map(function (q) { return q.li; })), last = Math.max.apply(null, col.map(function (q) { return q.li; }));
+    (lines || []).forEach(function (l, li) {
+      if (has[li] || li < first - 2 || li > last) return;
+      var all = l.w || [], ws = [], k;
+      all.forEach(function (x, i) { if (String(x[0] == null ? '' : x[0]).trim() && +x[5] > +x[3] && +x[4] > +x[2]) ws.push(i); });
+      if (!ws.length) return;
+      // l'ultimo gettone con una cifra, se sta nella colonna dei prezzi: è un importo rovinato; i gettoni numerici attaccati a sinistra ne sono parte
+      var k1 = -1;
+      for (k = ws.length - 1; k >= 0 && k >= ws.length - 3; k--) { var tx = String(all[ws[k]][0]).trim(); if (/\d/.test(tx) && AMT_DAMAGED.test(tx) && +all[ws[k]][4] >= cx1 - 3 * hh && +all[ws[k]][2] >= cx0 - 2 * hh) { k1 = k; break; } }
+      var xl = cx0 - 0.6 * hh, xr = cx1 + 0.6 * hh;
+      if (k1 >= 0) {
+        var k0 = k1; while (k0 > 0 && /^[^A-Za-zÀ-ÿ]*$/.test(String(all[ws[k0 - 1]][0])) && /\d|[,.]/.test(String(all[ws[k0 - 1]][0])) && +all[ws[k0 - 1]][2] >= cx0 - 2 * hh) k0--;
+        var y0 = 1e9, y1 = -1e9, cc = 100, kk;
+        for (kk = k0; kk <= k1; kk++) { var q = all[ws[kk]]; y0 = Math.min(y0, +q[3]); y1 = Math.max(y1, +q[5]); cc = Math.min(cc, +q[1] || 0); }
+        if (y1 - y0 > 1.6 * hh) { var cy = (y0 + y1) / 2; y0 = cy - 0.8 * hh; y1 = cy + 0.8 * hh; }
+        out.push({ li: li, wi: ws[k1], k0: ws[k0], t: all.slice(ws[k0], ws[k1] + 1).map(function (q) { return String(q[0]).trim(); }).join(' '), c: cc, x0: xl, y0: y0, x1: xr, y1: y1, damaged: true });
+        return;
+      }
+      if (!/[A-Za-zÀ-ÿ]{2}/.test(ws.map(function (i) { return all[i][0]; }).join(' '))) return;
+      var yc = medOf2(ws.map(function (i) { return (+all[i][3] + +all[i][5]) / 2; })), lastX = Math.max.apply(null, ws.map(function (i) { return +all[i][4]; }));
+      if (lastX >= xl) return;                                            // alla destra c'è già qualcosa (sporco senza cifre): non è la fetta vuota di un prezzo perso
+      out.push({ li: li, wi: -1, k0: -1, t: '', c: 0, x0: xl, y0: yc - hh / 2, y1: yc + hh / 2, x1: xr, miss: true, last: lastX });
+    });
+    return out;
+  }
+  function escRx(t) { return String(t).replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&'); }
+  // mette le letture sicure al posto delle vecchie (o in fondo alla riga se il prezzo mancava). subs: [{a: importo da rileggere, v: lettura, c: fiducia}] → {lines, changed}
+  function applyVerified(lines, subs) {
+    var out = (lines || []).slice(), changed = 0, done = {};
+    (subs || []).forEach(function (u) {
+      var a = u.a, v = String(u.v || '').replace(/\s+/g, ''), key = a.li + ':' + a.wi;
+      if (done[key] || !AMT_OK.test(v) || !(a.li >= 0 && a.li < out.length)) return;
+      var vv = amtVal(v), l = out[a.li], nv = v.replace(/\./g, ',');
+      if (!isFinite(vv)) return;
+      if (a.miss) {                                                 // il prezzo non c'era: serve una lettura sicura
+        if (u.c < 60) return;
+        var ws = l.w || [], cws = ws.filter(function (x) { return String(x[0]).length >= 3 && +x[4] > +x[2]; }).map(function (x) { return (+x[4] - +x[2]) / String(x[0]).length; }), cw = medOf2(cws) || Math.max(4, (a.y1 - a.y0) * 0.55);
+        var sp = Math.max(2, Math.min(60, Math.round((a.x0 - (a.last || a.x0)) / cw)));
+        out[a.li] = { t: String(l.t || '').replace(/\s+$/, '') + new Array(sp + 1).join(' ') + nv, c: l.c, w: ws.concat([[nv, Math.round(u.c), a.x0, a.y0, a.x1, a.y1]]), rescued: l.rescued };
+        done[key] = 1; changed++; return;
+      }
+      var bv = amtVal(a.t), baseOk = AMT_OK.test(a.t.replace(/^[^\d-]+|[^\d]+$/g, ''));
+      if (isFinite(bv) && Math.abs(vv - bv) < 0.005) return;
+      if (!((!baseOk && u.c >= 15) || (u.c >= 88 && u.c >= a.c + 6))) return;       // un gettone che non è un importo non vale niente: una lettura anche poco sicura è meglio, poi i conti decidono
+      // il testo da sostituire: le parole dell'importo (una o più, anche separate da spazi) in fondo alla riga
+      var k0 = a.k0 == null ? a.wi : a.k0, span = (l.w || []).slice(k0, a.wi + 1).map(function (q) { return String(q[0]).trim(); });
+      if (!span.length || span.some(function (z) { return !z; })) return;
+      var re = new RegExp(span.map(escRx).join('\\s*'), 'g'), m, lm = null, tx = String(l.t || '');
+      while ((m = re.exec(tx))) { lm = m; if (m.index === re.lastIndex) re.lastIndex++; }
+      if (!lm) return;
+      // un segno attaccato a un importo vero resta («2,50*»); su un gettone rovinato («18,9%») il segno è la cifra letta male
+      var pre = baseOk ? (/^[^\d-]*/.exec(a.t) || [''])[0] : '', suf = baseOk ? (/[^\d]*$/.exec(a.t) || [''])[0] : '', nt = pre + nv + suf;
+      var ow = (l.w || []).slice(k0, a.wi + 1), bx0 = Math.min.apply(null, ow.map(function (q) { return +q[2]; })), by0 = Math.min.apply(null, ow.map(function (q) { return +q[3]; })), bx1 = Math.max.apply(null, ow.map(function (q) { return +q[4]; })), by1 = Math.max.apply(null, ow.map(function (q) { return +q[5]; }));
+      var w2 = (l.w || []).slice(0, k0).concat([[nt, Math.round(u.c), bx0, by0, bx1, by1]], (l.w || []).slice(a.wi + 1));
+      out[a.li] = { t: tx.slice(0, lm.index) + nt + tx.slice(lm.index + lm[0].length), c: l.c, w: w2, rescued: l.rescued };
+      done[key] = 1; changed++;
+    });
+    return { lines: out, changed: changed };
+  }
+  function verifyAmounts(w, canvas, lines, isOff) {
+    var t0 = Date.now(), cand = amountWords(lines).sort(function (p, q) { return p.c - q.c; }).slice(0, CFG.VERIFY_MAX), subs = [], tried = 0;
+    if (!cand.length) return Promise.resolve(null);
+    var seq = w.setParameters({ tessedit_pageseg_mode: '7', tessedit_char_whitelist: '0123456789,.-' });
+    cand.forEach(function (a) {
+      seq = seq.then(function () {
+        if (Date.now() - t0 > CFG.VERIFY_MS || (isOff && isOff())) return;
+        var hh = a.y1 - a.y0, pad = Math.max(6, Math.round(0.35 * hh)), m = 20, sc = clamp(CFG.VERIFY_H / hh, 1, 2.2);
+        var sx = Math.max(0, Math.round(a.x0 - pad)), ex = Math.min(canvas.width, Math.round(a.x1 + pad)), sy = Math.max(0, Math.round(a.y0 - pad)), ey = Math.min(canvas.height, Math.round(a.y1 + pad));
+        if (ex - sx < 6 || ey - sy < 6) return;
+        var cw = Math.round((ex - sx) * sc), ch = Math.round((ey - sy) * sc), cv = mkCanvas(cw + 2 * m, ch + 2 * m), cx = cv.getContext('2d');
+        cx.fillStyle = '#fff'; cx.fillRect(0, 0, cv.width, cv.height); cx.imageSmoothingQuality = 'high'; cx.drawImage(canvas, sx, sy, ex - sx, ey - sy, m, m, cw, ch);
+        return pngBlob(cv).then(function (bl) { return w.recognize(bl, {}, { text: true }); }).then(function (r) {
+          freeCanvas(cv); tried++;
+          var d = r.data || {}; subs.push({ a: a, v: String(d.text || ''), c: Math.round(d.confidence || 0) });
+        }, function () { freeCanvas(cv); });
+      });
+    });
+    return seq.then(function () { return w.setParameters({ tessedit_pageseg_mode: CFG.PSM, tessedit_char_whitelist: '' }); }).catch(function () { }).then(function () {
+      var ap = applyVerified(lines, subs);
+      return { lines: ap.lines, changed: ap.changed, tried: tried, ms: Date.now() - t0, subs: subs };
+    });
+  }
+
+  /* Legge una tela già preparata. Ritorna {text, conf, lines:[{t,c,w:[[t,c]...]}], ms}.
+     opts.needVerify(testo) → true se i conti di quel testo non tornano: allora gli importi si rileggono uno per uno (textV / text2V = il testo con le letture nuove). */
+  function recognize(canvas, onP, opts) {
+    opts = opts || {};
+    var isOff = typeof opts.isCancelled === 'function' ? opts.isCancelled : function () { return false; };
     return pngBlob(canvas).then(function (blob) {
-      return engine(onP).then(function (w) {
+      return engine(onP).then(function (w) { return turn(function () {
+        if (isOff()) throw mkErr('annullato', 'annullato');
         var t0 = Date.now();
         return w.recognize(blob, {}, { text: true, blocks: true }).then(function (r) {
-          var d = r.data || {}, lines = [];
-          (d.blocks || []).forEach(function (b) { (b.paragraphs || []).forEach(function (p) { (p.lines || []).forEach(function (l) {
-            lines.push({ t: l.text.replace(/\s+$/, ''), c: Math.round(l.confidence || 0), w: (l.words || []).map(function (x) { var bb = x.bbox || {}; return [x.text, Math.round(x.confidence || 0), bb.x0, bb.y0, bb.x1, bb.y1]; }) });
-          }); }); });
-          var dn = { lines: lines, dropped: 0 };
-          try { dn = denoise(lines); } catch (e) { dn = { lines: lines, dropped: 0 }; }
-          lines = dn.lines;
-          var cl = cleanLines(lines), rl = null;
-          try { rl = relines(lines); } catch (e) { rl = null; }
-          return { text: cl.text, text2: rl && rl.text && rl.text !== cl.text ? rl.text : '', slope: rl ? rl.slope : 0, raw: d.text || '', conf: Math.round(d.confidence || 0), lines: lines, dropped: cl.dropped, noise: dn.dropped, ms: Date.now() - t0 };
+          var d = r.data || {}, lines = linesOf(d);
+          var t1 = Date.now();
+          return rescue(w, canvas, lines, isOff).then(function (rs) {
+            lines = rs.lines;
+            var dn = { lines: lines, dropped: 0 };
+            try { dn = denoise(lines); } catch (e) { dn = { lines: lines, dropped: 0 }; }
+            lines = dn.lines;
+            var cl = cleanLines(lines), rl = null;
+            try { rl = relines(lines); } catch (e) { rl = null; }
+            var out = { text: cl.text, text2: rl && rl.text && rl.text !== cl.text ? rl.text : '', slope: rl ? rl.slope : 0, raw: d.text || '', conf: Math.round(d.confidence || 0), lines: lines, dropped: cl.dropped, noise: dn.dropped, rescued: rs.n, rescueBands: rs.bands, ms: Date.now() - t0, recMs: t1 - t0 };
+            var need = false;
+            try { need = opts.verify === true || (opts.verify !== false && typeof opts.needVerify === 'function' && !!opts.needVerify(out.text) && (!out.text2 || !!opts.needVerify(out.text2))); } catch (e) { need = false; }
+            if (!need) return out;
+            return verifyAmounts(w, canvas, lines, isOff).then(function (vr) {
+              if (vr) {
+                out.verify = { tried: vr.tried, changed: vr.changed, ms: vr.ms };
+                if (opts.dbg) out.verify.subs = vr.subs.map(function (u) { return [u.a.li, u.a.miss ? 'MISS' : u.a.t, u.v, u.c]; });
+                if (vr.changed) {
+                  var clV = cleanLines(vr.lines), rlV = null;
+                  try { rlV = relines(vr.lines); } catch (e) { rlV = null; }
+                  out.textV = clV.text !== out.text ? clV.text : '';
+                  out.text2V = rlV && rlV.text && rlV.text !== clV.text && rlV.text !== out.text2 ? rlV.text : '';
+                }
+              }
+              out.ms = Date.now() - t0; return out;
+            }, function () { return out; });
+          });
         });
-      });
+      }); });
     });
   }
 
@@ -39286,7 +39987,8 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
       enginePromise.catch(function () { });
       prepare(file, opts).then(function (prep) {
         chk(); P('foto', 1);
-        return recognize(prep.canvas, function (s, f) { P(s, f); }).then(function (rec) { freeCanvas(prep.canvas); rec.info = prep.info; return rec; }, function (e) { freeCanvas(prep.canvas); throw e; });
+        var ro = {}; for (var ok in opts) ro[ok] = opts[ok]; ro.isCancelled = function () { return cancelled; };
+        return recognize(prep.canvas, function (s, f) { P(s, f); }, ro).then(function (rec) { freeCanvas(prep.canvas); rec.info = prep.info; return rec; }, function (e) { freeCanvas(prep.canvas); throw e; });
       }).then(function (rec) { clearTimeout(timer); armIdle(); if (cancelled) reject(mkErr('annullato', 'annullato')); else resolve(rec); }, function (e) {
         clearTimeout(timer); armIdle();
         if (e && e.code === 'rete' && typeof navigator !== 'undefined' && navigator.onLine === false) e = mkErr('offline', 'offline');      // senza rete: se il motore era già sul telefono funziona lo stesso, altrimenti lo dico chiaro
@@ -39301,7 +40003,7 @@ var qrcode=function(){var t=function(t,r){var e=t,n=g[r],o=null,i=0,a=null,u=[],
     supported: supported, ready: ready, read: read, prepare: prepare, recognize: recognize, engine: engine, release: release,
     // parti pure, esposte per i collaudi
     _b: { decode: decode, drawSmall: drawSmall, grayFromCanvas: grayFromCanvas, drawRegion: drawRegion, canvasFromGray: canvasFromGray },
-    _px: { grayOf: grayOf, otsu: otsu, blurGray: blurGray, rankFilter: rankFilter, shrink: shrink, flatField: flatField, findPaper: findPaper, skewOf: skewOf, inkBox: inkBox, charHeight: charHeight, inkMap: inkMap, orientRatio: orientRatio, inkLut: inkLut, applyFinish: applyFinish, paperMask: paperMask, cleanLines: cleanLines, invertBands: invertBands, relines: relines, denoise: denoise }
+    _px: { cleanSheet: cleanSheet, allComps: allComps, findRules: findRules, tallBands: tallBands, squeezeRows: squeezeRows, inkHalf: inkHalf, grayOf: grayOf, otsu: otsu, blurGray: blurGray, rankFilter: rankFilter, shrink: shrink, flatField: flatField, findPaper: findPaper, skewOf: skewOf, rowSlopes: rowSlopes, dewarpRows: dewarpRows, glyphComps: glyphComps, glyphBox: glyphBox, inkBox: inkBox, charHeight: charHeight, inkMap: inkMap, orientRatio: orientRatio, inkLut: inkLut, applyFinish: applyFinish, paperMask: paperMask, cleanLines: cleanLines, invertBands: invertBands, relines: relines, denoise: denoise, amountWords: amountWords, applyVerified: applyVerified, amtVal: amtVal, turn: turn }
   };
 });
 
@@ -40095,6 +40797,7 @@ var EWSCO = (function () {
 
   function nameOk(r) { var m = r.merchant || {}; return !!(m.name && (m.plausible || (r.conf && r.conf.merchant >= 0.9))); }       // un nome fatto di sillabe a caso non si scrive nella scheda
   function ocrScore(r) { return (r.total != null ? 3 : 0) + (r.date ? 2 : 0) + (nameOk(r) ? 1 : 0) + (r.merchant && r.merchant.piva ? 1 : 0) + (r.items && r.items.length ? 1 + Math.min(r.items.length, 8) * 0.1 : 0) + (r.items && r.items.length && r.total != null && Math.abs((r.itemsSum || 0) - r.total) < 0.015 ? 1 : 0) + (r.merchant && r.merchant.address ? 0.3 : 0); }
+  function needVerify(t) { try { var r = EWRCPT.parse(t); return !(r.total == null && !r.date) && EWRCPT.shaky(r); } catch (e) { return false; } }       // conti che non tornano: si rileggono gli importi (non se la foto sembra girata: si ritenta prima)
   function ocrWeak(r) { return r.total == null && !r.date; }                       // niente totale e niente data: di solito foto capovolta o illeggibile
   function ocrStart(opt) {
     if (!S || !S.orig) return;
@@ -40109,7 +40812,7 @@ var EWSCO = (function () {
     paintRead();
     var job;
     try {
-      job = EWOCR.read(S.orig, { rot: o.rot == null ? undefined : o.rot, flip: opt.extra || 0, onProgress: function (st, f) { if (S && S.ocr.id === my) ocrProgress(S.ocr, st, f); } });
+      job = EWOCR.read(S.orig, { rot: o.rot == null ? undefined : o.rot, flip: opt.extra || 0, needVerify: needVerify, onProgress: function (st, f) { if (S && S.ocr.id === my) ocrProgress(S.ocr, st, f); } });
     } catch (e) { o.st = 'err'; o.code = 'motore'; paintRead(); return; }
     o.job = job;
     job.promise.then(function (rec) {
@@ -40125,15 +40828,19 @@ var EWSCO = (function () {
   function ocrDone(rec, opt) {
     var o = S.ocr, r, cand;
     try { r = EWRCPT.applyHistory(EWRCPT.parse(rec.text), S.known); } catch (e) { o.st = 'err'; o.code = 'motore'; paintRead(); return; }
-    // seconda lettura dello stesso testo: righe rimesse in ordine dalle posizioni delle parole (colonne dei prezzi, foto inclinata). Vince solo se è chiaramente migliore
-    if (rec.text2) {
+    // altre letture dello stesso scontrino: righe rimesse in ordine dalle posizioni delle parole (colonne dei prezzi, foto inclinata) e importi riletti uno per uno
+    // (quando i conti non tornavano). Vince solo una lettura chiaramente migliore, cioè con i conti che tornano
+    var bestAlt = null;
+    [['text2', rec.text2], ['textV', rec.textV], ['text2V', rec.text2V]].forEach(function (a) {
+      if (!a[1]) return;
       try {
-        var r2 = EWRCPT.applyHistory(EWRCPT.parse(rec.text2), S.known);
-        if (EWRCPT.quality(r2) > EWRCPT.quality(r) + 0.25) { var c2 = {}; for (var k in rec) c2[k] = rec[k]; c2.text1 = rec.text; c2.text = rec.text2; c2.alt = true; rec = c2; r = r2; }
+        var ra = EWRCPT.applyHistory(EWRCPT.parse(a[1]), S.known);
+        if (EWRCPT.quality(ra) > EWRCPT.quality(bestAlt ? bestAlt.r : r) + 0.25) bestAlt = { kind: a[0], text: a[1], r: ra };
       } catch (e) { }
-    }
+    });
+    if (bestAlt) { var c2 = {}; for (var k in rec) c2[k] = rec[k]; c2.text1 = rec.text; c2.text = bestAlt.text; c2.alt = true; c2.altKind = bestAlt.kind; rec = c2; r = bestAlt.r; }
     if (ocrJunk(r, rec.conf)) {                                                    // rumore, non un documento: niente nome inventato e niente righe di sporco
-      var c0 = {}; for (var k0 in rec) c0[k0] = rec[k0]; c0.text = ''; c0.text2 = ''; c0.junk = true; rec = c0;
+      var c0 = {}; for (var k0 in rec) c0[k0] = rec[k0]; c0.text = ''; c0.text2 = ''; c0.textV = ''; c0.text2V = ''; c0.junk = true; rec = c0;
       try { r = EWRCPT.applyHistory(EWRCPT.parse(''), S.known); } catch (e) { o.st = 'err'; o.code = 'motore'; paintRead(); return; }
     }
     cand = { rec: rec, r: r, score: ocrScore(r) };
