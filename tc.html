@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261117-v325-conti-tornano';
+  var BUILD = '20261120-v326-archivio-zip';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -7972,45 +7972,34 @@ function caricaRimanenzaPrecedente() {
 }
 function save(k, v) {
   if(v === undefined || v === null) return true; // evita di salvare null accidentalmente
+  const key = getKey(k);
+  let str;
+  try { str = JSON.stringify(v); } catch(e) { return false; }
   try {
-    localStorage.setItem(getKey(k), JSON.stringify(v));
+    localStorage.setItem(key, str);
     return true;
   } catch(e) {
-    if(e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
-      console.warn('⚠️ localStorage pieno — pulizia aggressiva...');
-      // 1. Rimuovi backup automatici (la causa principale)
+    if(!(e && (e.name === 'QuotaExceededError' || e.name === 'NS_ERROR_DOM_QUOTA_REACHED' || e.code === 22 || e.code === 1014))) return false;
+    // v326 · Memoria piena. Libero SOLO ciò che l'app rifà da sola (vecchia copia automatica, cache).
+    // Note, foto profilo, anni vecchi e ogni altro dato dell'utente non si toccano più: prima sparivano in silenzio.
+    try {
       localStorage.removeItem('tc_auto_backup');
-      // 2. Rimuovi dati anni vecchi
-      const pfx = getKey('');
       for(let i = localStorage.length - 1; i >= 0; i--) {
-        const key = localStorage.key(i);
-        if(key && key.startsWith(pfx) && (key.includes('_2022_') || key.includes('_2021_'))) {
-          localStorage.removeItem(key);
-        }
+        const kk = localStorage.key(i);
+        if(kk && kk.includes('_cache')) localStorage.removeItem(kk);
       }
-      // 3. Riprova a salvare
+    } catch(_) {}
+    try {
+      localStorage.setItem(key, str);
+      return true;
+    } catch(e2) {
+      console.warn('⚠️ localStorage pieno: modifica NON salvata (' + k + ')');
       try {
-        localStorage.setItem(getKey(k), JSON.stringify(v));
-        console.log('✅ Salvato dopo pulizia');
-        return true;
-      } catch(e2) {
-        // 4. Pulizia estrema: rimuovi cache e dati non essenziali
-        for(let i = localStorage.length - 1; i >= 0; i--) {
-          const key = localStorage.key(i);
-          if(key && (key.includes('_cache') || key.includes('_photo_') || key.includes('_notes'))) {
-            localStorage.removeItem(key);
-          }
-        }
-        try {
-          localStorage.setItem(getKey(k), JSON.stringify(v));
-          return true;
-        } catch(e3) {
-          showToast('⚠️ Memoria piena! Apri Console e digita: localStorage.removeItem("tc_auto_backup")');
-          return false;
-        }
-      }
+        if(window.EWARC && window.EWARC.memFull) window.EWARC.memFull(k);
+        else showToast('⚠️ Memoria piena: l\u2019ultima modifica NON è stata salvata. Non ho cancellato nulla.', 9000);
+      } catch(_) {}
+      return false;
     }
-    return false;
   }
 }
 function load(k, def) { const r = localStorage.getItem(getKey(k)); return r ? JSON.parse(r) : def; }
@@ -8046,11 +8035,11 @@ function periodKey() {
 }
 
 function getIncome() { return load(`income_${periodKey()}`, []); }
-function saveIncome(d) { save(`income_${periodKey()}`, d); }
+function saveIncome(d) { return save(`income_${periodKey()}`, d); }
 function getExpenses() { return load(`expenses_${periodKey()}`, []); }
-function saveExpenses(d) { save(`expenses_${periodKey()}`, d); }
+function saveExpenses(d) { return save(`expenses_${periodKey()}`, d); }
 function getNotes() { return load('notes', {}); }
-function saveNotes(d) { save('notes', d); }
+function saveNotes(d) { return save('notes', d); }
 
 // Ritorna tutte le spese di tutti i mesi salvati in localStorage
 function getAllExpensesAllTime() {
@@ -11688,7 +11677,7 @@ function addExpense() {
     ...(_sbSub ? { sub: _sbSub } : {})
   };
   exp.push(_newExp);
-  saveExpenses(exp);
+  if(saveExpenses(exp) === false) return;   // memoria piena: l'avviso lo ha già mostrato save(); i campi restano compilati
   bumpVersion();
   document.getElementById('expAmount').value='';
   document.getElementById('expDesc').value='';
@@ -12395,7 +12384,7 @@ function saveEditExp() {
     const idx = exps.findIndex(e => e.id == id);
     if(idx !== -1) {
       exps[idx] = { ...exps[idx], cat, amount, desc, pay };
-      save('expenses_'+key, exps);
+      if(save('expenses_'+key, exps) === false) return;
       saved = true;
       break;
     }
@@ -12407,7 +12396,7 @@ function saveEditExp() {
     const idx = exps.findIndex(e => e.id == id);
     if(idx !== -1) {
       exps[idx] = { ...exps[idx], cat, amount, desc, pay };
-      saveExpenses(exps);
+      if(saveExpenses(exps) === false) return;
       saved = true;
     }
   }
@@ -29604,17 +29593,27 @@ function bkDownload() {
 /* ── ripristina da file ── */
 function bkPickFile() { var i = bkEl('bkFileInput'); i.value = ''; i.click(); }
 function bkRestoreMsg(html, kind) {
-  var r = bkEl('bkRsResult'); r.hidden = !html; if (!html) return;
+  var r = bkEl(BK.msgId || 'bkRsResult'); if (!r) return; r.hidden = !html; if (!html) return;
   r.className = 'bk-result' + (kind === 'err' ? ' bk-err' : (kind === 'note' ? ' bk-note' : ''));
   r.innerHTML = html;
 }
 function bkFilePicked(input) {
   var f = input.files && input.files[0]; if (!f) return;
   bkEl('bkAnalysis').hidden = true; bkRestoreMsg('');
-  var rd = new FileReader();
-  rd.onload = function () { bkAnalyze(String(rd.result || ''), f); };
-  rd.onerror = function () { bkRestoreMsg('Non riesco a leggere il file.', 'err'); };
-  rd.readAsText(f);
+  var asText = function () {
+    var rd = new FileReader();
+    rd.onload = function () { bkAnalyze(String(rd.result || ''), f); };
+    rd.onerror = function () { bkRestoreMsg('Non riesco a leggere il file.', 'err'); };
+    rd.readAsText(f);
+  };
+  if (window.EWZIP && window.EWARC) {
+    window.EWZIP.isZip(f).then(function (zip) {
+      if (!zip) return asText();
+      bkRestoreMsg('Questo è un <b>archivio ZIP</b>: lo apro nella scheda «Archivio completo» qui sotto.', 'note');
+      try { var c = bkEl('arcCard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) {}
+      window.EWARC.openFile(f);
+    }, asText);
+  } else asText();
 }
 function bkParseBackup(text) {
   var o, k, keys, i;
@@ -29656,14 +29655,15 @@ function bkConfirmRestoreFile() {
 }
 
 // Cuore del ripristino: 1) copia di sicurezza dei dati attuali (se non riesce, non tocca nulla) 2) scrive 3) salva nel cloud 4) ricarica.
-async function bkDoRestore(entries, what, btn) {
+async function bkDoRestore(entries, what, btn, pre) {
   if (BK.busy) return; BK.busy = true;
-  var E = window.EWBK;
+  var E = window.EWBK, lbl0 = btn ? btn.textContent : '';
   var step = function (t) { if (btn) { btn.disabled = true; btn.innerHTML = '<span class="bk-spin"></span>' + t; } };
   try {
     step('Salvo una copia dei dati attuali…');
     try { await E.saveCopy('before-restore', 'Prima di un ripristino'); }
     catch (e) { throw new Error('Non riesco a salvare la copia di sicurezza dei dati attuali, quindi non ho toccato niente.'); }
+    if (typeof pre === 'function') { step('Ripristino i documenti…'); var extra = await pre(step); if (extra) what += ' ' + extra; }
     step('Ripristino i dati…');
     var res = E.apply(entries);
     if (res.failed.length) throw new Error('Ripristino incompleto: ' + res.failed.length + ' voci non scritte (memoria piena?). I dati di prima sono nelle Copie di sicurezza, in «Prima di un ripristino».');
@@ -29677,7 +29677,7 @@ async function bkDoRestore(entries, what, btn) {
     setTimeout(function () { try { (bkTop() || window).location.reload(); } catch (e) { location.reload(); } }, 900);
   } catch (err) {
     BK.busy = false;
-    if (btn) { btn.disabled = false; btn.textContent = 'Ripristina questo backup'; }
+    if (btn) { btn.disabled = false; btn.textContent = lbl0 || 'Ripristina questo backup'; }
     bkRestoreMsg(bkEsc((err && err.message) || 'Ripristino non riuscito.'), 'err');
     bkLoadLists();
   }
@@ -29760,6 +29760,7 @@ function bkOnOpen() {
   BK.asking = null;
   bkRenderStatus();
   bkLoadLists();
+  try { if (window.EWARC) window.EWARC.onOpen(); } catch (e) {}
   if (!BK.timer) {
     BK.timer = setInterval(function () {
       var m = bkEl('profileModal'), c = bkEl('profileTabContent-backup');
@@ -30085,6 +30086,24 @@ function bkOnOpen() {
             <button type="button" class="bk-ghost bk-full" onclick="bkPickFile()">📂 Scegli file…</button>
             <div class="bk-analysis" id="bkAnalysis" hidden></div>
             <div class="bk-result" id="bkRsResult" hidden></div>
+          </div>
+
+          <!-- ARCHIVIO ZIP -->
+          <div class="bk-card pw-arc" id="arcCard">
+            <h3>Archivio completo (ZIP)</h3>
+            <p>Un solo file <b>ZIP</b> con i dati, gli <b>scontrini in PDF e i documenti</b> di questo dispositivo. Si riapre in E-Wallet e anche sul computer. Tienilo fuori dal telefono (iCloud Drive, Mac…).</p>
+            <div class="bk-rows arc-stat" id="arcStat"></div>
+            <div class="arc-actions">
+              <button type="button" class="bk-act" id="arcBtnMake" onclick="EWARC.make()">🗜️ Crea archivio</button>
+              <button type="button" class="bk-ghost" id="arcBtnOpen" onclick="EWARC.pick()">📂 Apri archivio…</button>
+            </div>
+            <input type="file" id="arcFileInput" style="display:none" accept=".zip,application/zip,application/x-zip-compressed" onchange="EWARC.picked(this)">
+            <div class="arc-prog" id="arcProg" hidden role="status" aria-live="polite">
+              <div class="arc-bar" id="arcBarWrap" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="arcBar"></i></div>
+              <small id="arcProgTxt"></small>
+            </div>
+            <div class="bk-result" id="arcMsg" hidden></div>
+            <div class="bk-analysis" id="arcAnalysis" hidden></div>
           </div>
 
           <!-- COPIE -->
@@ -34229,6 +34248,37 @@ body.light{
 :is(html,#_) body .sco-read p{margin:6px 0 0;font-size:13px;line-height:1.4;color:var(--label2)}
 :is(html,#_) body .sco-read .sco-row{margin-top:10px}
 @media (prefers-reduced-motion:reduce){:is(html,#_) body .sco-bar i{transition:none}}
+:is(html,#_) body .arc-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:stretch}
+:is(html,#_) body .arc-actions>button{flex:1 1 150px}
+:is(html,#_) body .arc-prog{display:flex;flex-direction:column;gap:6px}
+:is(html,#_) body .arc-bar{height:8px;border-radius:99px;background:var(--dark4,#2c2c2e);border:1px solid var(--border);overflow:hidden}
+:is(html,#_) body .arc-bar>i{display:block;height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,var(--gold-light,#f5cb72),var(--gold));transition:width .18s ease}
+:is(html,#_) body .arc-prog>small{font-size:11.5px;line-height:1.4;color:var(--text-muted);word-break:break-word}
+:is(html,#_) body .arc-stat .bk-row>span:last-child small{text-align:right}
+:is(html,#_) body #arcMemFull{--mf-warn:#ffb340;position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;
+  padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));
+  background:rgba(0,0,0,.62);-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}
+:is(html,#_) body.light #arcMemFull{--mf-warn:#b86e00}
+:is(html,#_) body .arc-mf-box{width:min(440px,100%);max-height:100%;overflow:auto;background:var(--surface2,#1c1c1e);color:var(--text);border:1.5px solid var(--mf-warn);border-radius:18px;
+  padding:20px;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+:is(html,#_) body .arc-mf-ic{font-size:30px;line-height:1}
+:is(html,#_) body .arc-mf-box h3{margin:0;font-size:17px;font-weight:800;line-height:1.25;color:var(--text);letter-spacing:0;text-transform:none}
+:is(html,#_) body .arc-mf-box p,:is(html,#_) body .arc-mf-box li{margin:0;font-size:13.5px;line-height:1.5;color:var(--text-muted)}
+:is(html,#_) body .arc-mf-box p b,:is(html,#_) body .arc-mf-box li b{color:var(--text)}
+:is(html,#_) body .arc-mf-box ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+:is(html,#_) body .arc-mf-btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+:is(html,#_) body .arc-mf-btns>button{flex:1 1 140px}
+:is(html,#_) body #arcMemFull .bk-act{border:0;border-radius:11px;padding:11px 14px;font-size:13.5px;font-weight:800;color:#1c1406;background:linear-gradient(135deg,var(--gold-light,#f5cb72),var(--gold));min-height:42px;cursor:pointer;font-family:inherit}
+:is(html,#_) body #arcMemFull .bk-ghost{border:1px solid var(--border);background:var(--dark3,#1c1c1e);color:var(--text);border-radius:10px;padding:9px 12px;font-size:12.5px;font-weight:700;min-height:42px;cursor:pointer;font-family:inherit}
+@media screen and (min-width:700px) and (min-height:560px){:is(html,#_) body .pw-arc{grid-column:1/-1;grid-row:5;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);column-gap:28px;row-gap:10px;align-items:start}
+:is(html,#_) body .pw-arc>h3{grid-column:1;grid-row:1;margin:0}
+:is(html,#_) body .pw-arc>p{grid-column:1;grid-row:2;margin:0}
+:is(html,#_) body .pw-arc>.arc-stat{grid-column:1;grid-row:3}
+:is(html,#_) body .pw-arc>.arc-actions{grid-column:2;grid-row:1/span 3;align-self:center}
+:is(html,#_) body .pw-arc>.arc-prog,:is(html,#_) body .pw-arc>.bk-result,:is(html,#_) body .pw-arc>.bk-analysis{grid-column:1/-1;grid-row:auto}
+:is(html,#_) body .pw-copies{grid-row:6}}
+@media screen and (min-width:700px) and (min-height:560px) and (max-width:1023px){:is(html,#_) body .pw-arc{grid-template-columns:minmax(0,1fr)}
+:is(html,#_) body .pw-arc>*{grid-column:1!important;grid-row:auto!important}}
 </style>
 <script id="az-js">
 /* ═══════════════════════════════════════════════════════════════
@@ -36892,10 +36942,10 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v326', d: '20 nov 2026', t: 'Salvataggio più sicuro e archivio ZIP', x: 'Se un altro dispositivo ha salvato dati più recenti, l’app lo nota e li prende da sola, dopo aver messo da parte una copia di sicurezza. Se la risposta del cloud si perde, le ultime spese non spariscono più. Con la memoria piena l’app non cancella più niente di nascosto: ti avvisa. Novità in Impostazioni → Backup: l’archivio completo in un file ZIP con dati, scontrini PDF e documenti, da conservare o riaprire.' },
     { v: 'v325', d: '17 nov 2026', t: 'Conti dello scontrino che tornano', x: 'Letto meglio lo scontrino fotografato storto o piegato, anche nei ristoranti con la colonna IVA: tutte le righe con quantità e prezzi, totale, IVA, pagamento, data e numero del documento. L’app controlla che somma delle righe, totale e pagamento tornino; se una cifra letta male fa sbagliare i conti, la rilegge da sola e ti segnala quelle dubbie.' },
     { v: 'v324', d: '17 nov 2026', t: 'Scontrino letto per intero', x: 'Dalla foto l’app prende ora tutto quello che c’è scritto: negozio e insegna, indirizzo, tutte le righe con quantità e importi, IVA, pagamento e le altre righe (operatore, tavolo, IBAN…). Prima di creare lo scontrino puoi correggere ogni riga. Copia digitale e PDF riportano tutto. Vale anche per fatture e ricevute del POS.' },
     { v: 'v323', d: '15 nov 2026', t: 'Lettura automatica dello scontrino', x: 'Scatti la foto e l’app legge da sola negozio, data e totale (il motore gira sul telefono: la foto non viene inviata a nessuno). Tu controlli la scheda e crei lo scontrino; quello che scrivi tu non viene mai cambiato. La prima volta scarica il motore di lettura, circa 6 MB.' },
-    { v: 'v322', d: '14 nov 2026', t: 'Scontrino digitale', x: 'Fotografa uno scontrino (o incolla il testo di «Scansiona testo» di iOS): controlli i dati e l’app crea la spesa in GoBank e un PDF con lo scontrino riscritto più la foto. Lo trovi in Documenti, scheda Scontrini.' },
   ];
 
   var cur = 'info', timer = 0, bound = false;
@@ -41268,6 +41318,664 @@ var EWSCO = (function () {
   return core;
 })();
 if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
+
+</script>
+<script id="zip-js">
+/* ══════ EWZIP · lettura e scrittura di file ZIP (nessuna libreria esterna) ══════
+   - build(voci)  → Blob .zip. Voci: {name, data (stringa | Uint8Array | ArrayBuffer | Blob), compress?:true}.
+                    Senza «compress» (o se il browser non sa comprimere) la voce è «stored»: PDF e foto sono già compressi.
+   - open(file)   → elenco delle voci letto dal «central directory» + read()/text() che controllano la CRC-32 di ogni voce.
+   - verify(blob) → rilegge TUTTE le voci e controlla le CRC (si usa subito dopo aver creato l'archivio).
+   - isZip(file)  → riconosce un ZIP dai primi byte (non dall'estensione: su iPhone i nomi possono cambiare).
+   Limiti dichiarati: niente ZIP64 (max 4 GB e 65 535 voci), niente password. Nomi in UTF-8. Gira nel browser e in node (test). */
+(function (root) {
+  'use strict';
+  var SIG_LOCAL = 0x04034b50, SIG_CD = 0x02014b50, SIG_EOCD = 0x06054b50;
+  var MAX_ENTRY = 512 * 1024 * 1024;      // una voce decompressa non può superare 512 MB (difesa da archivi «bomba»)
+  var CRC_T = null;
+
+  function fail(msg, code) { var e = new Error(msg); e.zip = code || 'zip'; return e; }
+
+  /* ── CRC-32 ── */
+  function crcTable() {
+    var t = new Uint32Array(256), n, k, c;
+    for (n = 0; n < 256; n++) { c = n; for (k = 0; k < 8; k++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1); t[n] = c >>> 0; }
+    return t;
+  }
+  function crc32(u8, prev) {
+    var t = CRC_T || (CRC_T = crcTable()), c = ((prev === undefined ? 0 : prev) ^ 0xFFFFFFFF) >>> 0, i, n = u8.length;
+    for (i = 0; i < n; i++) c = t[(c ^ u8[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  /* ── conversioni ── */
+  function tag(x) { return Object.prototype.toString.call(x); }
+  function toBytes(d) {
+    if (typeof d === 'function') return Promise.resolve().then(d).then(function (x) { return (x === null || x === undefined) ? null : toBytes(x); });   // dato «pigro»: si legge solo quando tocca a lui
+    if (d instanceof Uint8Array) return Promise.resolve(d);
+    if (typeof d === 'string') return Promise.resolve(new TextEncoder().encode(d));
+    if (tag(d) === '[object ArrayBuffer]') return Promise.resolve(new Uint8Array(d));
+    if (d && typeof d.arrayBuffer === 'function') return d.arrayBuffer().then(function (b) { return new Uint8Array(b); });   // Blob / File
+    if (d && d.buffer && tag(d.buffer) === '[object ArrayBuffer]') return Promise.resolve(new Uint8Array(d.buffer, d.byteOffset || 0, d.byteLength));
+    return Promise.reject(fail('Dato non valido per l’archivio.'));
+  }
+  function asBlob(src) {
+    if (src && typeof src.slice === 'function' && typeof src.size === 'number') return src;   // Blob / File
+    if (src instanceof Uint8Array || tag(src) === '[object ArrayBuffer]') return new Blob([src]);
+    throw fail('Il file non è un archivio ZIP.', 'notzip');
+  }
+  function canCompress() { return typeof CompressionStream === 'function' && typeof Response === 'function' && typeof Blob === 'function' && typeof Blob.prototype.stream === 'function'; }
+  function viaStream(u8, T, kind) {
+    return new Promise(function (res, rej) {
+      try {
+        var s = new Blob([u8]).stream().pipeThrough(new T(kind));
+        new Response(s).arrayBuffer().then(function (b) { res(new Uint8Array(b)); }, rej);
+      } catch (e) { rej(e); }
+    });
+  }
+  function deflateRaw(u8) { return viaStream(u8, CompressionStream, 'deflate-raw'); }
+  function inflateRaw(u8) {
+    if (typeof DecompressionStream !== 'function') return Promise.reject(fail('Questo dispositivo non sa leggere archivi compressi: usa un archivio creato da E-Wallet.', 'nodeflate'));
+    return viaStream(u8, DecompressionStream, 'deflate-raw').catch(function () { throw fail('Archivio danneggiato (dati compressi non leggibili).', 'corrupt'); });
+  }
+  function dosDateTime(d) {
+    var y = d.getFullYear();
+    if (!(y >= 1980)) return { time: 0, date: (1 << 5) | 1 };
+    return { time: (d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1), date: ((y - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate() };
+  }
+
+  /* ── nomi di file sicuri (per le voci che finiscono in cartelle quando l'archivio si apre sul computer) ── */
+  function safeName(s, max) {
+    max = max || 90;
+    s = String(s == null ? '' : s);
+    try { s = s.normalize('NFC'); } catch (e) { }
+    s = s.replace(/[\u0000-\u001f\u007f\\\/:*?"<>|]+/g, '_').replace(/\s+/g, ' ').trim().replace(/^\.+/, '_');
+    if (!s) s = 'file';
+    if (s.length > max) { var m = /(\.[A-Za-z0-9]{1,6})$/.exec(s), ext = m ? m[1] : ''; s = s.slice(0, max - ext.length) + ext; }
+    return s;
+  }
+
+  /* ── scrittura ── */
+  function build(entries, opts) {
+    opts = opts || {};
+    var parts = [], blobs = [], pending = 0, cd = [], offset = 0, n = entries.length, i = 0, now = opts.date || new Date(), enc = new TextEncoder();
+    if (n > 65535) return Promise.reject(fail('Troppi file per un archivio ZIP.', 'toomany'));
+    function add(nameB, body, method, crc, usize, date) {
+      var dt = dosDateTime(date), lh = new Uint8Array(30 + nameB.length), dv = new DataView(lh.buffer);
+      dv.setUint32(0, SIG_LOCAL, true); dv.setUint16(4, 20, true); dv.setUint16(6, 0x0800, true); dv.setUint16(8, method, true);
+      dv.setUint16(10, dt.time, true); dv.setUint16(12, dt.date, true); dv.setUint32(14, crc, true);
+      dv.setUint32(18, body.length, true); dv.setUint32(22, usize, true); dv.setUint16(26, nameB.length, true); dv.setUint16(28, 0, true);
+      lh.set(nameB, 30);
+      cd.push({ nameB: nameB, method: method, crc: crc, csize: body.length, usize: usize, dt: dt, offset: offset });
+      parts.push(lh, body);
+      offset += lh.length + body.length;
+      pending += lh.length + body.length;
+      if (pending > 16 * 1024 * 1024) { blobs.push(new Blob(parts)); parts = []; pending = 0; }   // i pezzi finiti passano al browser: meno memoria occupata
+      if (offset > 0xFFFFFFFF - 200000) throw fail('Archivio troppo grande (oltre 4 GB).', 'toobig');
+    }
+    function next() {
+      if (i >= n) return Promise.resolve(finish());
+      var e = entries[i++], name = String(e && e.name || '');
+      if (!name || name.length > 1000) return Promise.reject(fail('Nome di file non valido.'));
+      if (opts.onProgress) { try { opts.onProgress(i, n, name); } catch (x) { } }
+      return toBytes(e.data).then(function (raw) {
+        if (raw === null) return;                                   // dato pigro che non esiste più: la voce si salta
+        var crc = crc32(raw), usize = raw.length;
+        if (usize > 0xFFFFFFFF) throw fail('File troppo grande per un archivio ZIP.', 'toobig');
+        var p = (e.compress && usize > 64 && canCompress()) ? deflateRaw(raw).catch(function () { return null; }) : Promise.resolve(null);
+        return p.then(function (def) {
+          var method = 0, body = raw;
+          if (def && def.length < usize) { method = 8; body = def; }
+          add(enc.encode(name), body, method, crc, usize, e.date || now);
+        });
+      }).then(next);
+    }
+    function finish() {
+      var cdParts = [], cdLen = 0, k, c, h, dv;
+      for (k = 0; k < cd.length; k++) {
+        c = cd[k]; h = new Uint8Array(46 + c.nameB.length); dv = new DataView(h.buffer);
+        dv.setUint32(0, SIG_CD, true); dv.setUint16(4, 0x0314, true); dv.setUint16(6, 20, true); dv.setUint16(8, 0x0800, true); dv.setUint16(10, c.method, true);
+        dv.setUint16(12, c.dt.time, true); dv.setUint16(14, c.dt.date, true); dv.setUint32(16, c.crc, true);
+        dv.setUint32(20, c.csize, true); dv.setUint32(24, c.usize, true); dv.setUint16(28, c.nameB.length, true);
+        dv.setUint16(30, 0, true); dv.setUint16(32, 0, true); dv.setUint16(34, 0, true); dv.setUint16(36, 0, true);
+        dv.setUint32(38, (0o100644 << 16) >>> 0, true); dv.setUint32(42, c.offset, true);
+        h.set(c.nameB, 46); cdParts.push(h); cdLen += h.length;
+      }
+      var eo = new Uint8Array(22), ev = new DataView(eo.buffer);
+      ev.setUint32(0, SIG_EOCD, true); ev.setUint16(4, 0, true); ev.setUint16(6, 0, true); ev.setUint16(8, cd.length, true); ev.setUint16(10, cd.length, true);
+      ev.setUint32(12, cdLen, true); ev.setUint32(16, offset, true); ev.setUint16(20, 0, true);
+      return new Blob(blobs.concat(parts, cdParts, [eo]), { type: 'application/zip' });
+    }
+    return next();
+  }
+
+  /* ── lettura ── */
+  function decodeName(u8, utf8) {
+    try { return new TextDecoder(utf8 ? 'utf-8' : 'windows-1252').decode(u8); } catch (e) { return String.fromCharCode.apply(null, Array.prototype.slice.call(u8)); }
+  }
+  function parseCd(buf, count) {
+    var dv = new DataView(buf), u8 = new Uint8Array(buf), p = 0, out = [], k, nl, el, cl, fl;
+    for (k = 0; k < count; k++) {
+      if (p + 46 > buf.byteLength || dv.getUint32(p, true) !== SIG_CD) throw fail('Archivio danneggiato (elenco dei file illeggibile).', 'corrupt');
+      fl = dv.getUint16(p + 8, true); nl = dv.getUint16(p + 28, true); el = dv.getUint16(p + 30, true); cl = dv.getUint16(p + 32, true);
+      if (p + 46 + nl > buf.byteLength) throw fail('Archivio danneggiato (elenco dei file tagliato).', 'corrupt');
+      var name = decodeName(u8.subarray(p + 46, p + 46 + nl), !!(fl & 0x0800));
+      out.push({ name: name, flags: fl, method: dv.getUint16(p + 10, true), crc: dv.getUint32(p + 16, true), csize: dv.getUint32(p + 20, true),
+        usize: dv.getUint32(p + 24, true), offset: dv.getUint32(p + 42, true), dir: name.charAt(name.length - 1) === '/' });
+      p += 46 + nl + el + cl;
+    }
+    return out;
+  }
+  function readEntry(blob, e) {
+    if (e.flags & 1) return Promise.reject(fail('Archivio protetto da password: non lo so aprire.', 'encrypted'));
+    if (e.method !== 0 && e.method !== 8) return Promise.reject(fail('Compressione non supportata (' + e.method + ').', 'method'));
+    if (e.usize > MAX_ENTRY) return Promise.reject(fail('«' + e.name + '» è troppo grande.', 'toobig'));
+    return blob.slice(e.offset, e.offset + 30).arrayBuffer().then(function (hb) {
+      var dv = new DataView(hb);
+      if (hb.byteLength < 30 || dv.getUint32(0, true) !== SIG_LOCAL) throw fail('Archivio danneggiato (intestazione di «' + e.name + '»).', 'corrupt');
+      var start = e.offset + 30 + dv.getUint16(26, true) + dv.getUint16(28, true);
+      if (start + e.csize > blob.size) throw fail('Archivio incompleto: il file sembra tagliato.', 'corrupt');
+      return blob.slice(start, start + e.csize).arrayBuffer();
+    }).then(function (cb) {
+      var raw = new Uint8Array(cb);
+      return e.method === 0 ? raw : inflateRaw(raw);
+    }).then(function (u8) {
+      if (u8.length !== e.usize) throw fail('Archivio danneggiato (dimensione di «' + e.name + '»).', 'corrupt');
+      if (crc32(u8) !== e.crc) throw fail('Archivio danneggiato (controllo di «' + e.name + '» non riuscito).', 'corrupt');
+      return u8;
+    });
+  }
+  function open(src) {
+    var blob;
+    try { blob = asBlob(src); } catch (e) { return Promise.reject(e); }
+    var size = blob.size;
+    if (size < 22) return Promise.reject(fail('Il file non è un archivio ZIP.', 'notzip'));
+    var tailLen = Math.min(size, 22 + 65535);
+    return blob.slice(size - tailLen).arrayBuffer().then(function (tb) {
+      var dv = new DataView(tb), i, eo = -1;
+      for (i = tailLen - 22; i >= 0; i--) {
+        if (dv.getUint32(i, true) === SIG_EOCD && i + 22 + dv.getUint16(i + 20, true) <= tailLen) { eo = i; break; }
+      }
+      if (eo < 0) throw fail('Il file non è un archivio ZIP (o è incompleto).', 'notzip');
+      var count = dv.getUint16(eo + 10, true), cdSize = dv.getUint32(eo + 12, true), cdOff = dv.getUint32(eo + 16, true);
+      if (count === 0xFFFF || cdSize === 0xFFFFFFFF || cdOff === 0xFFFFFFFF) throw fail('Archivio ZIP64: non supportato.', 'zip64');
+      if (cdOff + cdSize > size) throw fail('Archivio danneggiato o incompleto.', 'corrupt');
+      return blob.slice(cdOff, cdOff + cdSize).arrayBuffer().then(function (cb) {
+        var entries = parseCd(cb, count), byName = {}, k;
+        for (k = 0; k < entries.length; k++) byName[entries[k].name] = entries[k];
+        function find(x) { var e = (typeof x === 'string') ? byName[x] : x; if (!e) throw fail('Nell’archivio manca «' + x + '».', 'missing'); return e; }
+        return {
+          size: size, entries: entries, has: function (name) { return !!byName[name]; },
+          read: function (x) { try { return readEntry(blob, find(x)); } catch (e) { return Promise.reject(e); } },
+          text: function (x) { return this.read(x).then(function (u8) { return new TextDecoder('utf-8').decode(u8); }); }
+        };
+      });
+    });
+  }
+  function verify(src, onProgress) {
+    return open(src).then(function (z) {
+      var files = z.entries.filter(function (e) { return !e.dir; }), i = 0, bytes = 0;
+      function next() {
+        if (i >= files.length) return { count: files.length, bytes: bytes };
+        var e = files[i++];
+        if (onProgress) { try { onProgress(i, files.length, e.name); } catch (x) { } }
+        return z.read(e).then(function (u8) { bytes += u8.length; }).then(next);
+      }
+      return Promise.resolve(next());
+    });
+  }
+  function isZip(src) {
+    try {
+      var b = asBlob(src);
+      return b.slice(0, 4).arrayBuffer().then(function (ab) {
+        var v = new Uint8Array(ab);
+        return v.length === 4 && v[0] === 0x50 && v[1] === 0x4B && ((v[2] === 3 && v[3] === 4) || (v[2] === 5 && v[3] === 6) || (v[2] === 7 && v[3] === 8));
+      });
+    } catch (e) { return Promise.resolve(false); }
+  }
+
+  var api = { build: build, open: open, verify: verify, isZip: isZip, crc32: crc32, safeName: safeName, canCompress: canCompress };
+  root.EWZIP = api;
+  if (typeof module === 'object' && module && module.exports) module.exports = api;
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+<script id="arc-js">
+/* ══════ EWARC · Archivio completo (ZIP) — Impostazioni → 💾 Backup ══════
+   Crea un solo file .zip con: dati di GoBank/GoWork/impostazioni (dati.json = lo stesso del «Backup su file»),
+   scontrini in PDF (con la foto) e documenti salvati su questo dispositivo (IndexedDB «TradoCroods_Docs»).
+   Lo rilegge subito per controllarlo, poi lo consegna con un secondo tocco (iOS vuole un gesto dell'utente per il foglio di condivisione).
+   Il ripristino è prudente: copia di sicurezza dei dati attuali, documenti solo AGGIUNTI (mai sostituiti), ricarica.
+   Qui c'è anche il pannello «Memoria piena» che save() mostra quando il dispositivo non ha più spazio (nessuna cancellazione nascosta).
+   Dipende da: EWZIP (tc_zip.js), EWBK, bkBuildBackup/bkParseBackup/bkDoRestore (scheda Backup), initDocDB/dbGetDoc/dbPutDoc/docUserKey (Documenti). */
+(function () {
+  'use strict';
+  var CATS = ['medica', 'viaggi', 'generica', 'scontrini'];
+  var CAT_LBL = { medica: 'sanitari', viaggi: 'di viaggio', generica: 'generici', scontrini: 'scontrini' };
+  var MAX_DOCS = 5000, SPACE_WARN = 4 * 1024 * 1024;
+  var A = { blob: null, name: '', busy: false, parsed: null, memAt: 0, counts: null };
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+  function p2(n) { return (n < 10 ? '0' : '') + n; }
+  function fb(n) { try { return window.EWBK.fmtBytes(n); } catch (e) { return Math.round((n || 0) / 1024) + ' KB'; } }
+  function tick() { return new Promise(function (r) { setTimeout(r, 0); }); }
+  function plural(n, one, many) { return n + ' ' + (n === 1 ? one : many); }
+  function docStore() { try { return (typeof DOC_STORE !== 'undefined') ? DOC_STORE : 'fatture'; } catch (e) { return 'fatture'; } }
+  function email() { try { return (typeof currentUser !== 'undefined' && currentUser && currentUser.email) ? String(currentUser.email).toLowerCase() : ''; } catch (e) { return ''; } }
+  function toAB(u8) { return (u8.byteOffset === 0 && u8.byteLength === u8.buffer.byteLength) ? u8.buffer : u8.buffer.slice(u8.byteOffset, u8.byteOffset + u8.byteLength); }
+  function stamp(d) { return d.getFullYear() + '-' + p2(d.getMonth() + 1) + '-' + p2(d.getDate()) + '-' + p2(d.getHours()) + p2(d.getMinutes()); }
+  function buildId() {                                     // la versione sta nel primo <script> della pagina (la variabile BUILD non è globale)
+    try { var sc = document.getElementsByTagName('script'), i, m; for (i = 0; i < sc.length && i < 4; i++) { m = /var BUILD = '([^']+)'/.exec(sc[i].textContent || ''); if (m) return m[1]; } } catch (e) { }
+    return '';
+  }
+  function dayIt(ts) { try { return window.EWBK.fmtDayTs(ts); } catch (e) { return new Date(ts).toLocaleDateString('it-IT'); } }
+
+  /* ── mini archivio dei documenti (stessa base dati della sezione Documenti) ── */
+  function idbReq(rq) { return new Promise(function (res, rej) { rq.onsuccess = function () { res(rq.result); }; rq.onerror = function () { rej(rq.error); }; }); }
+  function docKeys(cat) {
+    return initDocDB().then(function (db) {
+      return idbReq(db.transaction(docStore(), 'readonly').objectStore(docStore()).index('cat_user').getAllKeys([cat, docUserKey()]));
+    }).then(function (k) { return k || []; });
+  }
+  function listDocs() {                                  // → [{id, cat}] di tutte le categorie salvate su questo dispositivo
+    var out = [], i = 0;
+    function next() {
+      if (i >= CATS.length) return out;
+      var c = CATS[i++];
+      return docKeys(c).then(function (ks) { ks.forEach(function (id) { out.push({ id: id, cat: c }); }); }).then(next);
+    }
+    return Promise.resolve().then(next);
+  }
+
+  /* ── schermata: avanzamento e messaggi ── */
+  function setBusy(on) {
+    A.busy = !!on;
+    ['arcBtnMake', 'arcBtnOpen'].forEach(function (id) { var b = $(id); if (b) b.disabled = !!on; });
+  }
+  function prog(txt, frac) {
+    var p = $('arcProg'); if (!p) return;
+    p.hidden = false;
+    var bar = $('arcBar'), t = $('arcProgTxt');
+    if (t) t.textContent = txt || '';
+    if (bar) { var v = Math.max(0, Math.min(1, frac || 0)); bar.style.width = Math.round(v * 100) + '%'; var w = $('arcBarWrap'); if (w) w.setAttribute('aria-valuenow', String(Math.round(v * 100))); }
+  }
+  function progOff() { var p = $('arcProg'); if (p) p.hidden = true; }
+  function msg(html, kind) {
+    var m = $('arcMsg'); if (!m) return;
+    m.hidden = !html; if (!html) return;
+    m.className = 'bk-result' + (kind === 'err' ? ' bk-err' : (kind === 'note' ? ' bk-note' : ''));
+    m.innerHTML = html;
+  }
+  function say(m) { var e = new Error(m); e.say = true; return e; }       // errore con un messaggio già pensato per chi legge
+  function errText(e, fallback) {
+    var c = e && e.zip;
+    if (c === 'notzip') return 'Questo file non è un archivio ZIP. Se è un backup «.json», usa «Ripristina da file» qui sopra.';
+    if (c || (e && e.say)) return e.message || fallback;
+    return fallback || 'Operazione non riuscita.';
+  }
+
+  /* ── spazio occupato dai dati dell'app (localStorage) ── */
+  function labelOf(k) {
+    if (/^tc_photo_/.test(k)) return 'Foto profilo';
+    if (/loginbg|_bg|background/i.test(k)) return 'Sfondi';
+    if (/_expenses_/.test(k)) return 'Spese';
+    if (/_income_/.test(k)) return 'Entrate';
+    if (/_receipts$/.test(k)) return 'Scontrini';
+    if (/_notes$/.test(k)) return 'Note';
+    if (/^gw_/.test(k)) return 'GoWork';
+    if (/^ew_/.test(k)) return 'Sistema';
+    if (/^tc_/.test(k)) return 'GoBank (altro)';
+    return 'Altro';
+  }
+  function usage() {                                      // byte occupati (le lettere contano 2 byte, come fanno i browser)
+    var tot = 0, by = {}, i, k, n, l;
+    try {
+      for (i = 0; i < localStorage.length; i++) {
+        k = localStorage.key(i); if (!k) continue;
+        n = (k.length + (localStorage.getItem(k) || '').length) * 2; tot += n;
+        l = labelOf(k); by[l] = (by[l] || 0) + n;
+      }
+    } catch (e) { }
+    var top = Object.keys(by).map(function (x) { return { l: x, n: by[x] }; }).sort(function (a, b) { return b.n - a.n; }).filter(function (x) { return x.n >= 50 * 1024; }).slice(0, 3);
+    return { total: tot, top: top };
+  }
+  function renderStat() {
+    var el = $('arcStat'); if (!el) return;
+    var u = usage(), warn = u.total >= SPACE_WARN, h = '';
+    var docs = A.counts;
+    h += '<div class="bk-row"><span>📄 Scontrini e documenti</span><span>' + (docs === null ? '<span class="bk-warnc">non leggibili qui</span>' : (docs === undefined ? '…' : plural(docs, 'file', 'file') + ' su questo dispositivo')) + '</span></div>';
+    h += '<div class="bk-row"><span>🧠 Spazio occupato dai dati</span><span><span class="' + (warn ? 'bk-warnc' : '') + '">' + fb(u.total) + '</span>' +
+      '<small>' + (warn ? 'Si avvicina al limite del browser (circa 5 MB): fai un archivio e libera spazio. ' : 'Il browser ne consente circa 5 MB. ') +
+      (u.top.length ? 'Pesano di più: ' + u.top.map(function (x) { return esc(x.l) + ' ' + fb(x.n); }).join(' · ') + '.' : '') + '</small></span></div>';
+    el.innerHTML = h;
+  }
+  function refreshCount() {
+    return listDocs().then(function (l) { A.counts = l.length; }, function () { A.counts = null; }).then(renderStat);
+  }
+  function onOpen() {                                     // chiamata quando si apre la scheda Backup
+    try { renderStat(); } catch (e) { }
+    refreshCount();
+  }
+
+  /* ── creazione ── */
+  function readme(created, tcb) {
+    return [
+      'ARCHIVIO E-WALLET',
+      'Creato il ' + created + (tcb ? ' (GoBank ' + tcb + ')' : '') + '.',
+      '',
+      'COSA CONTIENE',
+      '- dati.json              tutti i dati di GoBank, GoWork e le impostazioni (è lo stesso file del «Backup su file»).',
+      '- documenti/             scontrini in PDF (con la foto, se c\'era) e documenti salvati su questo dispositivo.',
+      '- documenti/indice.json  elenco dei documenti: serve per rimetterli a posto.',
+      '- manifest.json          descrizione dell\'archivio.',
+      '',
+      'COME SI RIAPRE',
+      'In E-Wallet: Impostazioni → Backup → Archivio completo → Apri archivio.',
+      'Prima di sostituire i dati l\'app ne salva una copia di sicurezza. I documenti vengono aggiunti: quelli già presenti non si toccano.',
+      'Sul computer puoi aprire lo ZIP e leggere i PDF. Non modificare dati.json.',
+      '',
+      'ATTENZIONE',
+      'Il file contiene i tuoi dati e la password: tienilo in un posto sicuro e non condividerlo.',
+      'I documenti salvati su Google Drive non sono inclusi: restano su Drive.',
+      ''
+    ].join('\r\n');
+  }
+  function extOf(m) {
+    var x = /(\.[A-Za-z0-9]{1,6})$/.exec(m.name || '');
+    if (x) return x[1].toLowerCase();
+    return { 'application/pdf': '.pdf', 'image/jpeg': '.jpg', 'image/png': '.png', 'text/plain': '.txt' }[m.type] || '';
+  }
+  function uniq(used, folder, base) {
+    var n = folder + '/' + base, k = 1, m = /^(.*?)(\.[A-Za-z0-9]{1,6})?$/.exec(base), stem = m[1], ext = m[2] || '';
+    while (used[n.toLowerCase()]) { k++; n = folder + '/' + stem + ' (' + k + ')' + ext; }
+    used[n.toLowerCase()] = 1; return n;
+  }
+  function readMetas(list) {                              // un documento alla volta: in memoria resta solo l'etichetta
+    var out = [], i = 0, skipped = 0;
+    function next() {
+      if (i >= list.length) return { metas: out, skipped: skipped };
+      var it = list[i++];
+      prog('Leggo i documenti… ' + i + ' di ' + list.length, 0.02 + 0.18 * (i / list.length));
+      return dbGetDoc(it.id).then(function (r) {
+        if (r && r.buffer && typeof r.buffer.byteLength === 'number') {
+          out.push({ id: String(r.id), cat: r.cat || it.cat, name: String(r.name || ''), type: String(r.type || ''), size: r.buffer.byteLength, date: String(r.date || ''), uploadedAt: +r.uploadedAt || 0, sc: r.sc ? 1 : 0, ph: (r.photo && r.photo.byteLength) ? r.photo.byteLength : 0 });
+        } else skipped++;
+      }, function () { skipped++; }).then(function () { return (i % 8 === 0) ? tick() : null; }).then(next);
+    }
+    return Promise.resolve().then(next);
+  }
+
+  async function make() {
+    if (A.busy) return;
+    if (!window.EWZIP || !window.EWBK || typeof bkBuildBackup !== 'function') { msg('Questa funzione non è disponibile qui.', 'err'); return; }
+    setBusy(true); A.blob = null; A.name = ''; msg(''); $('arcAnalysis').hidden = true;
+    try {
+      prog('Preparo i dati…', 0.01); await tick();
+      var data = bkBuildBackup(), dataJson = JSON.stringify(data), now = new Date();
+      var list = [], metas = [], skipped = 0, idbOk = true;
+      try { list = await listDocs(); } catch (e) { idbOk = false; list = []; }
+      if (list.length > MAX_DOCS) throw say('Ci sono troppi documenti (' + list.length + ') per un solo archivio.');
+      if (list.length) { var rm = await readMetas(list); metas = rm.metas; skipped = rm.skipped; }
+      /* nomi dei file nell'archivio: leggibili e senza doppioni */
+      var used = {}, idx = [], byId = {}, cache = {}, gone = 0, tcb = '', hub = '';
+      tcb = buildId();
+      try { hub = (window.top && window.top.EW_BUILD) || ''; } catch (e) { }
+      var entries = [
+        { name: 'LEGGIMI.txt', data: readme(now.toLocaleString('it-IT'), tcb), compress: true },
+        { name: 'dati.json', data: dataJson, compress: true }
+      ];
+      metas.forEach(function (m) {
+        var ext = extOf(m), stem = (window.EWZIP.safeName(m.name || 'documento') || 'documento').replace(/(\.[A-Za-z0-9]{1,6})$/, '');
+        m.file = uniq(used, 'documenti/' + m.cat, stem + ext);
+        entries.push({ name: m.file, data: function () {
+          return dbGetDoc(m.id).then(function (r) {
+            if (!r || !r.buffer) { gone++; return null; }
+            if (m.ph) cache[m.id] = r.photo || null;
+            var it = { id: m.id, cat: m.cat, name: m.name, type: m.type, size: r.buffer.byteLength, date: m.date, uploadedAt: m.uploadedAt, sc: m.sc, file: m.file };
+            idx.push(it); byId[m.id] = it;
+            return r.buffer;
+          });
+        } });
+        if (m.ph) {
+          var pn = uniq(used, 'documenti/' + m.cat + '/foto', stem + '.jpg');
+          entries.push({ name: pn, data: function () { var p = cache[m.id]; delete cache[m.id]; if (p && byId[m.id]) byId[m.id].photo = pn; return p || null; } });
+        }
+      });
+      entries.push({ name: 'documenti/indice.json', data: function () { return JSON.stringify(idx); }, compress: true });
+      entries.push({ name: 'manifest.json', compress: true, data: function () {
+        var sc = idx.filter(function (x) { return x.sc; }).length, bytes = idx.reduce(function (s, x) { return s + (x.size || 0); }, 0);
+        return JSON.stringify({ app: 'ewallet', kind: 'archive', format: 1, createdAt: now.toISOString(), user: data.user || email(), builds: { gobank: tcb, hub: hub },
+          counts: { keys: Object.keys(data.data).length, docs: idx.length, scontrini: sc, docBytes: bytes }, files: { dati: 'dati.json', indice: 'documenti/indice.json' } });
+      } });
+
+      var blob = await window.EWZIP.build(entries, { date: now, onProgress: function (i, n) { prog('Creo l’archivio… ' + i + ' di ' + n, 0.2 + 0.55 * (i / n)); } });
+      prog('Controllo l’archivio…', 0.78); await tick();
+      var z = await window.EWZIP.open(blob);
+      var back = await z.text('dati.json');
+      if (back !== dataJson) throw say('Controllo non riuscito: i dati riletti non coincidono.');
+      var v = await window.EWZIP.verify(blob, function (i, n) { prog('Controllo l’archivio… ' + i + ' di ' + n, 0.78 + 0.2 * (i / n)); });
+      var nDocs = idx.length, nSc = idx.filter(function (x) { return x.sc; }).length;
+      if (v.count < 4 + nDocs) throw say('Controllo non riuscito: mancano dei file nell’archivio.');
+      A.blob = blob; A.name = 'ewallet-archivio-' + stamp(now) + '.zip'; A.info = { docs: nDocs, scontrini: nSc, gone: gone + skipped, bytes: blob.size, idbOk: idbOk };
+      progOff();
+      var parts = [];
+      if (nSc) parts.push(plural(nSc, 'scontrino', 'scontrini'));
+      if (nDocs - nSc) parts.push(plural(nDocs - nSc, 'documento', 'documenti'));
+      var what = parts.length ? parts.join(' e ') + ', più i dati di GoBank, GoWork e impostazioni' : 'i dati di GoBank, GoWork e impostazioni (nessun documento salvato su questo dispositivo)';
+      msg('✅ Archivio pronto e controllato<br><code>' + esc(A.name) + '</code> · ' + fb(blob.size) +
+        '<small>Dentro: ' + what + '. Ora salvalo fuori dal telefono. Contiene i tuoi dati e la password: non condividerlo.' +
+        (A.info.gone ? ' <b>' + plural(A.info.gone, 'documento non è stato letto', 'documenti non sono stati letti') + '</b> (non più presenti o non leggibili).' : '') +
+        (idbOk ? '' : ' <b>I documenti di questo dispositivo non sono leggibili: nell’archivio ci sono solo i dati.</b>') +
+        '</small><div class="arc-actions" style="margin-top:8px"><button type="button" class="bk-act" id="arcBtnSave" onclick="EWARC.save()">💾 Salva archivio</button></div>');
+      refreshCount();
+    } catch (e) {
+      progOff();
+      msg(esc(errText(e, 'Non sono riuscito a creare l’archivio.')) + '<small>Non è stato toccato nessun dato. Puoi usare il «Backup su file» qui sopra.</small>', 'err');
+    }
+    setBusy(false);
+  }
+
+  /* ── consegna (gesto dell'utente) ── */
+  function anchorDownload(blob, name) {
+    var url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = name; a.style.display = 'none';
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { try { document.body.removeChild(a); URL.revokeObjectURL(url); } catch (e) { } }, 60000);
+  }
+  function deliver(blob, name) {
+    return new Promise(function (resolve, reject) {
+      var mobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || '') || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      var shared = null;
+      try {
+        if (mobile && navigator.share && navigator.canShare && typeof File !== 'undefined') {
+          var f = new File([blob], name, { type: 'application/zip' }), ok = false;
+          try { ok = navigator.canShare({ files: [f] }); } catch (e) { }
+          if (ok) shared = navigator.share({ files: [f], title: 'Archivio E-Wallet' });
+        }
+      } catch (e) { shared = null; }
+      if (shared) {
+        shared.then(function () { resolve('shared'); }, function (err) {
+          if (err && err.name === 'AbortError') return resolve('cancelled');
+          try { anchorDownload(blob, name); resolve('downloaded'); } catch (e2) { reject(e2); }
+        });
+        return;
+      }
+      try { anchorDownload(blob, name); resolve('downloaded'); } catch (e) { reject(e); }
+    });
+  }
+  function save() {
+    if (!A.blob || A.busy) return;
+    var b = $('arcBtnSave'); if (b) { b.disabled = true; b.innerHTML = '<span class="bk-spin"></span>Preparo…'; }
+    var blob = A.blob, name = A.name, size = blob.size;
+    deliver(blob, name).then(function (how) {
+      if (how === 'cancelled') {
+        msg('Salvataggio annullato: l’archivio <b>non</b> è stato salvato.<div class="arc-actions" style="margin-top:8px"><button type="button" class="bk-act" id="arcBtnSave" onclick="EWARC.save()">💾 Salva archivio</button></div>', 'note');
+        return;
+      }
+      try { localStorage.setItem('ew_bk_last_file', String(Date.now())); localStorage.setItem('ew_bk_last_file_info', JSON.stringify({ name: name, bytes: size, zip: 1 })); } catch (e) { }
+      msg('✅ Archivio consegnato<br><code>' + esc(name) + '</code> · ' + fb(size) +
+        '<small>' + (how === 'shared' ? 'Scegli «Salva su File» per tenerlo su iCloud Drive o sul telefono. ' : 'Lo trovi tra i download del dispositivo (su iPhone: app File). ') +
+        'Per riaprirlo: «Apri archivio…» qui sopra.</small>');
+      try { if (typeof bkRenderStatus === 'function') bkRenderStatus(); } catch (e) { }
+      try { var hh = (typeof bkHub === 'function') ? bkHub('ewHealthRefresh') : null; if (hh) hh.ewHealthRefresh(); } catch (e) { }
+    }, function () {
+      msg('Non sono riuscito a salvare il file su questo dispositivo. Riprova.<div class="arc-actions" style="margin-top:8px"><button type="button" class="bk-act" id="arcBtnSave" onclick="EWARC.save()">💾 Salva archivio</button></div>', 'err');
+    });
+  }
+
+  /* ── apertura e ripristino ── */
+  function pick() { if (A.busy) return; var i = $('arcFileInput'); if (!i) return; i.value = ''; i.click(); }
+  function picked(input) { var f = input && input.files && input.files[0]; if (f) openFile(f); }
+  function cleanItems(raw, z) {                            // l'indice viene da un file: si controlla ogni voce prima di fidarsi
+    var out = [], seen = {}, i, x, ok;
+    if (!Array.isArray(raw)) return out;
+    for (i = 0; i < raw.length && out.length < MAX_DOCS; i++) {
+      x = raw[i]; if (!x || typeof x !== 'object') continue;
+      if (typeof x.id !== 'string' || !x.id || x.id.length > 120 || seen[x.id]) continue;
+      if (CATS.indexOf(x.cat) < 0) continue;
+      if (typeof x.file !== 'string' || x.file.indexOf('documenti/') !== 0 || !z.has(x.file)) continue;
+      seen[x.id] = 1;
+      ok = { id: x.id, cat: x.cat, file: x.file, name: String(x.name == null ? '' : x.name).slice(0, 200), type: /^[\w.+-]+\/[\w.+-]+$/.test(x.type || '') ? x.type : 'application/octet-stream',
+        date: String(x.date == null ? '' : x.date).slice(0, 40), uploadedAt: (isFinite(x.uploadedAt) && x.uploadedAt > 0) ? +x.uploadedAt : 0, sc: x.sc ? 1 : 0, size: +x.size || 0 };
+      if (typeof x.photo === 'string' && x.photo.indexOf('documenti/') === 0 && z.has(x.photo)) ok.photo = x.photo;
+      out.push(ok);
+    }
+    return out;
+  }
+  async function openFile(f) {
+    if (A.busy) return;
+    if (!window.EWZIP || !window.EWBK || typeof bkParseBackup !== 'function') { msg('Questa funzione non è disponibile qui.', 'err'); return; }
+    setBusy(true); A.parsed = null; msg(''); $('arcAnalysis').hidden = true;
+    try {
+      prog('Apro l’archivio…', 0.02); await tick();
+      var z = await window.EWZIP.open(f);
+      if (!z.has('manifest.json') || !z.has('dati.json')) throw say('Questo ZIP non è un archivio di E-Wallet.');
+      var man; try { man = JSON.parse(await z.text('manifest.json')); } catch (e) { throw say('Questo ZIP non è un archivio di E-Wallet (manifest illeggibile).'); }
+      if (!man || man.app !== 'ewallet' || man.kind !== 'archive') throw say('Questo ZIP non è un archivio di E-Wallet.');
+      if (man.format && man.format > 1) throw say('L’archivio viene da una versione più nuova dell’app. Aggiorna l’app e riprova.');
+      await window.EWZIP.verify(f, function (i, n) { prog('Controllo l’archivio… ' + i + ' di ' + n, 0.05 + 0.85 * (i / n)); });
+      var p = bkParseBackup(await z.text('dati.json'));
+      if (p.error) throw say(p.error);
+      var items = [];
+      if (z.has('documenti/indice.json')) {
+        var raw; try { raw = JSON.parse(await z.text('documenti/indice.json')); } catch (e) { raw = []; }
+        items = cleanItems(raw, z);
+      }
+      var have = 0, i;
+      for (i = 0; i < items.length; i++) { var ex = null; try { ex = await dbGetDoc(items[i].id); } catch (e) { ex = null; } items[i].have = !!ex; if (ex) have++; }
+      A.parsed = { z: z, obj: p.ok, items: items, have: have, name: f.name || 'archivio.zip', created: Date.parse(man.createdAt || '') || Date.parse(p.ok.createdAt || '') || f.lastModified || 0 };
+      progOff(); showAnalysis();
+    } catch (e) {
+      progOff();
+      msg(esc(errText(e, 'Non riesco a leggere l’archivio.')) + '<small>Non è stato toccato niente.</small>', 'err');
+    }
+    setBusy(false);
+  }
+  function showAnalysis() {
+    var P = A.parsed, E = window.EWBK, me = email(), o = P.obj;
+    var bs = E.summarize(o.data, o.user || ''), cur = E.summarize(E.collect(), me);
+    var older = (bs.lastExpense && cur.lastExpense && bs.lastExpense < cur.lastExpense) || (bs.lastWork && cur.lastWork && bs.lastWork < cur.lastWork);
+    var other = bs.user && me && bs.user !== me;
+    var nSc = P.items.filter(function (x) { return x.sc; }).length, nNew = P.items.length - P.have;
+    var h = '<div class="bk-fname">' + esc(P.name) + '</div><div class="bk-rows">' +
+      '<div class="bk-row"><span>Creato il</span><span>' + (P.created ? E.fmtDateTime(P.created) : '—') + '</span></div>' +
+      '<div class="bk-row"><span>Utente</span><span>' + esc(bs.user || '—') + '</span></div>' +
+      '<div class="bk-row"><span>Ultima spesa GoBank</span><span>' + E.fmtDay(bs.lastExpense) + '</span></div>' +
+      '<div class="bk-row"><span>Ultima giornata GoWork</span><span>' + E.fmtDay(bs.lastWork) + '</span></div>' +
+      '<div class="bk-row"><span>Dati attuali: ultima spesa</span><span>' + E.fmtDay(cur.lastExpense) + '</span></div>' +
+      '<div class="bk-row"><span>Documenti nell’archivio</span><span>' + P.items.length + (nSc ? '<small>' + plural(nSc, 'scontrino', 'scontrini') + '</small>' : '') + '</span></div>' +
+      (P.items.length ? '<div class="bk-row"><span>Da aggiungere qui</span><span>' + nNew + (P.have ? '<small>' + plural(P.have, 'è già presente', 'sono già presenti') + ': non li tocco</small>' : '') + '</span></div>' : '') + '</div>';
+    h += '<div class="bk-flag" style="color:var(--text)">✅ Archivio controllato: tutti i file sono integri.</div>';
+    if (older) h += '<div class="bk-flag">⚠️ Questo archivio è più vecchio dei dati che hai adesso. Dove coincidono, vincono i dati dell’archivio; quello che nell’archivio non c’è (per esempio i mesi più recenti) resta com’è.</div>';
+    if (other) h += '<div class="bk-flag">⚠️ Questo archivio è di un altro utente (' + esc(bs.user) + ').</div>';
+    h += '<div class="bk-btns"><button type="button" class="bk-act bk-danger" id="arcBtnAll" onclick="EWARC.restoreAll()">Ripristina dati' + (nNew ? ' e documenti' : '') + '</button>' +
+      (nNew ? '<button type="button" class="bk-ghost" id="arcBtnDocs" onclick="EWARC.restoreDocs()">Solo documenti</button>' : '') +
+      '<button type="button" class="bk-ghost" onclick="EWARC.cancel()">Annulla</button></div>';
+    var a = $('arcAnalysis'); a.innerHTML = h; a.hidden = false;
+    try { a.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) { }
+  }
+  function cancel() { A.parsed = null; var a = $('arcAnalysis'); if (a) a.hidden = true; }
+
+  async function putDocs(P, onStep) {                      // SOLO aggiunte: un documento già presente non viene mai sostituito
+    var r = { added: 0, present: 0, failed: 0, quota: false, bytes: 0, total: P.items.length }, i, it, ex, u8, photo, buf, rec;
+    for (i = 0; i < P.items.length; i++) {
+      it = P.items[i];
+      if (onStep) onStep(i + 1, P.items.length);
+      ex = null; try { ex = await dbGetDoc(it.id); } catch (e) { ex = null; }
+      if (ex) { r.present++; continue; }
+      try {
+        u8 = await P.z.read(it.file); buf = toAB(u8); photo = null;
+        if (it.photo) { try { photo = toAB(await P.z.read(it.photo)); } catch (e) { photo = null; } }
+        rec = { id: it.id, cat: it.cat, userKey: docUserKey(), name: it.name, type: it.type, size: buf.byteLength, date: it.date, uploadedAt: it.uploadedAt || Date.now(), buffer: buf };
+        if (it.sc) { rec.sc = 1; rec.photo = photo; } else if (photo) rec.photo = photo;
+        await dbPutDoc(rec); r.added++; r.bytes += buf.byteLength;
+      } catch (e) {
+        r.failed++;
+        if (e && (e.name === 'QuotaExceededError' || /quota/i.test(String(e.message || '')))) { r.quota = true; break; }
+      }
+      if (i % 5 === 4) await tick();
+    }
+    return r;
+  }
+  function docSummary(r) {
+    var s = plural(r.added, 'documento aggiunto', 'documenti aggiunti');
+    if (r.present) s += ', ' + plural(r.present, 'era già presente', 'erano già presenti');
+    if (r.failed) s += ', ' + r.failed + ' non scritt' + (r.failed === 1 ? 'o' : 'i') + (r.quota ? ' (spazio del dispositivo finito)' : '');
+    return s;
+  }
+  async function restoreDocs() {                           // «Solo documenti»: non tocca i dati, niente ricarica
+    var P = A.parsed; if (!P || A.busy) return;
+    setBusy(true);
+    var b = $('arcBtnDocs'); if (b) { b.disabled = true; b.innerHTML = '<span class="bk-spin"></span>Aggiungo…'; }
+    try {
+      var r = await putDocs(P, function (i, n) { prog('Aggiungo i documenti… ' + i + ' di ' + n, i / n); });
+      progOff(); cancel();
+      msg((r.failed ? '⚠️ ' : '✅ ') + docSummary(r) + '.<small>I dati non sono stati toccati. Riapri la sezione Documenti per vederli.</small>', r.failed ? 'note' : '');
+      refreshCount();
+    } catch (e) { progOff(); msg(esc((e && e.message) || 'Non sono riuscito ad aggiungere i documenti.'), 'err'); }
+    setBusy(false);
+  }
+  async function restoreAll() {                            // dati: con la procedura di sempre (copia di sicurezza → scrive → cloud → ricarica)
+    var P = A.parsed; if (!P || A.busy) return;
+    var btn = $('arcBtnAll'), hasDocs = P.items.length - P.have > 0;
+    var what = 'Archivio del ' + (P.created ? dayIt(P.created) : 'file');
+    BK.msgId = 'arcMsg';
+    try {
+      await bkDoRestore(P.obj.data, what, btn, hasDocs ? async function (step) {
+        var r = await putDocs(P, function (i, n) { step('Ripristino i documenti… ' + i + ' di ' + n); });
+        return '(' + docSummary(r) + ')';
+      } : null);
+    } finally { BK.msgId = ''; }
+  }
+
+  /* ── memoria piena: save() chiama questa quando non c'è più posto (e non ha cancellato nulla) ── */
+  function memFull() {
+    try {
+      var now = Date.now();
+      if ($('arcMemFull')) return;                        // già aperto: salvataggi che falliscono uno dietro l'altro non ne impilano altri
+      if (now - A.memAt < 1500) { try { showToast('⚠️ Memoria piena: modifica non salvata.', 6000); } catch (e2) { } return; }
+      A.memAt = now;
+      var d = document.createElement('div');
+      d.id = 'arcMemFull'; d.setAttribute('role', 'alertdialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'arcMemT');
+      d.innerHTML = '<div class="arc-mf-box"><div class="arc-mf-ic">⚠️</div><h3 id="arcMemT">Memoria piena: modifica non salvata</h3>' +
+        '<p>Il browser ha riempito lo spazio che E-Wallet può usare su questo dispositivo. <b>L’ultima modifica non è stata salvata</b>, ma <b>non ho cancellato nulla</b> di quello che c’era già.</p>' +
+        '<ol><li>Crea un <b>archivio ZIP</b> e mettilo al sicuro fuori dal telefono.</li><li>Libera spazio dentro E-Wallet (per esempio una foto profilo molto grande, note o dati che non ti servono più).</li><li>Rifai la modifica.</li></ol>' +
+        '<div class="arc-mf-btns"><button type="button" class="bk-act" onclick="EWARC.memFullGo()">🗜️ Vai all’archivio</button><button type="button" class="bk-ghost" onclick="EWARC.memFullClose()">Chiudi</button></div></div>';
+      document.body.appendChild(d);
+    } catch (e) { try { showToast('⚠️ Memoria piena: l’ultima modifica NON è stata salvata. Non ho cancellato nulla.', 9000); } catch (e2) { } }
+  }
+  function memFullClose() { var d = $('arcMemFull'); if (d && d.parentNode) d.parentNode.removeChild(d); }
+  function memFullGo() {
+    memFullClose();
+    try { if (typeof openProfileModal === 'function') openProfileModal(); } catch (e) { }
+    try { if (typeof switchProfileTab === 'function') switchProfileTab('backup'); } catch (e) { }
+    setTimeout(function () { try { var c = $('arcCard'); if (c) c.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { } }, 400);
+  }
+
+  window.EWARC = { make: make, save: save, pick: pick, picked: picked, openFile: openFile, restoreAll: restoreAll, restoreDocs: restoreDocs, cancel: cancel, onOpen: onOpen,
+    memFull: memFull, memFullClose: memFullClose, memFullGo: memFullGo, usage: usage, _state: A };
+})();
 
 </script>
 <script>try{if(window.parent&&window.parent!==window)document.body.classList.add("ew-embed");}catch(e){}</script>

@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20261116-ew-v130-launcher-pieno';
+  var BUILD='20261120-ew-v131-salvataggio-sicuro';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -1781,7 +1781,7 @@ function ewHealthPick(st){
     var raw=localStorage.getItem('ew_bk_notice');
     if(raw){
       var n=JSON.parse(raw);
-      if(n && n.msg && now-n.t<86400000) return {kind:'notice', level:'ok', text:n.msg, go:null};
+      if(n && n.msg && now-n.t<86400000) return {kind:'notice', level:'ok', text:n.msg, go:n.go||null, goLabel:n.goLabel||''};
       localStorage.removeItem('ew_bk_notice');
     }
   }catch(e){}
@@ -1831,7 +1831,9 @@ function ewHealthRefresh(){
 function ewHealthGo(){
   var box=document.getElementById('ewHealth'), pick=box && box._pick;
   if(!pick || !pick.go) return;
-  if(pick.go==='login') ewHealthLogin(); else ewOpenBackup();
+  if(pick.go==='login') ewHealthLogin();
+  else if(pick.go==='reload'){ try{ localStorage.removeItem('ew_bk_notice'); }catch(e){} try{ location.reload(); }catch(e){} }
+  else ewOpenBackup();
 }
 function ewHealthLater(){
   var box=document.getElementById('ewHealth'), pick=box && box._pick;
@@ -3260,6 +3262,7 @@ document.addEventListener('keydown', e=>{ if(e.key==='Escape' && activeApp) clos
   const KNOWN_KEY='ew_sb_known_updated_at';
   const PUSHED_KEY='ew_bk_pushed_hash';     // impronta dei dati già presenti nel cloud (solo questo dispositivo)
   const FAILSINCE_KEY='ew_bk_fail_since';   // da quando il cloud non risponde (solo questo dispositivo)
+  const INFLIGHT_KEY='ew_bk_inflight';       // invii partiti ma mai confermati: [{u:data, h:impronta, t}] (solo questo dispositivo)
   let lastError='', lastErrorAt=0, lastContactOkAt=0, pushing=false, bootDone=false, dirtySince=0, lastPushStart=0, authExpired=false;
   // Nota: il collegamento sessione→profilo locale vive ora SOLO nella funzione BOOT esterna
   // (gira prima di questo script, quindi è l'unico punto in cui il controllo di avvio della shell
@@ -3318,9 +3321,9 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
   function authHeaders(){
     return {'apikey':SB_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json'};
   }
-  async function api(url, options){
+  async function api(url, options, timeoutMs){
     const controller=new AbortController();
-    const timer=setTimeout(function(){controller.abort();},15000);
+    const timer=setTimeout(function(){controller.abort();},timeoutMs||15000);
     try{
       const res=await fetch(url,Object.assign({},options||{},{signal:controller.signal}));
       const text=await res.text();
@@ -3355,14 +3358,14 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
     if(!r||!r.access_token) throw new Error('refresh-failed');
     session=r; localStorage.setItem(SESSION_KEY,JSON.stringify(session));
   }
-  async function authApi(url,options){
-    try{ return await api(url,options); }
+  async function authApi(url,options,timeoutMs){
+    try{ return await api(url,options,timeoutMs); }
     catch(err){
       if(err&&err.status===401&&session&&session.refresh_token){
         await refreshSession();
         var o2=Object.assign({},options||{});
         o2.headers=Object.assign({},(options&&options.headers)||{},{'Authorization':'Bearer '+session.access_token});
-        return await api(url,o2);
+        return await api(url,o2,timeoutMs);
       }
       throw err;
     }
@@ -3386,6 +3389,37 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
   }
   /* ── stato di salute del cloud: alimenta la pillola, il banner e la scheda Backup ── */
   function parseMs(s){ var t=Date.parse(s||''); return isNaN(t)?0:t; }
+  /* ── invii «partiti ma senza conferma»: se il cloud ha salvato ma la risposta si è persa (rete che cade, app chiusa nel mezzo), al prossimo
+        avvio riconosco quella versione come MIA e non la scambio per quella di un altro dispositivo ── */
+  function inflightList(){ try{ var a=JSON.parse(localStorage.getItem(INFLIGHT_KEY)||'[]'); return Array.isArray(a)?a:[]; }catch(_){ return []; } }
+  function inflightAdd(u,h){
+    try{
+      var a=inflightList().filter(function(x){ return x && x.u!==u; });
+      a.push({u:u,h:h||'',t:Date.now()});
+      localStorage.setItem(INFLIGHT_KEY,JSON.stringify(a.slice(-6)));
+    }catch(_){}
+  }
+  function inflightClear(){ try{ localStorage.removeItem(INFLIGHT_KEY); }catch(_){} }
+  function inflightFind(ms){
+    if(!ms) return null;
+    var a=inflightList();
+    for(var i=a.length-1;i>=0;i--){ if(a[i] && parseMs(a[i].u)===ms) return a[i]; }
+    return null;
+  }
+  // un altro dispositivo ha salvato dopo l'ultima volta che ho sincronizzato? («diversa», non «più nuova»: gli orologi possono essere sfasati)
+  function changedByOthers(serverIso){
+    var k=parseMs(localStorage.getItem(KNOWN_KEY)), v=parseMs(serverIso);
+    return !!(k && v && k!==v && !inflightFind(v));
+  }
+  let resumeFlag=false, pulling=false;   // resumeFlag: l'app torna in primo piano dopo almeno 30 s
+  function reloadGuardOk(){               // mai più di un ricaricamento automatico al minuto
+    try{
+      var t=parseInt(sessionStorage.getItem('ew_pull_reload')||'0',10)||0;
+      if(Date.now()-t<60000) return false;
+      sessionStorage.setItem('ew_pull_reload',String(Date.now()));
+      return true;
+    }catch(_){ return false; }
+  }
   function hashData(o){ try{ return window.EWBK?window.EWBK.hashEntries(o):''; }catch(_){ return ''; } }
   function emitStatus(){ try{ window.dispatchEvent(new CustomEvent('ew-sync-status')); }catch(_){} }
   function isAuthErr(err){
@@ -3464,7 +3498,10 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
             const known=localStorage.getItem(KNOWN_KEY);
             const serverNow=await checkServerUpdatedAt();
             // confronto sul momento reale, non sul testo (il server e questo dispositivo scrivono la data in formati diversi)
-            if(known && serverNow && parseMs(serverNow)!==parseMs(known)){ setConflict(serverNow); await keepCloudCopy(); }
+            if(known && serverNow && parseMs(serverNow)!==parseMs(known)){
+              if(inflightFind(parseMs(serverNow))) localStorage.setItem(KNOWN_KEY,serverNow);   // è un mio invio di prima, salvato ma senza conferma: non è un conflitto
+              else { setConflict(serverNow); await keepCloudCopy(); }
+            }
           }catch(e){ /* controllo non riuscito (offline?): si prosegue comunque col salvataggio */ }
         }
         const nowIso=new Date().toISOString();
@@ -3476,10 +3513,12 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
         // un tentativo normale che nessun tentativo.
         var _opts={method:'POST',headers:Object.assign(authHeaders(),{'Prefer':'resolution=merge-duplicates,return=minimal'}),body:_bodyStr};
         if(keepalive && _bodyStr.length<60000) _opts.keepalive=true;
-        await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',_opts);
+        inflightAdd(nowIso,h);   // PRIMA di partire: se la risposta si perde, al prossimo avvio questa versione del cloud è riconosciuta come mia
+        await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?on_conflict=user_id',_opts,45000);
         localStorage.setItem(META_KEY,String(Date.now()));
         localStorage.setItem(KNOWN_KEY,nowIso);
         if(h) localStorage.setItem(PUSHED_KEY,h);
+        inflightClear();
         dirtySince=0; dirtyMemo.t=0;
         markOk();
       } catch(err){ markFail(err); throw err; }
@@ -3525,12 +3564,20 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
     var serverMs=parseMs(row.updated_at), knownMs=parseMs(localStorage.getItem(KNOWN_KEY));
     var pushed=localStorage.getItem(PUSHED_KEY);
     var local=snapshot(), lh=hashData(local);
+    // il cloud ha esattamente un mio invio rimasto senza conferma (salvato, ma la risposta non è arrivata): è roba MIA, non di un altro dispositivo
+    var own=inflightFind(serverMs);
+    if(own && own.h) pushed=own.h;                             // ciò che il cloud ha è quella versione: «da inviare» è solo ciò che è cambiato dopo
     var dirty=pushed?(lh!==pushed):null;                       // null = non lo so (prima volta dopo l'aggiornamento)
     var differs=lh!==hashData(cloudEntries(row.data));
     var haveLocal=Object.keys(local).length>=3;
+    if(own) return {apply:false, push:dirty!==false, own:true, ownAt:row.updated_at, ownHash:own.h||''};
     if(!knownMs) return {apply:true, backup:haveLocal && differs, dirty:dirty};
-    if(serverMs>knownMs) return {apply:true, backup:haveLocal && differs && dirty!==false, dirty:dirty};
-    if(serverMs<knownMs) return {apply:false, push:true};
+    // data del cloud DIVERSA da quella che conosco = un altro dispositivo ha salvato. Si guarda «uguale / diversa», mai «più nuova / più vecchia»:
+    // gli orologi dei dispositivi possono essere sfasati e il confronto d'ordine faceva sovrascrivere dati più nuovi (senza nessuna copia)
+    // (se la data del cloud è PRECEDENTE a quella conosciuta può essere un cloud tornato indietro o un orologio sfasato: non si decide in base a questo,
+    //  ma per sicurezza si tiene comunque una copia di ciò che c'è qui)
+    var older=serverMs<knownMs;
+    if(serverMs!==knownMs) return {apply:true, backup:haveLocal && differs && (dirty!==false || older), dirty:dirty, older:older};
     return {apply:false, push:dirty!==false};
   }
   async function syncAfterLogin(){
@@ -3541,10 +3588,12 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
     const row=Array.isArray(rows)?rows[0]:null;
     if(row && row.data && Object.keys(row.data).length){
       const d=decidePull(row);
+      if(d.own){ try{ localStorage.setItem(KNOWN_KEY,d.ownAt); if(d.ownHash) localStorage.setItem(PUSHED_KEY,d.ownHash); inflightClear(); }catch(_){} }
       if(d.apply){
         if(d.backup){
           await saveSafetyCopy('before-pull','Prima di aggiornare dal cloud');
           if(d.dirty===true){ try{ localStorage.setItem('ew_bk_notice',JSON.stringify({t:Date.now(),msg:'Su questo dispositivo c’erano modifiche non ancora salvate nel cloud: ho aggiornato i dati dal cloud e ne ho tenuto una copia in Impostazioni → Backup.'})); }catch(_){} }
+          else if(d.older){ try{ localStorage.setItem('ew_bk_notice',JSON.stringify({t:Date.now(),msg:'Il cloud ha una versione con data precedente a quella che avevo: l’ho usata e ho tenuto una copia dei dati di questo dispositivo in Impostazioni → Backup.'})); }catch(_){} }
         }
         applySnapshot(row.data, row.updated_at);
       } else if(d.push){
@@ -3556,6 +3605,40 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
   }
 
   // Controllo leggero ogni 5 minuti (e quando si torna sull'app): il cloud risponde? c'è qualcosa rimasto indietro?
+  // Un altro dispositivo ha salvato e qui non c'è NIENTE da inviare: scarico i dati nuovi (nulla da proteggere: sono quelli di prima).
+  // Dopo un'assenza (>= 30 s) l'app si ricarica da sola; altrimenti avviso con «Aggiorna» (GoWork tiene i dati in memoria: serve ricaricare).
+  async function pullIfClean(){
+    if(pulling || pushInFlight || applyingCloud || !session || !session.user) return;
+    pulling=true;
+    try{
+      const rows=await authApi(SB_URL+'/rest/v1/'+CLOUD_TABLE+'?select=data,updated_at&user_id=eq.'+encodeURIComponent(session.user.id)+'&limit=1',{
+        method:'GET',headers:Object.assign(authHeaders(),{'Accept':'application/json'})
+      });
+      const row=Array.isArray(rows)?rows[0]:null;
+      if(!row || !row.data || !Object.keys(row.data).length) return;
+      if(pushInFlight || applyingCloud || isDirty(true)) return;       // nel frattempo qui è cambiato qualcosa: ci pensa il normale invio (con copia del cloud)
+      if(!changedByOthers(row.updated_at)) return;
+      if(hashData(cloudEntries(row.data))===hashData(snapshot())){ localStorage.setItem(KNOWN_KEY,row.updated_at); markOk(); return; }   // stessi dati: cambiava solo la data
+      var older=parseMs(row.updated_at)<parseMs(localStorage.getItem(KNOWN_KEY));   // data PRECEDENTE a quella conosciuta (cloud tornato indietro o orologio sfasato): copia di ciò che c'è qui
+      if(older){
+        await saveSafetyCopy('before-pull','Prima di usare i dati del cloud (data precedente)');
+        if(pushInFlight || applyingCloud || isDirty(true)) return;     // durante la copia qui è cambiato qualcosa: ci pensa il normale invio
+      }
+      applySnapshot(row.data,row.updated_at);
+      clearConflict();
+      var away=resumeFlag; resumeFlag=false;
+      var reload=away && reloadGuardOk();
+      try{
+        var nt={t:Date.now(), msg: older ? 'Il cloud ha una versione con data precedente a quella che avevo: l’ho scaricata e ho tenuto una copia dei dati di questo dispositivo in Impostazioni → Backup.'
+                                  : reload ? 'Un altro dispositivo aveva salvato dati più recenti: li ho scaricati qui.'
+                                  : 'Un altro dispositivo ha salvato dati più recenti: li ho scaricati. Aggiorna per vederli.'};
+        if(!reload){ nt.go='reload'; nt.goLabel='Aggiorna'; }
+        localStorage.setItem('ew_bk_notice',JSON.stringify(nt));
+      }catch(_){}
+      emitStatus();
+      if(reload) setTimeout(function(){ try{ location.reload(); }catch(_){} },300);
+    } finally { pulling=false; }
+  }
   async function heartbeat(){
     if(!session || !session.user || applyingCloud || pushInFlight) return;
     if(document.visibilityState==='hidden' || navigator.onLine===false) return;
@@ -3563,6 +3646,7 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
       const serverNow=await checkServerUpdatedAt();
       lastContactOkAt=Date.now();
       if(!serverNow && Object.keys(snapshot()).length>=3) await pushNow(true,false,true);   // riga sparita dal cloud: la ricreo
+      else if(serverNow && changedByOthers(serverNow) && !isDirty(true)) await pullIfClean();   // un altro dispositivo ha salvato e qui non c'è nulla da inviare
       else if(isDirty(true)) await pushNow(false);                                           // cloud di nuovo raggiungibile: invio ciò che era rimasto indietro
       else { try{ localStorage.setItem(META_KEY,String(Date.now())); }catch(_){} clearFail(); }
     }catch(e){ markFail(e); }
@@ -3709,7 +3793,11 @@ window.ewGetUserId=function(){return (session && session.user && session.user.id
     window.addEventListener('online',function(){ schedulePush(); setTimeout(heartbeat,1500); emitStatus(); });
     window.addEventListener('offline',emitStatus);
     window.addEventListener('storage',schedulePush);
-    document.addEventListener('visibilitychange',function(){ if(document.visibilityState==='visible'){ setTimeout(heartbeat,800); emitStatus(); } });
+    var hiddenAt=0;
+    document.addEventListener('visibilitychange',function(){
+      if(document.visibilityState==='hidden'){ hiddenAt=Date.now(); }
+      else if(document.visibilityState==='visible'){ resumeFlag=!!hiddenAt && Date.now()-hiddenAt>=30000; hiddenAt=0; setTimeout(heartbeat,800); emitStatus(); }
+    });
     setInterval(schedulePush,30000);
     setInterval(heartbeat,300000);
   }
