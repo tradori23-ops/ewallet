@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: gira prima di tutto, svuota cache+SW se la build è cambiata -->
 <script>
 (function(){
-  var BUILD='20261121-ew-v132-gestione';
+  var BUILD='20261121-ew-v133-senzafisse';
 if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').then(function(r){if(r&&r.update)r.update();}).catch(function(){});});}
   try{window.EW_BUILD=BUILD;}catch(e){}
   try{
@@ -472,8 +472,8 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
       "us us us us ck ck"
       "gb gb gb gb gb gb"
       "bu bu bu td td td"
-      "gw gw gw sc sc sc"
-      "sv sv sv qk qk qk"
+      "gw gw gw sv sv sv"
+      "qk qk qk qk qk qk"
       ". . . . . ."
       "ac ac ac ft ft ft"}
   .hub-head{grid-area:hd;padding:0}
@@ -490,10 +490,9 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
   .hw-wrap{display:contents}
   .hw-bud{grid-area:bu}
   .hw-today{grid-area:td}
-  .hw-due{grid-area:sc}
   .hw-salv{grid-area:sv}
   .hw.hw-recent{grid-area:rc;display:none}
-  .hw-quick{display:grid;grid-area:qk;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-content:stretch}
+  .hw-quick{display:grid;grid-area:qk;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;align-content:stretch}
   .hub-actions{grid-area:ac;margin:0;flex-direction:row;align-items:center;gap:12px}
   .hub-actions .switcher{display:none}
   .hub-lock{width:auto;min-height:46px;padding:0 20px;font-size:15.5px;justify-content:flex-start}
@@ -518,9 +517,6 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
   .hw-li>span:first-child{color:var(--label)}
   .hw-li .am{flex:none;font-family:var(--font-num);font-weight:600;color:var(--label2)}
   .hw-li em{flex:none;font:600 11.5px var(--font);font-style:normal;padding:3px 9px;border-radius:99px;background:var(--fill);color:var(--label2)}
-  .hw-li.soon em{background:rgba(255,179,64,.2);color:var(--warn)}
-  .hw-li.late em{background:rgba(255,105,97,.2);color:var(--bad)}
-  .hw-li.today em{background:rgba(255,179,64,.2);color:var(--warn)}
 
   /* ───────── GoBank (carta grande) ───────── */
   #card-tc,#card-gw{display:flex;flex-direction:column;align-items:stretch;width:auto;gap:0;padding:20px 22px;overflow:clip}
@@ -654,7 +650,7 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
       "hd hd hd hd us us us us ck ck ck ck"
       "gb gb gb gb gb gb gb bu bu bu bu bu"
       "gb gb gb gb gb gb gb td td td td td"
-      "gw gw gw gw sc sc sc sc sv sv sv sv"
+      "gw gw gw gw gw gw gw sv sv sv sv sv"
       "rc rc rc rc rc rc rc rc rc rc rc rc"
       "qk qk qk qk qk qk qk qk qk qk qk qk"
       ". . . . . . . . . . . ."
@@ -801,10 +797,11 @@ button:focus-visible,input:focus-visible,a:focus-visible,select:focus-visible{ou
   :is(.ew-launcher,.ew-sublauncher) .ew-mapsection.ew-fill #ewMapContainer{min-height:200px}
 }
 
-/* ═══════════ GESTIONE · v132 · da quattro riquadri su uno schermo vuoto a una piccola plancia ═══════════
+/* ═══════════ GESTIONE · v132/v133 · una piccola plancia: riepilogo del mese, riquadri e ultime spese ═══════════
    Richiesta del 21/11/2026: «abbellisci la sezione gestione perché così è deprimente».
-   Prima: 4 riquadri alti ~110 px e tutto il resto dello schermo vuoto. Ora: riepilogo del mese in alto, 4 riquadri con descrizione
-   (Aggiungi Spesa in evidenza), ultime spese e prossime scadenze. Stesse regole del layout (hub_layout.css): sul telefono una colonna,
+   v133 (21/11, «elimina la sezione spese fisse, mantengo la nuova sezione piano»): tolti il riquadro «Spese Fisse» e la carta «Prossime scadenze»
+   (dipendevano da quella pagina); restano il riepilogo del mese, 3 riquadri (Aggiungi Spesa in evidenza a riga intera, Entrate e Piano affiancati)
+   e le ultime spese. Stesse regole del layout (hub_layout.css): sul telefono una colonna,
    da 681 px due colonne che riempiono tutta l'altezza. Tutti i selettori partono da #ewSubGestione: non toccano Banca né la Home.
    Colori: solo i token dell'Hub (vetro, oro, verde/ambra/rosso del giudizio); nel chiaro i testi piccoli hanno una tinta più scura. */
 #ewSubGestione{--gs-g:12px;--g-green:48,209,88;--g-orange:255,159,10;--g-blue:10,132,255;--g-purple:191,90,242;
@@ -834,7 +831,7 @@ body.ew-day #ewSubGestione{--label2:rgba(60,60,67,.82)}
 body.ew-day #ewSubGestione .gs-chip[data-tone=green]{color:#0f6b2d}
 body.ew-day #ewSubGestione .gs-chip[data-tone=amber]{color:#8a5200}
 body.ew-day #ewSubGestione .gs-chip[data-tone=red]{color:#a31a0e}
-#ewSubGestione .gs-big{margin:12px 0 4px;font:700 clamp(38px,11.5vw,52px)/1 var(--font-num);letter-spacing:-.035em;color:var(--tone-c);font-variant-numeric:tabular-nums;white-space:nowrap}
+#ewSubGestione .gs-big{margin:0 0 4px;padding-top:12px;font:700 clamp(38px,11.5vw,52px)/1 var(--font-num);letter-spacing:-.035em;color:var(--tone-c);font-variant-numeric:tabular-nums;white-space:nowrap}
 #ewSubGestione .gs-big.na{color:var(--label3)}
 #ewSubGestione .gs-sub{min-height:19px;font:400 14px/1.35 var(--font);color:var(--label2)}
 #ewSubGestione .gs-mo{display:flex;align-items:center;gap:10px;margin-top:14px;font:500 12px/1.2 var(--font);color:var(--label2)}
@@ -859,24 +856,14 @@ body.ew-day #ewSubGestione .gs-t{--tint:.17}
 #ewSubGestione .gs-t .tt{position:relative;z-index:1;min-width:0}
 #ewSubGestione .gs-t .lb{font:600 17px/1.2 var(--font);letter-spacing:-.2px}
 #ewSubGestione .gs-t .sb{margin-top:3px;font:400 13px/1.35 var(--font);color:var(--label2);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-#ewSubGestione .gs-t .sb.two{display:block;-webkit-line-clamp:none}
-#ewSubGestione .gs-t .sb.two span{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#ewSubGestione .gs-t .sb.two .d{display:flex;min-width:0}
-#ewSubGestione .gs-t .sb.two .d em{font-style:normal;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-#ewSubGestione .gs-t .sb.two .d b{flex:none;font-weight:inherit;padding-left:.28em;white-space:nowrap}
-#ewSubGestione .gs-t .sb .w{font-weight:600}
-#ewSubGestione .gs-t .sb .w.soon{color:var(--warn)}
-#ewSubGestione .gs-t .sb .w.late{color:var(--bad)}
-body.ew-day #ewSubGestione .gs-t .sb .w.soon{color:#8a5200}
-body.ew-day #ewSubGestione .gs-t .sb .w.late{color:#b42318}
 #ewSubGestione .gs-t .badge{z-index:2}
 /* grande simbolo sfumato dietro: dà corpo al riquadro senza togliere leggibilità */
 #ewSubGestione .gs-wm{position:absolute;right:-14px;top:-14px;width:96px;height:96px;opacity:.11;color:rgb(var(--t));stroke-width:1.25;pointer-events:none}
 body.ew-day #ewSubGestione .gs-wm{opacity:.09}
-/* riquadri a riga intera: «Aggiungi Spesa» (in evidenza) e «Piano» */
-#ewSubGestione .gs-add,#ewSubGestione .gs-plan{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;min-height:88px}
-#ewSubGestione .gs-add .tt,#ewSubGestione .gs-plan .tt{flex:1}
-#ewSubGestione .gs-add .sq,#ewSubGestione .gs-plan .sq{width:calc(var(--gs-sq) + 6px);height:calc(var(--gs-sq) + 6px);font-size:calc((var(--gs-sq) + 6px)*.54)}
+/* riquadro a riga intera: «Aggiungi Spesa» (in evidenza); «Entrate» e «Piano» stanno affiancati sotto */
+#ewSubGestione .gs-add{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-start;gap:14px;min-height:88px}
+#ewSubGestione .gs-add .tt{flex:1}
+#ewSubGestione .gs-add .sq{width:calc(var(--gs-sq) + 6px);height:calc(var(--gs-sq) + 6px);font-size:calc((var(--gs-sq) + 6px)*.54)}
 #ewSubGestione .gs-add{color:#fff;border-color:rgba(255,255,255,.22);
   background:radial-gradient(75% 150% at 100% 0%,rgba(255,255,255,.2),rgba(255,255,255,0) 62%),linear-gradient(155deg,#1a8f43 0%,#13763a 52%,#0d632d 100%);
   box-shadow:0 14px 32px -14px rgba(21,128,60,.7),inset 0 1px 0 rgba(255,255,255,.3)}
@@ -885,9 +872,9 @@ body.ew-day #ewSubGestione .gs-wm{opacity:.09}
 #ewSubGestione .gs-add .sq{background:rgba(255,255,255,.22);box-shadow:inset 0 .5px 0 rgba(255,255,255,.45)}
 #ewSubGestione .gs-add .chev{color:rgba(255,255,255,.85)}
 #ewSubGestione .gs-add{--t:255,255,255}
-#ewSubGestione .gs-add .gs-wm,#ewSubGestione .gs-plan .gs-wm{display:none}
+#ewSubGestione .gs-add .gs-wm{display:none}
 
-/* ───────── carte «Ultime spese» e «Prossime scadenze» ───────── */
+/* ───────── carta «Ultime spese» ───────── */
 #ewSubGestione .gs-card{display:flex;flex-direction:column;min-width:0;padding:14px 16px 6px;border-radius:var(--r)}
 #ewSubGestione .gs-ch{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:44px;margin:-4px 0 0}
 #ewSubGestione .gs-ch h2{margin:0;font:700 19px/1.2 var(--font-disp);letter-spacing:-.3px}
@@ -903,15 +890,10 @@ body.ew-day #ewSubGestione .gs-av{color:rgba(var(--av),1);filter:saturate(1.1) b
 #ewSubGestione .gs-tx{min-width:0}
 #ewSubGestione .gs-tx b{display:block;font:500 16px/1.25 var(--font);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #ewSubGestione .gs-tx i{display:block;margin-top:1px;font:400 13px/1.25 var(--font);font-style:normal;color:var(--label2)}
-#ewSubGestione .gs-tx i.soon{color:var(--warn)}
-#ewSubGestione .gs-tx i.late{color:var(--bad)}
-body.ew-day #ewSubGestione .gs-tx i.soon{color:#8a5200}
-body.ew-day #ewSubGestione .gs-tx i.late{color:#b42318}
 #ewSubGestione .gs-am{font:700 16px/1.2 var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-.01em;white-space:nowrap}
-/* telefono: 4 spese e niente scadenze (il riquadro «Spese Fisse» dice già la prossima) */
+/* telefono: 4 spese */
 #ewSubGestione .gs-recent .gs-li:nth-child(n+5){display:none}
-#ewSubGestione .gs-due{display:none}
-/* stato vuoto (nessuna spesa / nessuna scadenza) */
+/* stato vuoto (nessuna spesa) */
 #ewSubGestione .gs-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:16px 8px 22px;text-align:center;font:400 14px/1.4 var(--font);color:var(--label2)}
 #ewSubGestione .gs-empty b{font:600 16px/1.3 var(--font);color:var(--label)}
 #ewSubGestione .gs-empty .gs-cta{display:inline-flex;align-items:center;gap:6px;min-height:44px;margin-top:6px;padding:0 6px;border:0;background:transparent;color:var(--act);font:600 14px var(--font)}
@@ -931,41 +913,37 @@ body.ew-day #ewSubGestione .gs-tx i.late{color:#b42318}
 #ewSubGestione.open .gs-t:nth-child(1){animation-delay:.06s}
 #ewSubGestione.open .gs-t:nth-child(2){animation-delay:.1s}
 #ewSubGestione.open .gs-t:nth-child(3){animation-delay:.14s}
-#ewSubGestione.open .gs-t:nth-child(4){animation-delay:.18s}
 #ewSubGestione.open .gs-recent{animation-delay:.22s}
-#ewSubGestione.open .gs-due{animation-delay:.26s}
 
 /* ───────── da 681 px: riepilogo e riquadri a sinistra, carte a destra; tutto dentro lo schermo (come la Home) ─────────
-   I riquadri sono una griglia 2×2 con la stessa struttura (icona in alto, titolo e riga in basso). La griglia cresce con lo spazio che avanza ma
-   non è mai più bassa del proprio contenuto: così il riepilogo e tutti e quattro i riquadri restano sempre visibili, anche su iPad in orizzontale. */
+   «Aggiungi Spesa» è una barra a riga intera (icona · testo · freccia); sotto, «Entrate» e «Piano» sono due riquadri con la stessa struttura (icona in alto,
+   titolo e riga in basso). La griglia cresce con lo spazio che avanza ma non è mai più bassa del proprio contenuto: così il riepilogo e tutti i riquadri
+   restano sempre visibili, anche su iPad in orizzontale. */
 @media (min-width:681px){
   #ewSubGestione{--gs-g:var(--gp);--gs-sq:clamp(44px,3.9vw,60px)}
   #ewSubGestione .gs{flex-direction:row;align-items:stretch;flex:1 1 auto}
   #ewSubGestione .gs-main{flex:1.1 1 0}
   #ewSubGestione .gs-side{flex:1 1 0}
-  #ewSubGestione .gs-hero{padding:clamp(16px,1.7vw,28px)}
+  #ewSubGestione .gs-hero{display:flex;flex-direction:column;flex:1 1 auto;padding:clamp(16px,1.7vw,28px)}
+  #ewSubGestione .gs-big{margin-top:auto}
+  #ewSubGestione .gs-mo{margin-bottom:14px}
+  #ewSubGestione .gs-kpis{margin-top:auto}
   #ewSubGestione .gs-big{font-size:clamp(44px,4.2vw,76px)}
   #ewSubGestione .gs-sub{font-size:clamp(14px,1.1vw,16px)}
   #ewSubGestione .gs-k b{font-size:clamp(20px,2vw,32px)}
   #ewSubGestione .gs-k i{font-size:clamp(12px,.95vw,14px)}
-  #ewSubGestione .gs-tiles{flex:1 1 auto;grid-auto-rows:minmax(min-content,1fr)}
+  #ewSubGestione .gs-tiles{flex:1 1 auto;grid-template-rows:auto minmax(min-content,1fr)}
   #ewSubGestione .gs-t{min-height:0;padding:clamp(14px,1.4vw,22px);gap:12px}
-  #ewSubGestione .gs-add,#ewSubGestione .gs-plan{grid-column:auto;flex-direction:column;align-items:stretch;justify-content:space-between;gap:12px;min-height:0}
-  #ewSubGestione .gs-add .chev,#ewSubGestione .gs-plan .chev{display:none}
-  #ewSubGestione .gs-add .tt,#ewSubGestione .gs-plan .tt{flex:none}
-  #ewSubGestione .gs-add .sq,#ewSubGestione .gs-plan .sq{width:var(--gs-sq);height:var(--gs-sq);font-size:calc(var(--gs-sq)*.54)}
+  #ewSubGestione .gs-t.gs-add{gap:clamp(12px,1.2vw,18px);min-height:0}
   #ewSubGestione .gs-add .lb{font-size:clamp(18px,1.55vw,24px)}
-  #ewSubGestione .gs-add .sb{-webkit-line-clamp:2}
-  #ewSubGestione .gs-add .gs-wm,#ewSubGestione .gs-plan .gs-wm{display:block}
   #ewSubGestione .gs-t .lb{font-size:clamp(18px,1.55vw,24px)}
   #ewSubGestione .gs-t .sb{font-size:clamp(13px,1.05vw,16px)}
   #ewSubGestione .gs-wm{width:clamp(96px,9vw,150px);height:clamp(96px,9vw,150px)}
   #ewSubGestione .gs-card{padding:clamp(14px,1.4vw,22px) clamp(16px,1.6vw,26px) 8px}
   #ewSubGestione .gs-ch h2{font-size:clamp(19px,1.5vw,24px)}
-  #ewSubGestione .gs-recent,#ewSubGestione .gs-due{flex:1 1 auto}
+  #ewSubGestione .gs-recent{flex:1 1 auto}
   #ewSubGestione .gs-recent .gs-li:nth-child(n+5){display:grid}
-  #ewSubGestione .gs-due{display:flex}
-  #ewSubGestione .gs-li{flex:1 1 54px;min-height:54px;max-height:clamp(92px,8.6vh,132px);padding:8px 0}
+  #ewSubGestione .gs-li{flex:1 1 54px;min-height:54px;max-height:clamp(92px,13vh,150px);padding:8px 0}
   #ewSubGestione .gs-tx b{font-size:clamp(16px,1.25vw,19px)}
   #ewSubGestione .gs-tx i{font-size:clamp(13px,1vw,15px)}
   #ewSubGestione .gs-am{font-size:clamp(16px,1.25vw,19px)}
@@ -976,58 +954,42 @@ body.ew-day #ewSubGestione .gs-tx i.late{color:#b42318}
   #ewSubGestione .gs-main{flex:7 1 0}
   #ewSubGestione .gs-side{flex:5 1 0}
 }
-/* tablet in verticale: riepilogo e riquadri a tutta larghezza in alto (crescono con lo spazio che avanza), le due carte affiancate sotto */
+/* tablet in verticale: riepilogo e riquadri a tutta larghezza in alto (crescono con lo spazio che avanza), le ultime spese a tutta larghezza sotto */
 @media (min-width:681px) and (max-aspect-ratio:1/1) and (min-height:1070px){
   #ewSubGestione .gs{flex-direction:column}
   #ewSubGestione .gs-main{flex:1 1 auto}
-  #ewSubGestione .gs-side{flex:0 0 auto;flex-direction:row}
-  #ewSubGestione .gs-recent{flex:1.15 1 0}
-  #ewSubGestione .gs-due{flex:1 1 0}
+  #ewSubGestione .gs-side{flex:0 0 auto}
+  #ewSubGestione .gs-recent{flex:1 1 auto}
   #ewSubGestione .gs-big{font-size:clamp(48px,7vw,84px)}
   #ewSubGestione .gs-k b{font-size:clamp(22px,3.4vw,36px)}
   #ewSubGestione .gs-li{max-height:clamp(104px,9vh,132px)}
 }
 @media (min-width:681px) and (max-aspect-ratio:1/1) and (min-height:1070px) and (max-height:1110px),
        (min-width:921px) and (max-aspect-ratio:1/1) and (min-height:1070px) and (max-height:1189px){
-  #ewSubGestione .gs-recent .gs-li:nth-child(n+6){display:none}
   #ewSubGestione .gs-hero{padding:clamp(14px,1.5vw,20px) clamp(16px,1.8vw,24px)}
-  #ewSubGestione .gs-big{margin:8px 0 2px;font-size:clamp(44px,6.4vw,64px)}
-  #ewSubGestione .gs-mo{margin-top:10px}
-  #ewSubGestione .gs-kpis{margin-top:10px;padding-top:10px}
+  #ewSubGestione .gs-big{margin:auto 0 2px;padding-top:8px;font-size:clamp(44px,6.4vw,64px)}
+  #ewSubGestione .gs-mo{margin-top:10px;margin-bottom:10px}
+  #ewSubGestione .gs-kpis{margin-top:auto;padding-top:10px}
 }
-/* schermi bassi (portatili, iPad in orizzontale): meno righe nelle carte e un riepilogo più compatto, così ci sta tutto senza scorrere */
-@media (min-width:681px) and (max-height:869px){
-  #ewSubGestione .gs-due .gs-li:nth-child(n+4){display:none}
-}
+/* schermi bassi (portatili, iPad in orizzontale): un riepilogo più compatto, così ci sta tutto senza scorrere */
 @media (min-width:681px) and (max-height:799px),
        (min-width:1377px) and (max-height:899px){
   #ewSubGestione{--gs-sq:clamp(40px,3.4vw,50px)}
   #ewSubGestione .gs-hero{padding:clamp(14px,1.4vw,20px) clamp(16px,1.6vw,24px)}
-  #ewSubGestione .gs-big{margin:8px 0 2px;font-size:clamp(40px,min(4vw,6.2vh),60px)}
-  #ewSubGestione .gs-mo{margin-top:10px}
-  #ewSubGestione .gs-kpis{margin-top:10px;padding-top:10px}
+  #ewSubGestione .gs-big{margin:auto 0 2px;padding-top:8px;font-size:clamp(40px,min(4vw,6.2vh),60px)}
+  #ewSubGestione .gs-mo{margin-top:10px;margin-bottom:10px}
+  #ewSubGestione .gs-kpis{margin-top:auto;padding-top:10px}
   #ewSubGestione .gs-t{padding:clamp(12px,1.2vw,18px);gap:8px}
-  #ewSubGestione .gs-add,#ewSubGestione .gs-plan{gap:8px}
   #ewSubGestione .gs-card{padding-top:clamp(10px,1vw,16px)}
 }
-/* larghi e bassi (portatili 1366×657, finestre larghe e basse): le misure seguono anche l'altezza, così il riepilogo e i quattro riquadri ci stanno senza scorrere */
+/* larghi e bassi (portatili 1366×657, finestre larghe e basse): le misure seguono anche l'altezza, così il riepilogo e i tre riquadri ci stanno senza scorrere */
 @media (min-width:1161px) and (max-height:789px){
   #ewSubGestione{--gs-sq:clamp(36px,min(3.4vw,5.6vh),50px)}
   #ewSubGestione .gs-hero{padding:clamp(12px,min(1.4vw,2vh),20px) clamp(16px,1.6vw,24px)}
   #ewSubGestione .gs-k b{font-size:clamp(18px,min(2vw,3.2vh),32px)}
   #ewSubGestione .gs-t{padding:clamp(10px,min(1.2vw,1.9vh),18px);gap:6px}
-  #ewSubGestione .gs-add,#ewSubGestione .gs-plan{gap:6px}
   #ewSubGestione .gs-t .lb{font-size:clamp(16px,min(1.55vw,2.6vh),24px)}
   #ewSubGestione .gs-t .sb{font-size:clamp(12px,min(1.05vw,1.9vh),16px)}
-}
-@media (min-width:681px) and (max-height:789px){
-  #ewSubGestione .gs-recent .gs-li:nth-child(n+6){display:none}
-}
-@media (min-width:681px) and (max-height:749px){
-  #ewSubGestione .gs-recent .gs-li:nth-child(n+5){display:none}
-}
-@media (min-width:681px) and (max-height:679px){
-  #ewSubGestione .gs-due .gs-li:nth-child(n+3){display:none}
 }
 @media (max-width:359px){
   #ewSubGestione .gs-hero{padding:16px 14px 14px}
@@ -1219,7 +1181,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <span class="hw-kpis">
           <span class="hw-kpi"><b class="num" id="hwKMonth">—</b><i>Spese del mese</i></span>
           <span class="hw-kpi"><b class="num" id="hwKWeek">—</b><i>Spese della settimana</i></span>
-          <span class="hw-kpi"><b class="num" id="hwKDue">—</b><i>Scadenze entro 7 giorni</i></span>
+          <span class="hw-kpi"><b class="num" id="hwKToday">—</b><i>Spese di oggi</i></span>
         </span>
       </span>
     </button>
@@ -1244,10 +1206,6 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
     <button type="button" class="hw hw-today" id="hwToday" onclick="hwGo('aggiungiSpesa')" style="--i:4" aria-label="Spese di oggi: aggiungi una spesa">
       <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-clock"/></svg><b>Oggi</b><em id="hwTodayLab"></em></span>
       <span class="hw-bd" id="hwTodayBd"><span class="hw-skel"></span><span class="hw-skel s2"></span></span>
-    </button>
-    <button type="button" class="hw hw-due" id="hwDue" onclick="hwGo('speseFisse')" style="--i:6" aria-label="Prossime scadenze: apri Spese fisse">
-      <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-bell"/></svg><b>Prossime scadenze</b></span>
-      <span class="hw-bd" id="hwDueBd"><span class="hw-skel"></span><span class="hw-skel s2"></span></span>
     </button>
     <button type="button" class="hw hw-salv" id="hwSalv" onclick="hwGo('settimanale')" style="--i:7" aria-label="Salvadanaio">
       <span class="hw-h"><svg class="ic" aria-hidden="true"><use href="#i-wallet"/></svg><b>Salvadanaio</b></span>
@@ -1461,7 +1419,7 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
           <div class="gs-kpis">
             <div class="gs-k"><b class="num" id="gsKMonth">—</b><i>Spese del mese</i></div>
             <div class="gs-k"><b class="num" id="gsKWeek">—</b><i>Spese settimana</i></div>
-            <div class="gs-k"><b class="num" id="gsKDue">—</b><i>Scadenze 7 gg</i></div>
+            <div class="gs-k"><b class="num" id="gsKToday">—</b><i>Spese di oggi</i></div>
           </div>
         </section>
         <div class="gs-tiles">
@@ -1476,17 +1434,11 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
             <span class="sq c-orange"><svg class="ic" aria-hidden="true"><use href="#i-euro"/></svg></span>
             <div class="tt"><div class="lb">Entrate</div><div class="sb">Stipendio e altre entrate</div></div>
           </div>
-          <div class="ew-tile gs-t t-blue" role="button" tabindex="0" onclick="openTcSection('speseFisse')">
-            <svg class="ic gs-wm" aria-hidden="true"><use href="#i-house"/></svg>
-            <span class="sq c-blue"><svg class="ic" aria-hidden="true"><use href="#i-house"/></svg></span>
-            <div class="tt"><div class="lb">Spese Fisse</div><div class="sb" id="gsFixSb">Affitto, bollette e rate</div></div>
-          </div>
           <div class="ew-tile gs-t gs-plan t-purple" role="button" tabindex="0" onclick="openTcSection('piano')">
             <span class="badge">NEW</span>
             <svg class="ic gs-wm" aria-hidden="true"><use href="#i-calc"/></svg>
             <span class="sq c-purple"><svg class="ic" aria-hidden="true"><use href="#i-calc"/></svg></span>
-            <div class="tt"><div class="lb">Piano</div><div class="sb">Quanto ti rimane ogni mese</div></div>
-            <svg class="ic chev" aria-hidden="true"><use href="#i-chev-r"/></svg>
+            <div class="tt"><div class="lb">Piano</div><div class="sb">Spese fisse, rate e quanto ti rimane</div></div>
           </div>
         </div>
       </div>
@@ -1494,10 +1446,6 @@ try{window.addEventListener('online',fixBadge);window.addEventListener('offline'
         <section class="gs-card gs-recent glass" aria-labelledby="gsRecH">
           <div class="gs-ch"><h2 id="gsRecH">Ultime spese</h2><button type="button" class="gs-more" onclick="openTcSection('aggiungiSpesa')"><span>Vedi tutte</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button></div>
           <div class="gs-list" id="gsRecBd"><div class="gs-li sk" aria-hidden="true"><i class="gs-av"></i><span class="gs-tx"><b>&nbsp;</b><i>&nbsp;</i></span><span class="gs-am">&nbsp;</span></div><div class="gs-li sk" aria-hidden="true"><i class="gs-av"></i><span class="gs-tx"><b>&nbsp;</b><i>&nbsp;</i></span><span class="gs-am">&nbsp;</span></div><div class="gs-li sk" aria-hidden="true"><i class="gs-av"></i><span class="gs-tx"><b>&nbsp;</b><i>&nbsp;</i></span><span class="gs-am">&nbsp;</span></div></div>
-        </section>
-        <section class="gs-card gs-due glass" aria-labelledby="gsDueH">
-          <div class="gs-ch"><h2 id="gsDueH">Prossime scadenze</h2><button type="button" class="gs-more" onclick="openTcSection('speseFisse')"><span>Apri</span><svg class="ic" aria-hidden="true"><use href="#i-chev-r"/></svg></button></div>
-          <div class="gs-list" id="gsDueBd"><div class="gs-li sk" aria-hidden="true"><i class="gs-av"></i><span class="gs-tx"><b>&nbsp;</b><i>&nbsp;</i></span><span class="gs-am">&nbsp;</span></div><div class="gs-li sk" aria-hidden="true"><i class="gs-av"></i><span class="gs-tx"><b>&nbsp;</b><i>&nbsp;</i></span><span class="gs-am">&nbsp;</span></div></div>
         </section>
       </div>
     </div>
@@ -1775,8 +1723,7 @@ var HW=(function(){
     }
     setNum($('hwKMonth'),s.month?s.month.variable:null,eur);
     setNum($('hwKWeek'),s.budget?s.budget.spent:null,eur);
-    var n=0; (s.due||[]).forEach(function(it){ if(it.days<=7) n++; });
-    $('hwKDue').textContent=String(n);
+    setNum($('hwKToday'),s.today?s.today.total:null,eur);
   }
   function renderBudget(s){
     var b=s.budget, el=$('hwBud'), bd=$('hwBudBd'), lab=$('hwBudLab');
@@ -1831,15 +1778,6 @@ var HW=(function(){
     var more=t.count>3?'<div class="hw-pd">+ '+(t.count-3)+(t.count-3===1?' altra spesa':' altre spese')+'</div>':'';
     bd.innerHTML='<div class="hw-tot num">'+eur(t.total)+'<small>'+t.count+(t.count===1?' spesa':' spese')+'</small></div><div class="hw-list">'+rows+'</div>'+more;
   }
-  function renderDue(s){
-    var bd=$('hwDueBd'), due=s.due||[];
-    if(!due.length){ bd.innerHTML='<div class="hw-empty"><b>Nessuna scadenza imminente</b>Tutto in ordine per ora.</div>'; return; }
-    bd.innerHTML='<div class="hw-list">'+due.slice(0,4).map(function(it){
-      var d=it.days, cls=d<0?'late':(d===0?'today':(d<=3?'soon':'')), w;
-      if(d<0) w='scaduta'; else if(d===0) w='oggi'; else if(d===1) w='domani'; else if(d<=7) w='tra '+d+' gg'; else { var p=it.ds.split('-'); w=(+p[2])+' '+MON3[+p[1]-1]; }
-      return '<div class="hw-li '+cls+'"><span>'+esc(it.name)+'</span><span class="am">'+eur(it.amount)+'</span><em>'+w+'</em></div>';
-    }).join('')+'</div>';
-  }
   function renderSalv(s){
     var bd=$('hwSalvBd'), v=s.salv;
     if(!v){ bd.innerHTML='<div class="hw-empty"><b>Nessun obiettivo</b>Crea un salvadanaio per mettere da parte qualcosa.</div>'; return; }
@@ -1891,7 +1829,6 @@ var HW=(function(){
     try{ renderHero(s); }catch(e){}
     try{ renderBudget(s); }catch(e){}
     try{ renderToday(s); }catch(e){}
-    try{ renderDue(s); }catch(e){}
     try{ renderSalv(s); }catch(e){}
     try{ renderRecent(s); }catch(e){}
   }
@@ -1957,7 +1894,7 @@ var HW=(function(){
 })();
 function ewHubWideEnter(){ HW.enter(); }
 
-// ════════ HUB · cartella «Gestione» (v132): riepilogo del mese, descrizioni vive sui riquadri, ultime spese e scadenze ════════
+// ════════ HUB · cartella «Gestione» (v132, v133 senza Spese Fisse e scadenze): riepilogo del mese, descrizione viva su «Aggiungi Spesa», ultime spese ════════
 // Legge l'istantanea di GoBank (ewSnapshot, la stessa della Home larga) UNA volta all'apertura della cartella e riprova solo finché i dati
 // non ci sono (GoBank gira in sottofondo e può non essere ancora pronta). A cartella chiusa non gira nessun timer. Nessun dato viene scritto.
 var GS=(function(){
@@ -1990,14 +1927,6 @@ var GS=(function(){
   }
   function setHtml(el,html,key){ if(!el) return; if(el._k===key&&key!=null) return; el._k=key; el.innerHTML=html; }
 
-  function when(days,ds){
-    if(days<0) return 'scaduta';
-    if(days===0) return 'oggi';
-    if(days===1) return 'domani';
-    if(days<=7) return 'tra '+days+' giorni';
-    var p=String(ds||'').split('-'); return p.length===3?('il '+(+p[2])+' '+MON3[+p[1]-1]):'';
-  }
-  function cap(t){ t=String(t||''); return t.charAt(0).toUpperCase()+t.slice(1); }
   function dayLabel(date){
     var p=String(date||'').split('-'); if(p.length!==3) return '';
     var n=new Date(), t0=new Date(n.getFullYear(),n.getMonth(),n.getDate()).getTime();
@@ -2033,21 +1962,14 @@ var GS=(function(){
     }
     setNum($('gsKMonth'),s.month?s.month.variable:null,eurS);
     setNum($('gsKWeek'),s.budget?s.budget.spent:null,eurS);
-    var n=0; (s.due||[]).forEach(function(it){ if(it.days<=7) n++; });
-    $('gsKDue').textContent=s.due?String(n):'—';
+    setNum($('gsKToday'),s.today?s.today.total:null,eurS);
   }
 
   /* ───────── riquadri: la riga sotto il titolo racconta qualcosa di vero ───────── */
   function renderTiles(s){
-    var add=$('gsAddSb'), fix=$('gsFixSb'), t=s.today;
+    var add=$('gsAddSb'), t=s.today;
     if(add&&t){
       add.textContent=t.count?('Oggi: '+t.count+(t.count===1?' spesa':' spese')+(t.total?(' · '+eur(t.total)):'')):'Nessuna spesa oggi';
-    }
-    if(fix&&s.due){
-      var d=s.due[0];
-      fix.className='sb two';
-      fix.innerHTML=d?('<span class="w'+(d.days<=0?' late':(d.days<=3?' soon':''))+'">'+esc(cap(when(d.days,d.ds)))+'</span><span class="d"><em>'+esc(d.name)+'</em><b> · '+eur(d.amount)+'</b></span>'):
-                      '<span class="w">Nessuna scadenza</span><span>Tutto in ordine per ora</span>';
     }
   }
 
@@ -2067,33 +1989,15 @@ var GS=(function(){
     setHtml(bd,h,h);
   }
 
-  /* ───────── prossime scadenze ───────── */
-  function renderDue(s){
-    var bd=$('gsDueBd'); if(!bd) return;
-    var due=s.due||[];
-    if(!due.length){
-      setHtml(bd,'<div class="gs-empty"><b>Nessuna scadenza imminente</b>Tutto in ordine per ora.</div>','none');
-      return;
-    }
-    var h=due.slice(0,4).map(function(it){
-      var d=it.days, cls=d<=0?'late':(d<=3?'soon':'');
-      return '<div class="gs-li"><span class="gs-av" style="--av:10,132,255" aria-hidden="true"><svg class="ic"><use href="#i-calendar"/></svg></span>'+
-             '<span class="gs-tx"><b>'+esc(it.name)+'</b><i class="'+cls+'">'+esc(when(d,it.ds))+'</i></span><span class="gs-am num">'+eur(it.amount)+'</span></div>';
-    }).join('');
-    setHtml(bd,h,h);
-  }
-
   function render(s){
     try{ renderHero(s); }catch(e){}
     try{ renderTiles(s); }catch(e){}
     try{ renderRecent(s); }catch(e){}
-    try{ renderDue(s); }catch(e){}
   }
   // i dati di GoBank non arrivano (ancora): le carte lo dicono invece di far credere che non ci sia niente
   function renderNone(){
     try{ var sub=$('gsRimSub'); if(sub&&$('gsHero').getAttribute('data-tone')==='') sub.textContent='I numeri del mese compaiono qui appena i dati di GoBank sono pronti.'; }catch(e){}
     try{ setHtml($('gsRecBd'),'<div class="gs-empty"><b>Ultime spese</b>Compaiono qui appena i dati di GoBank sono pronti.</div>','wait'); }catch(e){}
-    try{ setHtml($('gsDueBd'),'<div class="gs-empty"><b>Prossime scadenze</b>Compaiono qui appena i dati di GoBank sono pronti.</div>','wait'); }catch(e){}
   }
 
   /* ───────── dati: l'istantanea che GoBank espone ───────── */
