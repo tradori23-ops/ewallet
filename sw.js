@@ -1,5 +1,5 @@
 /* E-Wallet — PWA cache v10 */
-const CACHE = 'ewallet-allinone-v35-piano';
+const CACHE = 'ewallet-allinone-v36-aggiorna';
 const CORE = ['./', './index.html', './manifest.json'];
 
 self.addEventListener('install', event => {
@@ -22,6 +22,9 @@ self.addEventListener('fetch', event => {
 
   // Do not intercept Supabase or external CDNs. Let the browser handle CORS normally.
   if (url.origin !== self.location.origin) return;
+
+  // v328 · controllo versione di «Aggiorna ora» (?_chk=…): sempre dalla rete, mai dalla cache e mai salvato
+  if (url.searchParams.has('_chk')) return;
 
   const isNavigation = request.mode === 'navigate' || request.destination === 'document';
   if (isNavigation) {

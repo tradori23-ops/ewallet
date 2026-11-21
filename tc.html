@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261120-v327-piano';
+  var BUILD = '20261120-v328-aggiorna';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -30084,8 +30084,9 @@ function bkOnOpen() {
             <div id="currentDeviceBuild" style="font-size:12.5px;font-weight:700;color:var(--gold);font-family:monospace;word-break:break-all;">—</div>
             <div id="pwBuildHub" class="pw-sub2"></div>
           </div>
-          <button onclick="aggiornaApp()" class="btn btn-gold" style="white-space:nowrap;padding:10px 16px;flex-shrink:0;">🔄 Aggiorna ora</button>
-        </div></section>
+          <button type="button" id="pwUpdBtn" onclick="EWPW.checkUpdate()" class="btn btn-gold" style="white-space:nowrap;padding:10px 16px;flex-shrink:0;">🔄 Aggiorna ora</button>
+        </div>
+        <div id="pwUpdMsg" class="bk-result pw-upd" role="status" aria-live="polite" hidden></div></section>
         <div class="pw-sep" style="height:1px;background:var(--border);margin-bottom:20px;"></div>
 
         <section class="pw-card pw-qr"><div class="pw-ch">📱 Aggiorna un altro dispositivo</div><div style="font-size:13px;color:var(--text-muted);margin-bottom:20px;line-height:1.5;">
@@ -33907,6 +33908,16 @@ body.light{
 :is(html,#_) body .pw-news b{display:block;font-size:14px;color:var(--text)}
 :is(html,#_) body .pw-news b small{font-weight:500;font-size:11.5px;color:var(--text-muted);margin-left:6px}
 :is(html,#_) body .pw-news p{margin:3px 0 0;font-size:12.5px;line-height:1.5;color:var(--text-muted)}
+:is(html,#_) body .pw-upd{--bk-warn:#ffb340;--bk-ok:var(--green,#32d74b);--bk-bad:var(--red,#ff453a)}
+:is(html,#_) body.light .pw-upd{--bk-warn:#b86e00;--bk-ok:#1f9d3a;--bk-bad:#d6342a}
+:is(html,#_) body .pw-upd{margin:-8px 0 20px}
+:is(html,#_) body .pw-upd[hidden]{display:none!important}
+:is(html,#_) body .pw-upd[data-k="info"]{background:var(--fill,rgba(120,120,128,.16));border-color:var(--border)}
+:is(html,#_) body{--pw-upd-s:rgba(235,235,245,.78)}
+:is(html,#_) body.light{--pw-upd-s:rgba(60,60,67,.86)}
+:is(html,#_) body .pw-upd b{display:block;font-weight:700;color:var(--text)}
+:is(html,#_) body .pw-upd small{color:var(--pw-upd-s)}
+:is(html,#_) body .pw-upd-link{display:block;margin:6px 0 0;padding:8px 0;min-height:36px;border:0;background:none;box-shadow:none;color:var(--act);font:600 12.5px var(--font);text-align:left;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 :is(html,#_) body .pw-stats{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}
 :is(html,#_) body .pw-stats>.pw-box{margin:0}
 :is(html,#_) body .pw-kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
@@ -34038,6 +34049,7 @@ body.light{
 :is(html,#_) body .pw-qr{grid-column:2;grid-row:1/span 2}
 :is(html,#_) body #profileTabContent-aggiorna #pwNewsBox{grid-column:1;grid-row:2}
 :is(html,#_) body .pw-dev>.pw-ch+div{background:transparent!important;border:0!important;padding:0!important;margin:0!important}
+:is(html,#_) body .pw-dev>.pw-upd{margin:14px 0 0}
 :is(html,#_) body .pw-qr>.pw-ch+div{margin-bottom:16px!important}
 :is(html,#_) body .pw-qr>div[style*="text-align:center"]{margin-bottom:14px!important}
 :is(html,#_) body #profileTabContent-backup>.bk{grid-column:1/-1;display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--pw-gap);grid-auto-flow:dense;align-items:stretch}
@@ -37176,7 +37188,7 @@ var EWCHK = (function () {
    · titolo della scheda e stato dei dati sempre in vista nella barra laterale (si aggiorna da solo mentre la finestra è aperta)
    · scorciatoie: Esc chiude · 1–6 cambiano scheda · Ctrl/⌘+S salva · frecce su/giù tra le schede
    · Statistiche: ultimi 12 mesi, categorie, anni, metodi di pagamento (stessi dati del Totale in alto)
-   · Sfondo: tema Notte/Giorno, scelta attuale evidenziata · Aggiorna: versione vera (prima restava «—») e novità
+   · Sfondo: tema Notte/Giorno, scelta attuale evidenziata · Aggiorna: versione vera (prima restava «—»), novità e (v328) «Aggiorna ora» che controlla online e risponde
    · Backup: esporta le spese in CSV, interruttore dell'avviso «Controllo dati» all'avvio
    Non cambia nessun dato dell'app; legge solo ciò che c'è già nel dispositivo.
    ═══════════════════════════════════════════════════════════════ */
@@ -37199,6 +37211,8 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v328', d: '20 nov 2026', t: '«Aggiorna ora» che risponde', x: 'Il pulsante in Impostazioni → Aggiorna controlla davvero se online c’è una versione più nuova: se c’è, ti dice quale e aggiorna l’app; se sei già aggiornato te lo conferma, senza ricaricare niente (prima ricaricava e basta, in silenzio, anche quando non c’era nulla di nuovo). Senza connessione te lo dice e non tocca niente. Dopo l’aggiornamento trovi qui la conferma.' },
+    { v: 'v327', d: '20 nov 2026', t: 'Piano: quanto ti rimane ogni mese', x: 'Nuova sezione 🧮 Piano, subito dopo Spese Fisse. Parte dal tuo stipendio e ti dice quanto ti rimane ogni mese dopo spese fisse, rate e scadenze. «Oggi»: la cifra del mese e dove vanno i soldi · «Scaletta»: il grafico dei prossimi mesi, con le rate che finiscono · «Mesi»: la tabella mese per mese. Puoi provare un «e se…» (una rata nuova, un aumento) senza cambiare niente finché non lo confermi. Le vecchie schede Spese fisse e Rate restano com’erano.' },
     { v: 'v326', d: '20 nov 2026', t: 'Salvataggio più sicuro e archivio ZIP', x: 'Se un altro dispositivo ha salvato dati più recenti, l’app lo nota e li prende da sola, dopo aver messo da parte una copia di sicurezza. Se la risposta del cloud si perde, le ultime spese non spariscono più. Con la memoria piena l’app non cancella più niente di nascosto: ti avvisa. Novità in Impostazioni → Backup: l’archivio completo in un file ZIP con dati, scontrini PDF e documenti, da conservare o riaprire.' },
     { v: 'v325', d: '17 nov 2026', t: 'Conti dello scontrino che tornano', x: 'Letto meglio lo scontrino fotografato storto o piegato, anche nei ristoranti con la colonna IVA: tutte le righe con quantità e prezzi, totale, IVA, pagamento, data e numero del documento. L’app controlla che somma delle righe, totale e pagamento tornino; se una cifra letta male fa sbagliare i conti, la rilegge da sola e ti segnala quelle dubbie.' },
     { v: 'v324', d: '17 nov 2026', t: 'Scontrino letto per intero', x: 'Dalla foto l’app prende ora tutto quello che c’è scritto: negozio e insegna, indirizzo, tutte le righe con quantità e importi, IVA, pagamento e le altre righe (operatore, tavolo, IBAN…). Prima di creare lo scontrino puoi correggere ogni riga. Copia digitale e PDF riportano tutto. Vale anche per fatture e ricevute del POS.' },
@@ -37398,6 +37412,126 @@ var EWPW = (function () {
     var b = tcBuild();
     setText('currentDeviceBuild', b || '—'); setText('qrCurrentBuild', b);
     var h = hubBuild(); setText('pwBuildHub', h ? 'Hub ' + h : '');
+    if (!updBusy) { updClear(); showNote(); }
+  }
+
+  /* ───────── v328 · «Aggiorna ora»: controlla davvero online e risponde ─────────
+     Prima il pulsante puliva la memoria temporanea e ricaricava l'Hub senza dire niente, anche quando non c'era nulla di nuovo.
+     Ora: 1) legge online la versione di GoBank (tc.html) e dell'Hub (index.html): chiede solo i primi 4 KB (Range) e salta ogni cache
+     (?_chk=… + no-store; il service worker lascia passare in rete le richieste con _chk, senza salvarle)
+     2) versione uguale → «già aggiornata», niente ricarica  3) versione diversa → pulisce SW e cache dell'app, riscarica tc.html
+     saltando la cache del browser (GitHub Pages la tiene fino a 10 minuti) e ricarica l'Hub  4) senza rete → lo dice e NON tocca niente
+     (pulire senza rete lascerebbe l'app senza file). Dopo la ricarica un promemoria (ew_upd_note) mostra «Aggiornamento completato»
+     alla prima apertura della scheda. I dati dell'app (localStorage) non vengono mai toccati. */
+  var updBusy = false;
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function vShort(b) { var m = /v(\d+)/.exec(String(b || '')); return m ? 'v' + m[1] : String(b || '—'); }
+  function vPair(a, b) { var x = vShort(a), y = vShort(b); return x === y ? [String(a), String(b)] : [x, y]; }
+  function updBtn(busy, label) { var b = $('pwUpdBtn'); if (!b) return; b.disabled = !!busy; b.textContent = busy ? '⏳ ' + (label || 'Controllo…') : '🔄 Aggiorna ora'; }
+  function updMsg(kind, head, small, link) {
+    var m = $('pwUpdMsg'); if (!m) return;
+    m.hidden = false; m.setAttribute('data-k', kind);
+    m.className = 'bk-result pw-upd' + (kind === 'warn' ? ' bk-note' : kind === 'err' ? ' bk-err' : '');
+    m.innerHTML = '<b>' + head + '</b>' + (small ? '<small>' + small + '</small>' : '') +
+      (link ? '<button type="button" class="pw-upd-link" onclick="EWPW.forceReload()">Qualcosa non va? Pulisci e ricarica l’app</button>' : '');
+  }
+  function updClear() { var m = $('pwUpdMsg'); if (m) { m.hidden = true; m.innerHTML = ''; m.removeAttribute('data-k'); } }
+  function offlineMsg() { updMsg('warn', '⚠️ Non riesco a controllare', 'Non c’è connessione oppure il sito non risponde. Non ho cambiato niente: riprova fra poco.'); }
+
+  /* versione (var BUILD) di un file online; null se non raggiungibile o senza risposta valida (al massimo 6 s a tentativo, 12 s in tutto).
+     Prima chiede solo i primi 4 KB (Range). Se il server non la gestisce (200 pieno, 416, risposta compressa troncata…) riprova senza
+     Range leggendo soltanto l'inizio del file e chiudendo la richiesta appena trova la versione: così non si scarica mai tutto GoBank. */
+  function peekText(url, range) {
+    var ctl = null, tm = 0, opt = { cache: 'no-store' };
+    if (range) opt.headers = { Range: 'bytes=0-4095' };
+    try { if (typeof AbortController !== 'undefined') { ctl = new AbortController(); opt.signal = ctl.signal; tm = setTimeout(function () { try { ctl.abort(); } catch (e) { } }, 6000); } } catch (e) { }
+    var end = function (v) { if (tm) clearTimeout(tm); return v; };
+    return fetch(url + '?_chk=' + Date.now() + (range ? '' : 'r'), opt).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      if (r.status === 206 || !r.body || !r.body.getReader || typeof TextDecoder === 'undefined') return r.text();
+      var rd = r.body.getReader(), dec = new TextDecoder(), s = '';   // risposta piena: leggo solo l'inizio e chiudo
+      return (function pump() {
+        return rd.read().then(function (x) {
+          if (x.done) return s;
+          s += dec.decode(x.value, { stream: true });
+          if (s.length >= 4096 || /var BUILD\s*=\s*'[^']+'/.test(s)) { try { rd.cancel(); } catch (e) { } return s; }
+          return pump();
+        });
+      })();
+    }).then(end, function (e) { end(); throw e; });
+  }
+  function peekBuild(url) {
+    var pick = function (t) { var m = /var BUILD\s*=\s*['"]([^'"]+)['"]/.exec(t || ''); return m ? m[1] : null; };
+    return peekText(url, true).then(pick, function () { return null; })
+      .then(function (b) { return b || peekText(url, false).then(pick, function () { return null; }); });
+  }
+
+  function reloadTop() {
+    try { if (window.top && window.top !== window) { window.top.location.reload(); return; } } catch (e) { }
+    try { location.replace(location.href.split('?')[0].split('#')[0] + '?v=' + Date.now()); } catch (e) { try { location.reload(); } catch (e2) { } }
+  }
+  /* toglie service worker e cache dell'app, rinfresca la copia di tc.html nella cache del browser e ricarica l'Hub (che riscarica GoBank) */
+  function hardRefresh(note) {
+    var safe = function (p) { return Promise.resolve(p).then(function () { }, function () { }); }, steps = [];
+    try { if ('serviceWorker' in navigator) steps.push(safe(navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (r) { return r.unregister(); })); }))); } catch (e) { }
+    try { if (typeof caches !== 'undefined' && caches.keys) steps.push(safe(caches.keys().then(function (ks) { return Promise.all(ks.filter(function (k) { return /^ewallet/i.test(k); }).map(function (k) { return caches.delete(k); })); }))); } catch (e) { }
+    return Promise.all(steps).then(function () {
+      return safe(Promise.race([fetch('tc.html', { cache: 'reload' }), new Promise(function (res) { setTimeout(res, 8000); })]));
+    }).then(function () {
+      if (note) lsSet('ew_upd_note', JSON.stringify(note));
+      reloadTop();
+    });
+  }
+
+  function checkUpdate() {
+    if (updBusy) return;
+    updBusy = true; updBtn(true);
+    updMsg('info', 'Controllo se c’è una versione più nuova…');
+    var runTc = tcBuild(), runHub = hubBuild();
+    Promise.all([peekBuild('tc.html'), peekBuild('index.html')]).then(function (r) {
+      var onTc = r[0], onHub = r[1];
+      if (!onTc) { updBusy = false; updBtn(false); offlineMsg(); return; }
+      var newTc = !!(runTc && onTc !== runTc), newHub = !!(runHub && onHub && onHub !== runHub);
+      if (!newTc && !newHub) {
+        var t = new Date();
+        updBusy = false; updBtn(false);
+        updMsg('ok', '✅ Sei già alla versione più recente', 'GoBank ' + esc(vShort(runTc)) + (runHub ? ' · Hub ' + esc(vShort(runHub)) : '') + ' · controllato alle ' + pad2(t.getHours()) + ':' + pad2(t.getMinutes()), true);
+        return;
+      }
+      var what = [], p;
+      if (newTc) { p = vPair(runTc, onTc); what.push('GoBank ' + esc(p[0]) + ' → ' + esc(p[1])); }
+      if (newHub) { p = vPair(runHub, onHub); what.push('Hub ' + esc(p[0]) + ' → ' + esc(p[1])); }
+      updBtn(true, 'Aggiorno…');
+      updMsg('info', '⬆️ Trovata una versione più nuova', what.join(' · ') + '. Aggiorno e ricarico l’app: tra un attimo si riapre l’Hub.');
+      setTimeout(function () { hardRefresh({ t: Date.now(), from: { tc: runTc, hub: runHub }, to: { tc: onTc, hub: onHub || runHub } }); }, 1200);
+    });
+  }
+  /* «Qualcosa non va?»: stessa pulizia anche se la versione è la stessa (solo con la rete: senza, l'app resterebbe senza file) */
+  function forceReload() {
+    if (updBusy) return;
+    updBusy = true; updBtn(true);
+    updMsg('info', 'Controllo la connessione…');
+    var runTc = tcBuild(), runHub = hubBuild();
+    peekBuild('tc.html').then(function (onTc) {
+      if (!onTc) { updBusy = false; updBtn(false); offlineMsg(); return; }
+      updBtn(true, 'Ricarico…');
+      updMsg('info', '🧹 Pulisco e ricarico l’app…', 'Tra un attimo si riapre l’Hub. I tuoi dati restano dove sono.');
+      setTimeout(function () { hardRefresh({ t: Date.now(), forced: true, from: { tc: runTc, hub: runHub }, to: { tc: onTc, hub: runHub } }); }, 900);
+    });
+  }
+  /* dopo la ricarica: conferma (o avviso) alla prima apertura della scheda Aggiorna */
+  function showNote() {
+    var raw = lsGet('ew_upd_note'); if (!raw) return;
+    try { localStorage.removeItem('ew_upd_note'); } catch (e) { }
+    var n; try { n = JSON.parse(raw); } catch (e) { return; }
+    if (!n || !n.t || !n.to || Date.now() - n.t > 6 * 3600 * 1000) return;
+    var nowTc = tcBuild(), nowHub = hubBuild(), okTc = !n.to.tc || n.to.tc === nowTc, okHub = !n.to.hub || !nowHub || n.to.hub === nowHub;
+    if (okTc && okHub) {
+      updMsg('ok', n.forced ? '✅ App ricaricata da zero' : '✅ Aggiornamento completato',
+        'GoBank ' + esc(vShort(nowTc)) + (nowHub ? ' · Hub ' + esc(vShort(nowHub)) : '') + (!n.forced && n.from && n.from.tc && n.from.tc !== nowTc ? ' (prima: ' + esc(vShort(n.from.tc)) + ')' : ''));
+    } else {
+      updMsg('warn', '⚠️ La versione nuova non è ancora arrivata', 'Su questo dispositivo c’è ancora GoBank ' + esc(vShort(nowTc)) + ', online c’è la ' + esc(vShort(n.to.tc)) + '. A volte GitHub ci mette qualche minuto a servire i file nuovi: aspetta un po’ e tocca di nuovo «Aggiorna ora».');
+    }
   }
   function fillNews() {
     var ol = $('pwNews'); if (!ol) return;
@@ -37501,7 +37635,7 @@ var EWPW = (function () {
   }
   init();
 
-  return { setTheme: setTheme, setChkAuto: setChkAuto, exportCsv: exportCsv, renderStats: renderStats, collect: collect, buildCsv: buildCsv, build: tcBuild, onTab: onTab, onOpen: onOpen, refresh: refresh, markBg: markBg };
+  return { setTheme: setTheme, setChkAuto: setChkAuto, exportCsv: exportCsv, renderStats: renderStats, collect: collect, buildCsv: buildCsv, build: tcBuild, onTab: onTab, onOpen: onOpen, refresh: refresh, markBg: markBg, checkUpdate: checkUpdate, forceReload: forceReload, peekBuild: peekBuild };
 })();
 
 </script>
