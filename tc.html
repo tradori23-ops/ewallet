@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261121-v329-senzafisse';
+  var BUILD = '20261121-v330-simula';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -4997,12 +4997,62 @@ setTimeout(_updateOfflineBanner, 500);
     <div id="sec-piano" class="section">
       <div class="pn" id="pnRoot">
         <div class="pn-seg" role="tablist" aria-label="Viste del Piano">
-          <button type="button" role="tab" id="pnT-oggi" aria-selected="true" aria-controls="pnV-oggi" data-pn="tab" data-t="oggi">Oggi</button>
+          <button type="button" role="tab" id="pnT-simula" aria-selected="true" aria-controls="pnV-simula" data-pn="tab" data-t="simula">Simula</button>
+          <button type="button" role="tab" id="pnT-oggi" aria-selected="false" aria-controls="pnV-oggi" data-pn="tab" data-t="oggi" tabindex="-1">Oggi</button>
           <button type="button" role="tab" id="pnT-scaletta" aria-selected="false" aria-controls="pnV-scaletta" data-pn="tab" data-t="scaletta" tabindex="-1">Scaletta</button>
           <button type="button" role="tab" id="pnT-mesi" aria-selected="false" aria-controls="pnV-mesi" data-pn="tab" data-t="mesi" tabindex="-1">Mesi</button>
         </div>
 
-        <section id="pnV-oggi" role="tabpanel" aria-labelledby="pnT-oggi">
+        <section id="pnV-simula" role="tabpanel" aria-labelledby="pnT-simula">
+          <div class="pn-sim-l">
+            <div class="pn-card pn-hero pn-shero">
+              <div class="pn-mstep">
+                <button type="button" class="pn-rb" id="pnSPrev" data-pn="mprev" aria-label="Mese precedente">‹</button>
+                <div class="pn-mlab" id="pnSLab" aria-live="polite"></div>
+                <button type="button" class="pn-rb" id="pnSNext" data-pn="mnext" aria-label="Mese successivo">›</button>
+              </div>
+              <div class="pn-vd" id="pnSVerd"></div>
+              <div class="pn-hero-k" id="pnSK"></div>
+              <div class="pn-hero-n" id="pnSN"></div>
+              <div class="pn-hero-s" id="pnSS"></div>
+              <div class="pn-hero-s pn-runout" id="pnSRun" hidden></div>
+              <label class="pn-sal"><span>💶 Stipendio netto al mese</span><input id="pnSSal" class="pn-vamt" data-id="__sal" type="text" inputmode="decimal" autocomplete="off" aria-label="Stipendio netto al mese in euro"></label>
+              <div class="pn-actions center"><button type="button" class="pn-btn pri" data-pn="sheet-open">＋ Aggiungi alla simulazione</button></div>
+              <div class="pn-note" id="pnSNote" hidden></div>
+            </div>
+            <div class="pn-card pn-sstrip">
+              <div class="pn-yhd"><h3 class="pn-h3" id="pnYT">Tutti i mesi</h3>
+                <div class="pn-ypg" id="pnYPg" hidden><button type="button" class="pn-rb sm" id="pnYPrev" data-pn="ypage" data-dir="-1" aria-label="I 12 mesi prima">‹</button><button type="button" class="pn-rb sm" id="pnYNext" data-pn="ypage" data-dir="1" aria-label="I 12 mesi dopo">›</button></div></div>
+              <div class="pn-yr" id="pnSYear" role="group" aria-label="I mesi: tocca un mese per vedere la simulazione"></div>
+              <p class="pn-foot pn-yleg" id="pnYLeg"></p>
+            </div>
+            <div class="pn-card pn-sbk">
+              <h3 class="pn-h3">Per categoria</h3>
+              <div id="pnSCat"></div>
+              <h3 class="pn-h3 pn-mt">Per metodo di pagamento</h3>
+              <div id="pnSPay"></div>
+            </div>
+          </div>
+          <div class="pn-sim-r">
+            <div class="pn-card pn-schartc">
+              <h3 class="pn-h3">Quanto ti rimane ogni giorno</h3>
+              <div class="pn-chart pn-schart" id="pnSimChart" tabindex="0" role="group" aria-label="Grafico di quanto ti rimane ogni giorno del mese scelto. Usa le frecce sinistra e destra per scorrere i giorni."></div>
+              <p class="pn-read" id="pnSimRead" aria-live="polite"></p>
+              <p class="pn-foot" id="pnSCap" hidden>La parte a righe è sotto lo zero: sono soldi che nel mese non hai.</p>
+            </div>
+            <div class="pn-card pn-slistc">
+              <h3 class="pn-h3" id="pnSLT">Cosa esce nel mese</h3>
+              <p class="pn-sub" id="pnSLH"></p>
+              <ul class="pn-sl" id="pnSList"></ul>
+            </div>
+            <details class="pn-card pn-sdet">
+              <summary>Tabella giorno per giorno</summary>
+              <div class="pn-tw"><table class="pn-tbl"><thead><tr><th scope="col">Giorno</th><th scope="col" class="r">Esce</th><th scope="col" class="r">Ti resta</th></tr></thead><tbody id="pnSTbl"></tbody></table></div>
+            </details>
+          </div>
+        </section>
+
+        <section id="pnV-oggi" role="tabpanel" aria-labelledby="pnT-oggi" hidden>
           <div class="pn-card pn-hero">
             <div class="pn-mstep">
               <button type="button" class="pn-rb" id="pnPrev" data-pn="mprev" aria-label="Mese precedente">‹</button>
@@ -5013,7 +5063,7 @@ setTimeout(_updateOfflineBanner, 500);
             <div class="pn-hero-n" id="pnHeroN"></div>
             <div class="pn-hero-s" id="pnHeroS"></div>
             <div class="pn-duo" id="pnDuo" hidden></div>
-            <div class="pn-actions center"><button type="button" class="pn-btn pri" data-pn="sheet-open">＋ Aggiungi voce</button></div>
+            <div class="pn-actions center"><button type="button" class="pn-btn pri" data-pn="sheet-open">＋ Aggiungi voce</button><button type="button" class="pn-btn" data-pn="tab" data-t="simula">📈 Simula il mese</button></div>
             <div class="pn-note" id="pnNote" hidden></div>
           </div>
           <div class="pn-card pn-bd" id="pnBd"></div>
@@ -5045,7 +5095,7 @@ setTimeout(_updateOfflineBanner, 500);
         </section>
 
         <div class="pn-actions center"><button type="button" class="pn-btn ghost small" data-pn="reread">Cerca rate e voci nuove</button></div>
-        <p class="pn-foot">Il Piano è una previsione: non cambia la Rimanenza della Dashboard, che continua a usare le spese fisse salvate prima.</p>
+        <p class="pn-foot">Simulazione e Piano sono previsioni: non cambiano la Rimanenza reale della Dashboard, che continua a usare le spese fisse salvate prima.</p>
 
         <div class="pn-banner" id="pnBanner" hidden></div>
 
@@ -5073,8 +5123,14 @@ setTimeout(_updateOfflineBanner, 500);
             </div>
             <label class="pn-fld" id="pnShEndW">Ultimo mese<select id="pnShEnd"></select></label>
             <label class="pn-fld" id="pnShCadW">Ogni<select id="pnShCad"></select></label>
+            <label class="pn-fld" id="pnShPerW">Il budget è<select id="pnShPer"><option value="mese">al mese</option><option value="sett">a settimana</option><option value="giorno">al giorno</option></select></label>
+            <label class="pn-fld" id="pnShDayW">Giorno del mese in cui esce<select id="pnShDay"></select><span class="pn-hint" id="pnShDayHint"></span></label>
+            <div class="pn-row2">
+              <label class="pn-fld">Categoria<select id="pnShCat"></select></label>
+              <label class="pn-fld">Pagato con<select id="pnShPay"></select></label>
+            </div>
             <div class="pn-impact" id="pnShImpact" aria-live="polite"></div>
-            <div class="pn-actions"><button type="button" class="pn-btn pri" id="pnShOk" data-pn="sheet-ok">Aggiungi in prova</button><button type="button" class="pn-btn" data-pn="sheet-close">Annulla</button></div>
+            <div class="pn-actions"><button type="button" class="pn-btn pri" id="pnShOk" data-pn="sheet-ok">Aggiungi alla simulazione</button><button type="button" class="pn-btn" data-pn="sheet-close">Annulla</button></div>
             <div class="pn-actions"><button type="button" class="pn-btn danger" id="pnShDel" data-pn="sheet-del" hidden>Elimina voce</button></div>
           </div>
         </div>
@@ -34383,10 +34439,10 @@ body.light{
 :is(html,#_) body .pw-copies{grid-row:6}}
 @media screen and (min-width:700px) and (min-height:560px) and (max-width:1023px){:is(html,#_) body .pw-arc{grid-template-columns:minmax(0,1fr)}
 :is(html,#_) body .pw-arc>*{grid-column:1!important;grid-row:auto!important}}
-:is(html,#_) body .pn{--pn-bar:rgba(235,235,245,.38);--pn-line:#d6b04c;--pn-area:rgba(214,176,76,.16);--pn-knob:#fff;
+:is(html,#_) body .pn{--pn-neg:#ff7a72;--pn-bar:rgba(235,235,245,.38);--pn-line:#d6b04c;--pn-area:rgba(214,176,76,.16);--pn-knob:#fff;
   --pn-l2:rgba(235,235,245,.74);--pn-l3:rgba(235,235,245,.52);
   max-width:560px;margin:0 auto;min-width:0;font-family:var(--font);color:var(--label);font-size:15px;line-height:1.45}
-:is(html,#_) body.light .pn{--pn-bar:rgba(60,60,67,.32);--pn-line:#a37408;--pn-area:rgba(176,132,28,.14);--pn-l2:rgba(60,60,67,.82);--pn-l3:rgba(60,60,67,.58)}
+:is(html,#_) body.light .pn{--pn-neg:#c4261b;--pn-bar:rgba(60,60,67,.32);--pn-line:#a37408;--pn-area:rgba(176,132,28,.14);--pn-l2:rgba(60,60,67,.82);--pn-l3:rgba(60,60,67,.58)}
 :is(html,#_) body .pn *,:is(html,#_) body .pn *::before,:is(html,#_) body .pn *::after{box-sizing:border-box}
 :is(html,#_) body .pn [hidden]{display:none!important}
 :is(html,#_) body .pn button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent}
@@ -34398,15 +34454,16 @@ body.light{
 :is(html,#_) body .pn-h3{margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;color:var(--pn-l2)}
 :is(html,#_) body .pn-sub{margin:0 0 10px;color:var(--pn-l2);font-size:13.5px}
 :is(html,#_) body .pn-seg{display:flex;width:100%;gap:2px;padding:2px;border-radius:12px;background:var(--fill)}
-:is(html,#_) body .pn-seg button{flex:1;min-height:44px;padding:4px 10px;border:0;border-radius:10px;background:transparent;color:var(--pn-l2);font-weight:650;font-size:14px}
+:is(html,#_) body .pn-seg button{flex:1 1 0;min-width:0;min-height:44px;padding:4px 4px;border:0;border-radius:10px;background:transparent;color:var(--pn-l2);font-weight:650;font-size:14px}
 :is(html,#_) body .pn-seg button[aria-selected="true"]{background:var(--ac);color:var(--on-ac)}
 :is(html,#_) body .pn-mstep{display:flex;align-items:center;justify-content:space-between;gap:8px}
 :is(html,#_) body .pn-rb{flex:0 0 44px;width:44px;height:44px;border:0;border-radius:50%;background:var(--fill);font-size:22px;line-height:1;display:grid;place-items:center;padding:0}
 :is(html,#_) body .pn-rb:disabled{opacity:.35;cursor:default}
 :is(html,#_) body .pn-mlab{font:650 16px var(--font);min-width:0;flex:1 1 auto;text-align:center}
+:is(html,#_) body .pn-mlab small{display:block;margin-top:1px;font:500 12.5px var(--font);color:var(--pn-l2)}
 :is(html,#_) body .pn-hero-k{color:var(--pn-l2);font-size:13px;margin-top:4px}
 :is(html,#_) body .pn-hero-n{font:800 46px/1.08 var(--font-num);letter-spacing:-1px;color:var(--act);font-variant-numeric:tabular-nums;margin:2px 0 0}
-:is(html,#_) body .pn-hero-n.neg{color:var(--bad)}
+:is(html,#_) body .pn-hero-n.neg{color:var(--pn-neg)}
 :is(html,#_) body .pn-hero-s{color:var(--pn-l2);font-size:13px;margin-top:2px}
 :is(html,#_) body .pn-hero-s b{color:var(--label);font-weight:650}
 :is(html,#_) body .pn-duo{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin-top:12px;text-align:left}
@@ -34447,7 +34504,7 @@ body.light{
 :is(html,#_) body .pn-rim{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;padding:12px 0 4px;border-top:1px solid var(--hair2);font-weight:700;font-size:16px}
 :is(html,#_) body .pn-rim b{font:800 19px var(--font-num);font-variant-numeric:tabular-nums}
 :is(html,#_) body .pn-bd .pos{color:var(--good)}
-:is(html,#_) body .pn-bd .neg,:is(html,#_) body .pn-impact .neg{color:var(--bad)}
+:is(html,#_) body .pn-bd .neg,:is(html,#_) body .pn-impact .neg{color:var(--pn-neg)}
 :is(html,#_) body .pn-impact .pos{color:var(--good)}
 :is(html,#_) body .pn-gbar.rb2 i{background:var(--good)}
 :is(html,#_) body .pn-gbar.rb2{margin-left:0}
@@ -34533,18 +34590,98 @@ body.light{
 :is(html,#_) body .pn-fld.ro b{display:block;margin-top:4px;min-height:46px;padding:11px 4px;font-size:15px;color:var(--label)}
 :is(html,#_) body .pn-impact{margin-top:14px;padding:10px 12px;border-radius:14px;background:var(--fill3);font-size:14px;color:var(--label)}
 :is(html,#_) body .pn-impact p{margin:4px 0}
-:is(html,#_) body .pn-impact .warnt{color:var(--bad)}
+:is(html,#_) body .pn-impact .warnt{color:var(--pn-neg)}
 :is(html,#_) body .pn-toast{position:fixed;left:50%;top:calc(52px + env(safe-area-inset-top,0px));transform:translateX(-50%);width:max-content;max-width:min(92vw,460px);padding:10px 16px;border-radius:14px;background:var(--sheet2);border:1px solid var(--hair2);color:var(--label);font-size:13.5px;box-shadow:var(--sf-sh);z-index:5100}
 @media (max-width:420px){:is(html,#_) body .pn-card{padding:12px}
 :is(html,#_) body .pn-hero-n{font-size:42px}
 :is(html,#_) body .pn-vamt{width:96px}}
+@media (max-width:360px){:is(html,#_) body .pn-seg button{font-size:13px}}
 @media (prefers-reduced-motion:reduce){:is(html,#_) body .pn *{transition:none!important}}
 @media screen and (min-width:900px) and (min-height:560px){:is(html,#_) body.ew-focus #sec-piano>.pn{justify-self:center;width:100%;max-width:980px}
-:is(html,#_) body.ew-focus #sec-piano .pn-seg{max-width:440px}
 :is(html,#_) body.ew-focus #sec-piano #pnV-oggi{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--wgap,18px);align-items:start}
 :is(html,#_) body.ew-focus #sec-piano #pnV-oggi>.pn-card{margin-top:12px}
+:is(html,#_) body.ew-focus #sec-piano #pnV-simula{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--wgap,18px);align-items:start}
+:is(html,#_) body.ew-focus #sec-piano .pn-sim-l,:is(html,#_) body.ew-focus #sec-piano .pn-sim-r{display:block;min-width:0}
+:is(html,#_) body.ew-focus #sec-piano .pn-seg{max-width:560px}
 :is(html,#_) body.ew-focus #sec-piano .pn-sheet-wrap{align-items:center;padding:16px}
 :is(html,#_) body.ew-focus #sec-piano .pn-sheet{border-radius:26px}}
+:is(html,#_) body .pn-sim-l,:is(html,#_) body .pn-sim-r{display:contents}
+:is(html,#_) body #pnV-simula{display:flex;flex-direction:column}
+:is(html,#_) body #pnV-simula .pn-shero{order:1}
+:is(html,#_) body #pnV-simula .pn-schartc{order:2}
+:is(html,#_) body #pnV-simula .pn-sstrip{order:3}
+:is(html,#_) body #pnV-simula .pn-slistc{order:4}
+:is(html,#_) body #pnV-simula .pn-sbk{order:5}
+:is(html,#_) body #pnV-simula .pn-sdet{order:6}
+:is(html,#_) body .pn-vd{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 14px;border-radius:99px;font-weight:700;font-size:14px;background:var(--fill);color:var(--pn-l2)}
+:is(html,#_) body .pn-vd i{font-style:normal;font-size:15px;line-height:1}
+:is(html,#_) body .pn-vd.ok{background:var(--tint-g);color:var(--good)}
+:is(html,#_) body .pn-vd.tight{background:var(--tint-o);color:var(--warn)}
+:is(html,#_) body .pn-vd.no{background:var(--tint-r);color:var(--pn-neg)}
+:is(html,#_) body .pn-shero .pn-hero-k{margin-top:8px}
+:is(html,#_) body .pn-runout{color:var(--pn-neg)}
+:is(html,#_) body .pn-runout b{color:var(--pn-neg)}
+:is(html,#_) body .pn-sal{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 0;padding-top:10px;border-top:1px solid var(--hair);text-align:left;font-size:14px;font-weight:600}
+:is(html,#_) body .pn-sal span{min-width:0}
+:is(html,#_) body .pn-yhd{display:flex;align-items:center;justify-content:space-between;gap:8px}
+:is(html,#_) body .pn-yhd .pn-h3{margin:0;min-width:0}
+:is(html,#_) body .pn-ypg{display:flex;gap:6px}
+:is(html,#_) body .pn-rb.sm{flex:0 0 44px}
+:is(html,#_) body .pn-yr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:8px}
+:is(html,#_) body .pn-yc{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;min-width:0;min-height:64px;padding:6px 2px;border:1.5px solid var(--hair);border-radius:14px;background:var(--fill3);text-align:center}
+:is(html,#_) body .pn-yc b{font-size:14.5px;font-weight:700;text-transform:capitalize}
+:is(html,#_) body .pn-yc small{font-size:11px;color:var(--pn-l2)}
+:is(html,#_) body .pn-yc .v{font:650 12.5px var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+:is(html,#_) body .pn-yc .v i{font-style:normal}
+:is(html,#_) body .pn-yc.ok .v{color:var(--good)}
+:is(html,#_) body .pn-yc.tight .v{color:var(--warn)}
+:is(html,#_) body .pn-yc.no .v{color:var(--pn-neg)}
+:is(html,#_) body .pn-yc[aria-pressed="true"]{border-color:var(--ac);background:var(--ac-s1);box-shadow:0 0 0 1px var(--ac)}
+:is(html,#_) body .pn-yleg{margin:10px 2px 0}
+:is(html,#_) body .pn-schart{margin-top:4px}
+:is(html,#_) body .pn-c0{stroke:var(--label3);stroke-width:1.4}
+:is(html,#_) body .pn-hb{fill:var(--tint-r)}
+:is(html,#_) body .pn-hl{stroke:var(--bad);stroke-width:1.6;opacity:.6}
+:is(html,#_) body .pn-chat{fill:url(#pnSHat);stroke:none}
+:is(html,#_) body .pn-cl.neg{stroke:var(--bad)}
+:is(html,#_) body .pn-sdot{fill:var(--ac);stroke:var(--sheet);stroke-width:2}
+:is(html,#_) body .pn-cx{fill:none;stroke:var(--bad);stroke-width:2.2}
+:is(html,#_) body .pn-ctoday{stroke:var(--act);stroke-width:1.2;stroke-dasharray:2 3;opacity:.8}
+:is(html,#_) body .pn-ctodayt{fill:var(--act);font:700 11px var(--font)}
+:is(html,#_) body .pn-cempty{padding:28px 8px;text-align:center}
+:is(html,#_) body .pn-read .pn-rd{display:block;margin-top:2px;font-size:13px;overflow-wrap:anywhere}
+:is(html,#_) body .pn-read b.neg{color:var(--pn-neg)}
+:is(html,#_) body .pn-sl{list-style:none;margin:4px 0 0;padding:0}
+:is(html,#_) body .pn-sd{padding:8px 0;border-top:1px solid var(--hair)}
+:is(html,#_) body .pn-sd:first-child{border-top:0}
+:is(html,#_) body .pn-sdh{display:flex;justify-content:space-between;align-items:baseline;gap:8px;color:var(--pn-l2);font-size:12.5px}
+:is(html,#_) body .pn-sdh b{color:var(--label);font-size:13.5px;font-weight:700}
+:is(html,#_) body .pn-sdb{font:600 12.5px var(--font-num);font-variant-numeric:tabular-nums;text-align:right}
+:is(html,#_) body .pn-sdb.neg{color:var(--pn-neg)}
+:is(html,#_) body .pn-si{display:grid;grid-template-columns:minmax(0,1fr) auto;column-gap:10px;align-items:baseline;width:100%;min-height:44px;margin-top:2px;padding:5px 8px;border:0;border-radius:10px;background:none;text-align:left}
+:is(html,#_) body .pn-si:active{background:var(--fill3)}
+:is(html,#_) body .pn-si.try{box-shadow:inset 3px 0 0 var(--ac);background:var(--ac-s1)}
+:is(html,#_) body .pn-sit{font-size:14px;overflow-wrap:anywhere}
+:is(html,#_) body .pn-sit::after{content:" ✎";color:var(--pn-l3);font-size:12px}
+:is(html,#_) body .pn-sia{font:650 14.5px var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+:is(html,#_) body .pn-sis{grid-column:1 / -1;color:var(--pn-l2);font-size:12px;overflow-wrap:anywhere}
+:is(html,#_) body .pn-mt{margin-top:16px}
+:is(html,#_) body .pn-bk{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:3px 10px;margin-top:9px;font-size:14px}
+:is(html,#_) body .pn-bk .n{min-width:0;overflow-wrap:anywhere}
+:is(html,#_) body .pn-bk .a{font:650 14px var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+:is(html,#_) body .pn-bk .a small{font:400 11.5px var(--font);color:var(--pn-l2)}
+:is(html,#_) body .pn-bk .bar{grid-column:1 / -1;display:block;height:6px;border-radius:99px;background:var(--fill3);overflow:hidden}
+:is(html,#_) body .pn-bk .bar i{display:block;height:100%;border-radius:99px;background:var(--pn-bar)}
+:is(html,#_) body .pn-sdet{padding:0}
+:is(html,#_) body .pn-sdet summary{display:flex;align-items:center;min-height:48px;padding:0 16px;font-weight:650;font-size:14px;cursor:pointer;list-style:none}
+:is(html,#_) body .pn-sdet summary::-webkit-details-marker{display:none}
+:is(html,#_) body .pn-sdet summary::after{content:"";width:8px;height:8px;margin-left:auto;border-top:2px solid var(--pn-l2);border-right:2px solid var(--pn-l2);transform:rotate(45deg);transition:transform .15s}
+:is(html,#_) body .pn-sdet[open] summary::after{transform:rotate(135deg)}
+:is(html,#_) body .pn-sdet .pn-tw{padding:0 12px 12px}
+:is(html,#_) body .pn-tbl .neg{color:var(--pn-neg)}
+:is(html,#_) body .pn-tbl tr.neg>*{background:var(--tint-r)}
+:is(html,#_) body .pn-hint{display:block;margin-top:4px;font-weight:400;font-size:12px;color:var(--pn-l2)}
+@media (prefers-reduced-motion:reduce){:is(html,#_) body .pn-sdet summary::after{transition:none}}
 :is(html,#_) body .main-content:has(#sec-piano.active)>.month-selector{display:none!important}
 </style>
 <script id="az-js">
@@ -37209,6 +37346,7 @@ var EWPW = (function () {
   var PAY_IC = { bancomat: '💳', contanti: '💵', satispay: '📱', revolut: '💜', tickets: '🎫', bonifico: '🏦', carta: '💳', sella: '🏦', klarna: '🅺', scalapay: '🔷' };
   var SRC = { manuale: 'Inserita a mano', sella: 'Banca Sella', satispay: 'Satispay', revolut: 'Revolut', tickets: 'Ticket' };
   var NEWS = [
+    { v: 'v330', d: '21 nov 2026', t: 'Piano: simula il mese, giorno per giorno', x: 'Nel 🧮 Piano la prima scheda è «Simula»: metti lo stipendio e tutte le spese (fisse, rate, bollette, quelle future, cibo ed extra) con giorno del mese, categoria e metodo di pagamento, e vedi se arrivi a fine mese. Il grafico dice quanto ti resta ogni giorno e, se i soldi finiscono, quando. Il calendario è quello vero: 28 o 29 giorni a febbraio, 30 ad aprile, giugno, settembre e novembre, 31 negli altri. Ogni mese ha il suo verdetto (✓ ce la fai · ⚠ per poco · ✕ non ce la fai) e trovi la spesa divisa per categoria e per metodo di pagamento. Quello che provi resta una simulazione, anche se chiudi l’app, finché non premi «Conferma»: così diventa il tuo Piano. La Rimanenza reale della Dashboard non cambia né mentre simuli né dopo la conferma.' },
     { v: 'v329', d: '21 nov 2026', t: 'Spese Fisse unite al Piano', x: 'La pagina Spese Fisse non c’è più: al suo posto trovi 🧮 Piano, che mostra le stesse voci (spese fisse, rate, scadenze) mese per mese. I tuoi dati non sono stati cancellati né modificati e la Dashboard continua a fare i conti con quelli: quello che cambi nel Piano non cambia (ancora) la Rimanenza. Nell’Hub sono spariti anche il riquadro e la lista «Prossime scadenze», che dipendevano da quella pagina.' },
     { v: 'v328', d: '20 nov 2026', t: '«Aggiorna ora» che risponde', x: 'Il pulsante in Impostazioni → Aggiorna controlla davvero se online c’è una versione più nuova: se c’è, ti dice quale e aggiorna l’app; se sei già aggiornato te lo conferma, senza ricaricare niente (prima ricaricava e basta, in silenzio, anche quando non c’era nulla di nuovo). Senza connessione te lo dice e non tocca niente. Dopo l’aggiornamento trovi qui la conferma.' },
     { v: 'v327', d: '20 nov 2026', t: 'Piano: quanto ti rimane ogni mese', x: 'Nuova sezione 🧮 Piano, subito dopo Spese Fisse. Parte dal tuo stipendio e ti dice quanto ti rimane ogni mese dopo spese fisse, rate e scadenze. «Oggi»: la cifra del mese e dove vanno i soldi · «Scaletta»: il grafico dei prossimi mesi, con le rate che finiscono · «Mesi»: la tabella mese per mese. Puoi provare un «e se…» (una rata nuova, un aumento) senza cambiare niente finché non lo confermi. Le vecchie schede Spese fisse e Rate restano com’erano.' },
@@ -42374,6 +42512,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
    Dati: chiave «piano_v1» (per profilo, come ogni altra chiave di GoBank: finisce da sola in backup, ZIP, cloud e ripristino).
    Fase 1: LEGGE Spese fisse / Rate / Spese con scadenza ma non le modifica, e non cambia i conti della Dashboard.
    v329: la pagina «Spese Fisse» è stata tolta dal menu (i suoi dati restano salvati e la Dashboard li usa ancora): il Piano è il posto dove si vedono e si cambiano le voci.
+   v330: scheda «Simula» = la stessa «prova» ma GIORNO PER GIORNO: ogni voce può avere giorno del mese, categoria e metodo di pagamento (quelli di «Aggiungi spesa»),
+         il calendario è quello vero (28/29/30/31 giorni), il grafico dice quanto resta ogni giorno e quando (se) i soldi finiscono.
+         Niente di tutto questo tocca la Rimanenza della Dashboard né le spese fisse vecchie: la simulazione vive nella «prova» (in memoria e in una bozza su questo dispositivo)
+         e solo «Conferma» la scrive nel Piano.
    Importi sempre in centesimi interi. Mesi come numero: anno*12 + (mese-1). */
 (function () {
   'use strict';
@@ -42393,6 +42535,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
   var DICO = { fissa: '📌', rata: '📦', periodica: '⚡', una: '🗓️', budget: '🛒' };
   var MAXC = 100000000;          // € 1.000.000,00
   var HORIZON_MAX = 150;         // mesi
+  var WD3 = ['dom', 'lun', 'mar', 'mer', 'gio', 'ven', 'sab'];
+  var WDL = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
+  /* categorie e metodi di pagamento: SEMPRE quelli del modulo «Aggiungi spesa» (si leggono dai suoi menu); questi sono solo la riserva se i menu non ci sono */
+  var CAT_FB = [['ristorante', '🍽️', 'Ristorante'], ['bar', '☕', 'Bar'], ['viaggi', '✈️', 'Viaggi'], ['hotel', '🏨', 'Hotel'], ['svago', '🎭', 'Svago'], ['musei', '🏛️', 'Musei'], ['extra', '💡', 'Extra'], ['supermercato', '🛒', 'Supermercato'], ['rata', '📦', 'Rata']];
+  var PAY_FB = [['sella', '🏦', 'Banca Sella'], ['bancomat', '💳', 'Bancomat'], ['contanti', '💵', 'Contanti'], ['satispay', '📱', 'Satispay'], ['tickets', '🎫', 'Tickets'], ['klarna', '🅺', 'Klarna'], ['scalapay', '🔷', 'Scalapay'], ['bonifico', '🏦', 'Bonifico']];
 
   /* ───────── utilità ───────── */
   function mk(y, m) { return y * 12 + (m - 1); }
@@ -42406,6 +42553,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
   function grp(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
   function eur(c, o) { o = o || {}; var neg = c < 0, a = Math.abs(Math.round(c)), e = Math.floor(a / 100), d = String(a % 100); if (d.length < 2) d = '0' + d; return (neg ? '−' : (o.plus && c > 0 ? '+' : '')) + '€' + grp(e) + ',' + d; }
   function eurS(c) { var neg = c < 0, a = Math.abs(Math.round(c / 100)); return (neg ? '−' : '') + '€' + grp(a); }
+  /* nei riquadri stretti dei mesi: sopra i 10.000 € si scrive in migliaia («€12k»), così non sborda mai */
+  function eurC(c) { var neg = c < 0, a = Math.abs(Math.round(c / 100)); return (neg ? '−' : '') + '€' + (a >= 10000 ? grp(Math.round(a / 1000)) + 'k' : grp(a)); }
   function fmtIn(c) { var a = Math.round(c), d = String(a % 100); if (d.length < 2) d = '0' + d; return Math.floor(a / 100) + ',' + d; }
   function parseEur(s) {
     s = String(s == null ? '' : s).trim().replace(/[€\s]/g, '');
@@ -42418,6 +42567,28 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
   function $(s) { return document.querySelector(s); }
   function clone(o) { return JSON.parse(JSON.stringify(o)); }
   function ival(x) { if (x === null || x === undefined || x === '') return null; x = +x; return isFinite(x) ? Math.round(x) : null; }
+  /* calendario vero: febbraio 28 (29 negli anni bisestili), aprile/giugno/settembre/novembre 30, gli altri 31 */
+  function isLeap(y) { return (y % 4 === 0 && y % 100 !== 0) || y % 400 === 0; }
+  function dim(mi) { var m = mOf(mi); return m === 1 ? (isLeap(yOf(mi)) ? 29 : 28) : ([3, 5, 8, 10].indexOf(m) >= 0 ? 30 : 31); }
+  function wdOf(mi, d) { return new Date(yOf(mi), mOf(mi), d, 12, 0, 0).getDay(); }
+  /* le liste di «Aggiungi spesa»: [valore, icona, nome] */
+  function readOpts(id, fb) {
+    var out = [], sel = null, i, o, t, k, m;
+    try { sel = document.getElementById(id); } catch (e) { sel = null; }
+    if (sel && sel.options) {
+      for (i = 0; i < sel.options.length; i++) {
+        o = sel.options[i]; k = String(o.value || ''); if (!/^[a-z0-9_-]{1,24}$/.test(k)) continue;
+        t = String(o.textContent || '').replace(/\s+/g, ' ').trim();
+        m = /^(\S+)\s+(.+)$/.exec(t);
+        if (m && !/^[A-Za-z0-9À-ÿ]/.test(m[1])) out.push([k, m[1], m[2]]); else out.push([k, '', t || k]);
+      }
+    }
+    return out.length >= 2 ? out : fb;
+  }
+  function catList() { return readOpts('expCat', CAT_FB); }
+  function payList() { return readOpts('expPay', PAY_FB); }
+  function optOf(list, k) { for (var i = 0; i < list.length; i++) if (list[i][0] === k) return list[i]; return null; }
+  function optTxt(o) { return o ? (o[1] ? o[1] + ' ' : '') + o[2] : ''; }
 
   /* aggiorna il DOM senza buttarlo via: il fuoco e il tocco in corso non si perdono */
   function syncAttrs(x, y) {
@@ -42440,8 +42611,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
   function morph(el, html) { var t = document.createElement('template'); t.innerHTML = html; patch(el, t.content); }
 
   /* ───────── stato ───────── */
-  var S = { NOW: 0, LAST: 0, N: 0, committed: null, draft: null, selMi: 0, tab: 'oggi', open: {}, showAll: false, chartIdx: 0, geo: null,
-    raw: undefined, user: null, note: '', sh: null, lastFocus: null, lastType: 'rata', seq: 0 };
+  var TABS = ['simula', 'oggi', 'scaletta', 'mesi'];
+  var S = { NOW: 0, LAST: 0, N: 0, committed: null, draft: null, selMi: 0, tab: 'simula', open: {}, showAll: false, chartIdx: 0, geo: null,
+    raw: undefined, user: null, note: '', sh: null, lastFocus: null, lastType: 'fissa', seq: 0,
+    ld: {}, sday: 0, smi: null, sgeo: null };
 
   /* ───────── motore ───────── */
   function active(v, mi) {
@@ -42455,13 +42628,64 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     if (v.tipo !== 'periodica') return true;
     return mod(mi - (v.inizio == null ? 0 : v.inizio), v.cad || 1) === 0;
   }
-  function avgCost(v, mi) { if (v.tipo === 'una') return 0; return active(v, mi) ? v.importo / (v.tipo === 'periodica' ? (v.cad || 1) : 1) : 0; }
+  /* un budget può essere «al mese» (come sempre), «a settimana» o «al giorno»: con gli ultimi due i mesi lunghi pesano di più (31 giorni costano più di 28) */
+  function perOf(v) { return v.tipo === 'budget' && (v.per === 'sett' || v.per === 'giorno') ? v.per : 'mese'; }
+  function amountIn(v, mi) { var p = perOf(v); if (p === 'giorno') return v.importo * dim(mi); if (p === 'sett') return Math.round(v.importo * dim(mi) / 7); return v.importo; }
+  function avgCost(v, mi) {
+    if (v.tipo === 'una' || !active(v, mi)) return 0;
+    var p = perOf(v);
+    if (p === 'giorno') return v.importo * 365 / 12;
+    if (p === 'sett') return v.importo * 52 / 12;           // come «Imposta il budget settimanale»: 52 settimane / 12 mesi
+    return v.importo / (v.tipo === 'periodica' ? (v.cad || 1) : 1);
+  }
   function month(P, mi) {
     var g = { fissa: 0, rata: 0, periodica: 0, una: 0, budget: 0 }, av = 0;
-    P.voci.forEach(function (v) { if (due(v, mi)) g[v.tipo] += v.importo; av += avgCost(v, mi); });
+    P.voci.forEach(function (v) { if (due(v, mi)) g[v.tipo] += amountIn(v, mi); av += avgCost(v, mi); });
     var out = g.fissa + g.rata + g.periodica + g.una + g.budget;
     return { g: g, out: out, rimane: P.salary - out, media: Math.round(P.salary - av) };
   }
+
+  /* ───────── motore giorno per giorno (v330) ───────── */
+  /* giorno di scadenza che le vecchie Spese fisse / Rate / Spese con scadenza già conoscevano (sola lettura: niente viene scritto) */
+  function legacyDays() {
+    var m = {}, k, d, yr, last = new Date().getFullYear() + 1;
+    function id(x) { return String(x).replace(/[^A-Za-z0-9_-]/g, '_'); }
+    try { var dd = getDueDays() || {}; for (k in dd) { d = +dd[k]; if (d >= 1 && d <= 31) m['f:' + id(k)] = Math.round(d); } } catch (e) { }
+    try { (getCustomFixed() || []).forEach(function (f) { var r = /^\d{4}-\d{2}-(\d{2})/.exec(String(f.date || '')); if (r && +r[1] >= 1 && +r[1] <= 31) m['c:' + id(f.id)] = +r[1]; }); } catch (e) { }
+    try { for (yr = 2023; yr <= last; yr++) (getRata(yr) || []).forEach(function (r) { var pd = r._paidDates || [], x = pd.length ? /^\d{4}-\d{2}-(\d{2})/.exec(String(pd[pd.length - 1])) : null; if (x && +x[1] >= 1 && +x[1] <= 31) m['r:' + yr + ':' + id(r.id)] = +x[1]; }); } catch (e) { }
+    return m;
+  }
+  function dayKnown(v) { return v.giorno != null || !!(v.src && S.ld && S.ld[v.src]); }
+  function dayOf(v) { var g = v.giorno; if (g == null && v.src && S.ld) g = S.ld[v.src]; return g == null ? 1 : g; }
+  /* un mese intero, giorno per giorno: lo stipendio c'è dal 1°, ogni voce esce nel suo giorno (nei mesi corti il 31 diventa l'ultimo giorno),
+     i budget si spalmano su tutti i giorni. Somma dei giorni = quanto dice month(): è la stessa cifra, solo distribuita. */
+  function simMonth(P, mi) {
+    var n = dim(mi), days = [], d, tot = 0, byCat = {}, byPay = {}, buds = [], lumps = [], bal, minBal, minDay = 0, runOut = null, margin, sal = P.salary, st;
+    for (d = 1; d <= n; d++) days.push({ d: d, wd: wdOf(mi, d), out: 0, bud: 0, items: [] });
+    P.voci.forEach(function (v) {
+      if (!due(v, mi)) return;
+      var c, per, amt = amountIn(v, mi), ck = v.cat || '', pk = v.pay || '';
+      if (v.tipo === 'budget') {
+        per = perOf(v);
+        for (d = 1; d <= n; d++) {
+          c = per === 'giorno' ? v.importo : (per === 'sett' ? Math.round(v.importo * d / 7) - Math.round(v.importo * (d - 1) / 7) : Math.round(v.importo * d / n) - Math.round(v.importo * (d - 1) / n));
+          days[d - 1].out += c; days[d - 1].bud += c;
+        }
+        buds.push({ v: v, per: per, c: amt });
+      } else {
+        d = Math.min(dayOf(v), n);
+        days[d - 1].out += v.importo; days[d - 1].items.push({ v: v, c: v.importo });
+        lumps.push({ v: v, d: d, c: v.importo });
+      }
+      tot += amt; byCat[ck] = (byCat[ck] || 0) + amt; byPay[pk] = (byPay[pk] || 0) + amt;
+    });
+    bal = sal; minBal = bal;
+    days.forEach(function (x) { bal -= x.out; x.bal = bal; if (bal < minBal) { minBal = bal; minDay = x.d; } if (runOut === null && bal < 0) runOut = x.d; });
+    margin = bal;
+    if (!(sal > 0)) st = 'nosal'; else if (margin < 0) st = 'no'; else if (margin < Math.max(5000, Math.round(sal * 0.05))) st = 'tight'; else st = 'ok';
+    return { mi: mi, n: n, days: days, salary: sal, out: tot, margin: margin, minBal: minBal, minDay: minDay, runOut: runOut, byCat: byCat, byPay: byPay, buds: buds, lumps: lumps, st: st };
+  }
+  function simYear(P, from, count) { var a = [], i; for (i = 0; i < count; i++) a.push(simMonth(P, from + i)); return a; }
   function nextDue(v, from) { for (var mi = from; mi <= from + 400; mi++) { if (due(v, mi)) return mi; } return null; }
   function horizonOf(P) {
     var last = S.NOW + 17;
@@ -42502,6 +42726,27 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     return { mi: mi, html: 'A ' + lab(mi) + ' ti rimangono ' + eur(x.rimane) + ' → <b>' + eur(y.rimane) + '</b> (' + eur(d2, { plus: true }) + ')', d: d2 };
   }
 
+  /* ───────── verdetto e confronto della simulazione (v330) ───────── */
+  var VERD = { ok: ['✓', 'Ce la fai'], tight: ['⚠', 'Per poco'], no: ['✕', 'Non ce la fai'], nosal: ['ⓘ', 'Manca lo stipendio'] };
+  function tightLim(sal) { return Math.max(5000, Math.round(sal * 0.05)); }
+  function dayLab(mi, d) { return cap(WD3[wdOf(mi, d)]) + ' ' + d + ' ' + MESI3[mOf(mi)]; }           // «Gio 5 nov»
+  function vShort(s) { var v = VERD[s.st]; return v[0] + ' ' + v[1].toLowerCase(); }
+  function simSame(x, y) { return x.margin === y.margin && x.st === y.st && x.runOut === y.runOut; }
+  function firstSimDiff(a, b) {
+    var to = Math.max(horizonOf(a), horizonOf(b));
+    for (var mi = S.NOW; mi <= to; mi++) { if (!simSame(simMonth(a, mi), simMonth(b, mi))) return mi; }
+    return null;
+  }
+  /* cosa cambia, nel verdetto dei mesi, tra due piani: guarda prima il mese che sto guardando, poi il primo mese che cambia */
+  function simImpact(a, b, pref) {
+    var mi = (pref != null && pref >= S.NOW && !simSame(simMonth(a, pref), simMonth(b, pref))) ? pref : firstSimDiff(a, b);
+    if (mi == null) return { mi: null, html: 'Non cambia il verdetto dei prossimi mesi.', d: 0 };
+    var x = simMonth(a, mi), y = simMonth(b, mi), d = y.margin - x.margin, h;
+    h = '<b>' + cap(lab(mi)) + '</b>: ' + vShort(y) + (y.runOut ? ' (i soldi finiscono il ' + y.runOut + ')' : '') + ' · a fine mese ' + (y.margin < 0 ? 'mancano <b>' + eur(-y.margin) + '</b>' : 'restano <b>' + eur(y.margin) + '</b>');
+    if (d) h += ' <span class="' + (d < 0 ? 'neg' : 'pos') + '">(' + eur(d, { plus: true }) + ')</span>';
+    return { mi: mi, html: h, d: d };
+  }
+
   /* ───────── dati: lettura, controllo, salvataggio ───────── */
   function curUser() { try { return (typeof currentUser !== 'undefined' && currentUser && currentUser.email) || ''; } catch (e) { return ''; } }
   function storeKey() { try { return getKey(KEY); } catch (e) { return 'tc_' + KEY; } }
@@ -42520,6 +42765,11 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     if (t === 'una') { if (i === null) return null; o.fine = i; }
     if (v.src && /^[A-Za-z0-9:_-]+$/.test(String(v.src))) o.src = String(v.src).slice(0, 64);
     if (v.est) o.est = true;
+    /* v330: giorno del mese (non per i budget, che escono ogni giorno), categoria e metodo di pagamento (stessi codici di «Aggiungi spesa»), «al mese / a settimana / al giorno» */
+    var g = ival(v.giorno); if (t !== 'budget' && g !== null && g >= 1 && g <= 31) o.giorno = g;
+    if (typeof v.cat === 'string' && /^[a-z0-9_-]{1,24}$/.test(v.cat)) o.cat = v.cat;
+    if (typeof v.pay === 'string' && /^[a-z0-9_-]{1,24}$/.test(v.pay)) o.pay = v.pay;
+    if (t === 'budget' && (v.per === 'sett' || v.per === 'giorno')) o.per = v.per;
     return o;
   }
   function normPlan(o) {
@@ -42539,6 +42789,34 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     try { fbPushToCloud(); } catch (e) { }
     S.raw = readRaw();
     return true;
+  }
+
+  /* la simulazione in corso (la «prova») si ricorda anche se l'app si chiude: bozza SOLO su questo dispositivo, chiave a parte («ew_…»,
+     non «tc_…»): non entra in backup, ZIP, cloud, e non tocca nessun dato dell'app. Si butta se il Piano salvato è cambiato nel frattempo. */
+  var DKEY = 'ew_piano_prova_v1';
+  function dKey() { return DKEY + ':' + (S.user || ''); }
+  function hash(str) { var h = 5381, i; for (i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + '.' + str.length.toString(36); }
+  function baseId() { return hash(S.raw || ''); }
+  function saveDraftNow() {
+    clearTimeout(saveDraft.h);
+    try {
+      if (!S.committed || !S.draft) return;
+      if (!changes().length) { localStorage.removeItem(dKey()); return; }
+      localStorage.setItem(dKey(), JSON.stringify({ v: 1, base: baseId(), at: Date.now(), draft: S.draft }));
+    } catch (e) { }
+  }
+  function saveDraft() { clearTimeout(saveDraft.h); saveDraft.h = setTimeout(saveDraftNow, 350); }
+  /* 1 = ripresa · -1 = scartata perché il Piano è cambiato · 0 = niente da riprendere */
+  function loadDraft() {
+    try {
+      var raw = localStorage.getItem(dKey()); if (!raw) return 0;
+      var o = JSON.parse(raw), P = (o && o.v === 1) ? normPlan(o.draft) : null;
+      if (!P) { localStorage.removeItem(dKey()); return 0; }
+      if (o.base !== baseId()) { localStorage.removeItem(dKey()); return -1; }
+      var keepD = S.draft; S.draft = P;
+      if (!changes().length) { S.draft = keepD; localStorage.removeItem(dKey()); return 0; }
+      return 1;
+    } catch (e) { return 0; }
   }
 
   /* lettura dei dati vecchi (Spese fisse, Rate, Spese con scadenza: la pagina non c'è più dalla v329, i dati sì): sola lettura */
@@ -42605,8 +42883,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
   function sync() {
     var d = new Date(); S.NOW = mk(d.getFullYear(), d.getMonth() + 1);
     var user = curUser(), raw = readRaw();
+    S.ld = legacyDays();
     if (S.committed === null || user !== S.user || raw !== S.raw) {
-      var P = null;
+      var P = null, lost = false, rd = 0;
+      if (S.committed !== null) { if (user !== S.user) saveDraftNow(); else lost = changes().length > 0; }     // prima di cambiare profilo la simulazione si mette da parte; se il Piano cambia da fuori, la si perde (e lo si dice)
       if (raw) { try { P = normPlan(JSON.parse(raw)); } catch (e) { P = null; } }
       S.note = '';
       if (!P) {
@@ -42616,13 +42896,17 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
         if (P.voci.length || P.salary > 0) { if (!persist(P)) S.note += ' Non sono riuscito a salvare il Piano (memoria piena): per ora esiste solo qui.'; }
       }
       S.user = user; S.raw = readRaw(); S.committed = P; S.draft = clone(P);
-      S.selMi = S.NOW; S.chartIdx = 0; S.showAll = false; S.open = {}; S.sh = null;
+      S.selMi = S.NOW; S.chartIdx = 0; S.sday = 0; S.smi = null; S.showAll = false; S.open = {}; S.sh = null;
+      rd = loadDraft();
+      if (rd === 1) { S.selMi = S.NOW; setTimeout(function () { toast('Ho ripreso la simulazione che avevi lasciato a metà: «Conferma» o «Annulla».'); }, 0); }
+      else if (rd === -1) setTimeout(function () { toast('Il Piano era cambiato: ho annullato la simulazione lasciata a metà.'); }, 0);
+      else if (lost) setTimeout(function () { toast('Il Piano è cambiato su un altro dispositivo: la simulazione è stata annullata.'); }, 0);
     }
     hz();
   }
 
   /* ───────── cambiamenti «in prova» ───────── */
-  function sameV(a, b) { var k = ['nome', 'ico', 'tipo', 'importo', 'inizio', 'fine', 'cad', 'ongoing', 'on']; for (var i = 0; i < k.length; i++) if (a[k[i]] !== b[k[i]] && !(a[k[i]] == null && b[k[i]] == null)) return false; return true; }
+  function sameV(a, b) { var k = ['nome', 'ico', 'tipo', 'importo', 'inizio', 'fine', 'cad', 'ongoing', 'on', 'giorno', 'cat', 'pay', 'per']; for (var i = 0; i < k.length; i++) if (a[k[i]] !== b[k[i]] && !(a[k[i]] == null && b[k[i]] == null)) return false; return true; }
   function changes() {
     var c = [], o;
     if (S.draft.salary !== S.committed.salary) c.push({ t: 'sal', o: S.committed.salary, v: S.draft.salary });
@@ -42655,9 +42939,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
       if (x.t === 'edit') return esc(x.v.nome) + (x.o.importo !== x.v.importo ? ': ' + eur(x.o.importo) + ' → ' + eur(x.v.importo) : ' (modificata)');
       return '− ' + esc(x.v.nome) + ' (eliminata)';
     }).join(' · ') + (c.length > 3 ? ' · +' + (c.length - 3) : '');
-    var il = impactLine(S.committed, S.draft);
-    morph(b, '<div class="pn-bn-t">Stai provando</div><div class="pn-bn-x">' + txt + '</div><div class="pn-bn-n">' + il.html + '</div>' +
-      '<div class="pn-actions"><button type="button" class="pn-btn pri" data-pn="keep">Tieni nel piano</button><button type="button" class="pn-btn" data-pn="cancel">Annulla la prova</button></div>');
+    var il = S.tab === 'simula' ? simImpact(S.committed, S.draft, S.selMi) : impactLine(S.committed, S.draft);     // nella scheda Simula si legge il verdetto del mese, altrove la media
+    morph(b, '<div class="pn-bn-t">Simulazione in corso</div><div class="pn-bn-x">' + txt + '</div><div class="pn-bn-n">' + il.html + '</div>' +
+      '<div class="pn-actions"><button type="button" class="pn-btn pri" data-pn="keep">Conferma</button><button type="button" class="pn-btn" data-pn="cancel">Annulla</button></div>');
     b.hidden = false; placeBanner();
   }
   function placeBanner() {
@@ -42671,7 +42955,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     var st = '', nd;
     if (v.tipo === 'rata') { st = (v.inizio != null && v.inizio > S.NOW ? 'parte a ' + lab3(v.inizio) + ' · ' : '') + 'ultima rata ' + lab3(v.fine) + (v.est ? ' · <span class="pn-pill b">stima</span>' : ''); }
     else if (v.tipo === 'periodica') { nd = nextDue(v, S.selMi); st = 'ogni ' + v.cad + ' mesi' + (nd != null ? ' · prossima ' + lab3(nd) : ''); }
-    else if (v.tipo === 'budget') { st = 'al mese'; }
+    else if (v.tipo === 'budget') { st = perOf(v) === 'sett' ? 'a settimana' : (perOf(v) === 'giorno' ? 'al giorno' : 'al mese'); }
     else if (v.tipo === 'una') { st = lab3(v.inizio); }
     else {
       var bits = [];
@@ -42680,6 +42964,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
       st = bits.join(' · ');
     }
     if (v.on && !active(v, S.selMi)) { var late = v.tipo === 'una' ? S.selMi !== v.inizio : (v.fine != null && S.selMi > v.fine); var tag = (v.tipo === 'una') ? (v.inizio < S.NOW ? 'già passata' : (S.selMi !== v.inizio ? 'non in questo mese' : '')) : (late ? 'finita' : 'non ancora partita'); if (tag) st += (st ? ' · ' : '') + tag; }
+    if (v.tipo !== 'budget' && v.giorno != null) st = 'il ' + v.giorno + (st ? ' · ' : '') + st;      // v330: il giorno del mese, se c'è
     return st;
   }
   function vrow(v) {
@@ -42694,7 +42979,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     return '<div class="pn-vrow sal' + (tr ? ' try' : '') + '"><div><span class="pn-vsal">💶 Stipendio netto</span><span class="pn-vsub">ogni mese</span></div>' +
       '<input class="pn-vamt" type="text" inputmode="decimal" data-id="__sal" value="' + fmtIn(P.salary) + '" aria-label="Stipendio netto al mese in euro" autocomplete="off"></div>';
   }
-  function weeklyVals(P) { var tot = 0; P.voci.forEach(function (v) { if (v.tipo === 'budget' && v.on) tot += v.importo; }); return { tot: tot, w: Math.round(tot * 12 / 52) }; }
+  function weeklyVals(P) { var tot = 0; P.voci.forEach(function (v) { if (v.tipo === 'budget' && v.on) tot += avgCost(v, S.NOW); }); tot = Math.round(tot); return { tot: tot, w: Math.round(tot * 12 / 52) }; }
   function weeklyNote() {
     var x = weeklyVals(S.draft); if (!(x.tot > 0)) return '';
     var cur = curWeekly(), curC = Math.round(cur * 100), same = cur > 0 && curC === x.w;
@@ -42811,11 +43096,143 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     var more = $('#pnMore'); more.hidden = S.N <= 14; more.textContent = S.showAll ? 'Mostra meno mesi' : 'Mostra tutti i mesi fino a ' + lab(S.LAST);
   }
 
-  function render() { hz(); renderBanner(); renderOggi(); renderScaletta(); renderMesi(); }
+  /* ───────── scheda «Simula» (v330) ───────── */
+  var PERL = { mese: 'al mese', sett: 'a settimana', giorno: 'al giorno' };
+  var TLAB = { fissa: 'Spesa fissa', rata: 'Rata', periodica: 'Bolletta', una: 'Con scadenza', budget: 'Budget' };
+  function sayV(s) {
+    var a = Math.abs(Math.round(s.margin / 100));
+    if (s.st === 'nosal') return 'manca lo stipendio';
+    if (s.st === 'no') return 'non ce la fai: i soldi finiscono il ' + s.runOut + ', a fine mese mancano ' + a + ' euro';
+    return (s.st === 'tight' ? 'per poco' : 'ce la fai') + ': a fine mese restano ' + a + ' euro';
+  }
+  /* spesa del mese divisa per categoria o per metodo di pagamento: righe con barra, dalla più grande */
+  function bkRows(map, list, none) {
+    var arr = [], tot = 0, k;
+    for (k in map) { if (map[k] > 0) { arr.push({ k: k, c: map[k] }); tot += map[k]; } }
+    if (!arr.length) return '<p class="pn-empty">Nessuna spesa in questo mese.</p>';
+    arr.sort(function (a, b) { return b.c - a.c; });
+    return arr.map(function (x) {
+      var o = x.k ? optOf(list, x.k) : null, name = x.k ? (o ? optTxt(o) : x.k) : none, p = x.c / tot * 100;
+      return '<div class="pn-bk"><span class="n">' + esc(name) + '</span><span class="a">' + eur(x.c) + ' <small>' + Math.round(p) + '%</small></span><span class="bar" aria-hidden="true"><i style="width:' + p.toFixed(1) + '%"></i></span></div>';
+    }).join('');
+  }
+  function renderSim() {
+    var P = S.draft, mi = S.selMi, s = simMonth(P, mi), vd = VERD[s.st], m = MESI[mOf(mi)], cl = catList(), pl = payList(), h, j, k;
+    $('#pnSLab').innerHTML = esc(cap(lab(mi))) + '<small>' + s.n + ' giorni' + (mi === S.NOW ? ' · in corso' : '') + '</small>';
+    $('#pnSPrev').disabled = mi <= S.NOW; $('#pnSNext').disabled = mi >= S.LAST;
+    var pill = $('#pnSVerd'); pill.className = 'pn-vd ' + s.st; pill.innerHTML = '<i aria-hidden="true">' + vd[0] + '</i> ' + vd[1];
+    var kk = $('#pnSK'), nn = $('#pnSN');
+    if (s.st === 'nosal') { kk.textContent = 'Scrivi qui sotto lo stipendio per fare la simulazione'; nn.textContent = '—'; nn.classList.remove('neg'); }
+    else if (s.st === 'no') { kk.textContent = 'A fine ' + m + ' ti mancano'; nn.textContent = eur(-s.margin); nn.classList.add('neg'); }
+    else { kk.textContent = 'Il ' + s.n + ' ' + m + ' ti restano'; nn.textContent = eur(s.margin); nn.classList.remove('neg'); }
+    $('#pnSS').innerHTML = s.st === 'nosal' ? 'Uscite del mese <b>' + eur(s.out) + '</b>' : 'Stipendio <b>' + eur(s.salary) + '</b> − uscite <b>' + eur(s.out) + '</b>';
+    var ro = $('#pnSRun'); if (s.runOut) { ro.innerHTML = 'I soldi finiscono <b>' + WDL[wdOf(mi, s.runOut)] + ' ' + s.runOut + ' ' + m + '</b>'; ro.hidden = false; } else { ro.hidden = true; ro.innerHTML = ''; }
+    var inp = $('#pnSSal'); if (inp && document.activeElement !== inp) inp.value = fmtIn(P.salary);
+    var nt = $('#pnSNote'); if (S.note) { nt.innerHTML = S.note + '<br><button type="button" class="pn-btn small ghost" data-pn="note-ok">Ho capito</button>'; nt.hidden = false; } else { nt.hidden = true; nt.innerHTML = ''; }
+
+    /* i mesi: dodici alla volta, ognuno col suo verdetto */
+    var page = Math.floor((mi - S.NOW) / 12), from = S.NOW + page * 12, to = Math.min(S.LAST, from + 11), sm, vv;
+    h = '';
+    for (j = from; j <= to; j++) {
+      sm = j === mi ? s : simMonth(P, j); vv = VERD[sm.st];
+      h += '<button type="button" class="pn-yc ' + sm.st + '" data-pn="spick" data-mi="' + j + '" aria-pressed="' + (j === mi) + '" aria-label="' + esc(cap(lab(j)) + ', ' + sm.n + ' giorni: ' + sayV(sm)) + '">' +
+        '<b>' + MESI3[mOf(j)] + '</b><small>' + sm.n + ' giorni</small><span class="v"><i aria-hidden="true">' + vv[0] + '</i>' + (sm.st === 'nosal' ? '' : ' ' + eurC(sm.margin)) + '</span></button>';
+    }
+    morph($('#pnSYear'), h);
+    $('#pnYT').textContent = 'Tutti i mesi · ' + lab3(from) + ' – ' + lab3(to);
+    $('#pnYPg').hidden = S.N <= 12; $('#pnYPrev').disabled = page <= 0; $('#pnYNext').disabled = to >= S.LAST;
+    $('#pnYLeg').textContent = '✓ ce la fai · ⚠ per poco (a fine mese meno di ' + eur(tightLim(P.salary)) + ') · ✕ i soldi finiscono prima della fine del mese. Sotto ogni mese: quanto ti resta all’ultimo giorno.';
+
+    /* cosa esce, giorno per giorno */
+    var byDay = {}, days = [];
+    s.lumps.forEach(function (l) { if (!byDay[l.d]) { byDay[l.d] = []; days.push(l.d); } byDay[l.d].push(l); });
+    days.sort(function (a, b) { return a - b; });
+    function row(v, amt, bits) {
+      var isNew = !find(S.committed, v.id), sub = bits.filter(function (x) { return x; }).join(' · ');
+      return '<button type="button" class="pn-si' + (isTry(v) ? ' try' : '') + '" data-pn="edit" data-id="' + esc(v.id) + '" aria-label="Modifica ' + esc(v.nome) + '"><span class="pn-sit">' + esc(v.ico + ' ' + v.nome) + '</span><span class="pn-sia">' + amt + '</span><span class="pn-sis">' + sub + (isNew ? (sub ? ' · ' : '') + 'nuova' : '') + '</span></button>';
+    }
+    function cp(v) { var a = [], o; if (v.cat) { o = optOf(cl, v.cat); a.push(esc(o ? optTxt(o) : v.cat)); } if (v.pay) { o = optOf(pl, v.pay); a.push(esc(o ? optTxt(o) : v.pay)); } return a.join(' · '); }
+    h = '';
+    if (s.buds.length) {
+      var bt = 0; s.buds.forEach(function (b) { bt += b.c; });
+      h += '<li class="pn-sd"><div class="pn-sdh"><b>Ogni giorno</b><span class="pn-sdb">budget ' + eur(bt) + ' nel mese</span></div>' +
+        s.buds.map(function (b) { return row(b.v, eur(b.c), [eur(b.v.importo) + ' ' + PERL[b.per], cp(b.v)]); }).join('') + '</li>';
+    }
+    days.forEach(function (d) {
+      var x = s.days[d - 1];
+      h += '<li class="pn-sd"><div class="pn-sdh"><b>' + dayLab(mi, d) + '</b><span class="pn-sdb' + (x.bal < 0 ? ' neg' : '') + '">' + (x.bal < 0 ? 'sotto di ' + eur(-x.bal) : 'restano ' + eur(x.bal)) + '</span></div>' +
+        byDay[d].map(function (l) {
+          var v = l.v;
+          return row(v, eur(l.c), [TLAB[v.tipo], dayKnown(v) ? '' : '<span class="pn-pill b">giorno non impostato</span>', (v.giorno != null && v.giorno > s.n) ? 'scade il ' + v.giorno + ': in ' + m + ' l’ultimo giorno è il ' + s.n : '', cp(v)]);
+        }).join('') + '</li>';
+    });
+    if (!h) h = '<li><p class="pn-empty">In ' + m + ' non esce nulla. Aggiungi le spese fisse, le rate e quelle future con «＋ Aggiungi alla simulazione».</p></li>';
+    var nod = 0; s.lumps.forEach(function (l) { if (!dayKnown(l.v)) nod++; });
+    $('#pnSLH').textContent = nod ? (nod === 1 ? 'Una voce non ha il giorno: esce il 1°, il caso peggiore per i conti. ' : nod + ' voci non hanno il giorno: escono il 1°, il caso peggiore per i conti. ') + 'Toccala per dire quando esce davvero.' : 'Tocca una voce per cambiarla.';
+    $('#pnSLT').textContent = 'Cosa esce a ' + m;
+    morph($('#pnSList'), h);
+
+    /* categorie e metodi di pagamento */
+    morph($('#pnSCat'), bkRows(s.byCat, cl, 'Senza categoria'));
+    morph($('#pnSPay'), bkRows(s.byPay, pl, 'Metodo non indicato'));
+
+    /* la stessa cosa in tabella (alternativa al grafico) */
+    var tb = ''; s.days.forEach(function (x) { tb += '<tr' + (x.bal < 0 ? ' class="neg"' : '') + '><th scope="row">' + dayLab(mi, x.d) + '</th><td class="r">' + (x.out ? eur(x.out) : '—') + '</td><td class="r' + (x.bal < 0 ? ' neg' : '') + '">' + eur(x.bal) + '</td></tr>'; });
+    $('#pnSTbl').innerHTML = tb;
+    $('#pnSCap').hidden = !(s.minBal < 0 && s.st !== 'nosal');
+    drawSim();
+  }
+  function drawSim() {
+    var box = $('#pnSimChart'), pv = $('#pnV-simula'); if (!box || !pv || pv.hidden) return;
+    var W = Math.floor(box.clientWidth); if (W < 200) return;
+    var s = simMonth(S.draft, S.selMi), n = s.n, i, d;
+    if (!(s.salary > 0)) { box.innerHTML = '<p class="pn-empty pn-cempty">Scrivi lo stipendio netto qui sopra: il grafico mostrerà quanto ti rimane ogni giorno del mese.</p>'; S.sgeo = null; $('#pnSimRead').textContent = ''; return; }
+    var H = 232, R = 12, T = 16, B = 28, PH = H - T - B, minV = Math.min(0, s.minBal), maxV = s.salary;
+    var steps = [5000, 10000, 20000, 25000, 50000, 100000, 200000, 500000, 1000000, 2000000, 5000000], step = steps[steps.length - 1], k, t;
+    for (k = 0; k < steps.length; k++) { if ((maxV - minV) / steps[k] <= 4) { step = steps[k]; break; } }
+    var yMax = Math.ceil(maxV / step) * step, yMin = Math.floor(minV / step) * step; if (yMax === yMin) yMax = yMin + step;
+    var labs = [], wid = 0; for (t = yMin; t <= yMax; t += step) { labs.push(t); wid = Math.max(wid, eurS(t).length); }
+    var L = Math.max(46, Math.ceil(wid * 6.4) + 12), PW = W - L - R;
+    function X(dd) { return L + PW * (dd - 0.5) / n; }
+    function Y(v) { return T + PH * (1 - (v - yMin) / (yMax - yMin)); }
+    var y0 = Y(0), sv = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-hidden="true">';
+    sv += '<defs><pattern id="pnSHat" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect class="pn-hb" width="6" height="6"/><line class="pn-hl" x1="0" y1="0" x2="0" y2="6"/></pattern>' +
+      '<clipPath id="pnSCa"><rect x="' + L + '" y="' + T + '" width="' + PW + '" height="' + Math.max(0, y0 - T).toFixed(1) + '"/></clipPath>' +
+      '<clipPath id="pnSCb"><rect x="' + L + '" y="' + y0.toFixed(1) + '" width="' + PW + '" height="' + Math.max(0, T + PH - y0).toFixed(1) + '"/></clipPath></defs>';
+    labs.forEach(function (v) { sv += '<line class="' + (v === 0 ? 'pn-c0' : 'pn-cg') + '" x1="' + L + '" x2="' + (W - R) + '" y1="' + Y(v).toFixed(1) + '" y2="' + Y(v).toFixed(1) + '"/><text class="pn-ct" x="' + (L - 6) + '" y="' + (Y(v) + 4).toFixed(1) + '" text-anchor="end">' + eurS(v) + '</text>'; });
+    var xl = [1, 5, 10, 15, 20, 25, 30].filter(function (q) { return q <= n; }); if (n - xl[xl.length - 1] >= 3) xl.push(n);
+    xl.forEach(function (q) { sv += '<text class="pn-ct" x="' + X(q).toFixed(1) + '" y="' + (H - 9) + '" text-anchor="middle">' + q + '</text>'; });
+    if (S.selMi === S.NOW) { var td = new Date().getDate(); if (td >= 1 && td <= n) sv += '<line class="pn-ctoday" x1="' + X(td).toFixed(1) + '" x2="' + X(td).toFixed(1) + '" y1="' + (T - 2) + '" y2="' + (T + PH) + '"/><text class="pn-ctodayt" x="' + X(td).toFixed(1) + '" y="' + (T - 4) + '" text-anchor="middle">oggi</text>'; }
+    var pts = [[L, Y(s.salary)]]; s.days.forEach(function (x) { pts.push([X(x.d), Y(x.bal)]); });
+    var line = 'M' + pts.map(function (p) { return p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' L') + ' H' + (L + PW).toFixed(1), area = line + ' V' + y0.toFixed(1) + ' H' + L + ' Z';
+    sv += '<g clip-path="url(#pnSCa)"><path class="pn-ca" d="' + area + '"/><path class="pn-cl" d="' + line + '"/></g>';
+    if (s.minBal < 0) sv += '<g clip-path="url(#pnSCb)"><path class="pn-chat" d="' + area + '"/><path class="pn-cl neg" d="' + line + '"/></g>';
+    var seen = {}; s.lumps.forEach(function (l) { if (seen[l.d]) return; seen[l.d] = 1; sv += '<circle class="pn-sdot" cx="' + X(l.d).toFixed(1) + '" cy="' + Y(s.days[l.d - 1].bal).toFixed(1) + '" r="4.5"/>'; });
+    if (s.runOut) {
+      var r = s.runOut, b0 = r === 1 ? s.salary : s.days[r - 2].bal, b1 = s.days[r - 1].bal, x0 = r === 1 ? L : X(r - 1), x1 = X(r), cx = x0 + (x1 - x0) * (b0 / (b0 - b1));
+      sv += '<circle class="pn-cx" cx="' + cx.toFixed(1) + '" cy="' + y0.toFixed(1) + '" r="6.5"/>';
+    }
+    sv += '<g id="pnSCg"><line class="pn-cguide" y1="' + T + '" y2="' + (T + PH) + '"/><circle class="pn-cdot" r="5"/></g></svg>';
+    box.innerHTML = sv; S.sgeo = { X: X, Y: Y, n: n, L: L, PW: PW, s: s };
+    setSimDay((S.smi === s.mi && S.sday >= 1 && S.sday <= n) ? S.sday : (s.mi === S.NOW ? Math.min(new Date().getDate(), n) : n));
+  }
+  function setSimDay(d) {
+    var g = S.sgeo; if (!g) return; var s = g.s; d = Math.max(1, Math.min(s.n, Math.round(d))); S.sday = d; S.smi = s.mi;
+    var x = g.X(d), y = g.Y(s.days[d - 1].bal), el = $('#pnSCg'), dd = s.days[d - 1], out = [];
+    if (el) { var l = el.querySelector('line'), c = el.querySelector('circle'); l.setAttribute('x1', x.toFixed(1)); l.setAttribute('x2', x.toFixed(1)); c.setAttribute('cx', x.toFixed(1)); c.setAttribute('cy', y.toFixed(1)); }
+    dd.items.forEach(function (it) { out.push(esc(it.v.ico + ' ' + it.v.nome) + ' ' + eur(it.c)); });
+    if (dd.bud) out.push('budget ' + eur(dd.bud));
+    $('#pnSimRead').innerHTML = '<b>' + dayLab(s.mi, d) + '</b> · ' + (dd.bal < 0 ? 'sei sotto di <b class="neg">' + eur(-dd.bal) + '</b>' : 'ti restano <b>' + eur(dd.bal) + '</b>') + '<br><span class="pn-rd">' + (out.length ? 'Esce: ' + out.join(' · ') : 'Non esce nulla') + '</span>';
+  }
+
+  function render() { hz(); renderBanner(); renderOggi(); renderSim(); renderScaletta(); renderMesi(); saveDraft(); }
   function setTab(t) {
+    if (TABS.indexOf(t) < 0) t = 'simula';
     S.tab = t;
-    ['oggi', 'scaletta', 'mesi'].forEach(function (k) { var on = k === t; $('#pnV-' + k).hidden = !on; var b = $('#pnT-' + k); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
+    TABS.forEach(function (k) { var on = k === t; $('#pnV-' + k).hidden = !on; var b = $('#pnT-' + k); b.setAttribute('aria-selected', on); b.tabIndex = on ? 0 : -1; });
     if (t === 'scaletta') drawChart();
+    if (t === 'simula') drawSim();
+    if (S.committed) renderBanner();
   }
 
   /* ───────── foglio «Nuova voce / Modifica voce» ───────── */
@@ -42850,9 +43267,22 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     opts.forEach(function (n) { h += '<option value="' + n + '">' + (n === 12 ? '12 mesi (ogni anno)' : n + ' mesi') + '</option>'; });
     sel.innerHTML = h; sel.value = String(c);
   }
+  function fillDay(v) {
+    var sel = $('#pnShDay'), cur = v ? (v.giorno != null ? v.giorno : ((v.src && S.ld[v.src]) || null)) : null, h = '<option value="">Non lo so (esce il 1°)</option>', d;
+    for (d = 1; d <= 31; d++) h += '<option value="' + d + '">' + d + '</option>';
+    sel.innerHTML = h; sel.value = cur == null ? '' : String(cur);
+  }
+  function fillOpts(id, list, cur, none) {
+    var sel = $(id), h = '<option value="">' + esc(none) + '</option>', found = false;
+    list.forEach(function (o) { h += '<option value="' + esc(o[0]) + '">' + esc(optTxt(o)) + '</option>'; if (o[0] === cur) found = true; });
+    if (cur && !found) h += '<option value="' + esc(cur) + '">' + esc(cur) + '</option>';
+    sel.innerHTML = h; sel.value = cur || '';
+  }
   function fieldsFor(type) {
-    var L = { rata: 'Importo della rata (€)', fissa: 'Importo al mese (€)', periodica: 'Importo di ogni bolletta (€)', una: 'Importo (€)', budget: 'Importo al mese (€)' };
+    var per = $('#pnShPer').value, L = { rata: 'Importo della rata (€)', fissa: 'Importo al mese (€)', periodica: 'Importo di ogni bolletta (€)', una: 'Importo (€)', budget: per === 'sett' ? 'Importo a settimana (€)' : (per === 'giorno' ? 'Importo al giorno (€)' : 'Importo al mese (€)') };
     $('#pnShImpL').textContent = L[type];
+    $('#pnShPerW').hidden = type !== 'budget'; $('#pnShDayW').hidden = type === 'budget';
+    $('#pnShDayHint').textContent = 'Se il mese ha meno giorni esce l’ultimo (il 31 a febbraio diventa il 28). Senza giorno la spesa esce il 1°: il caso peggiore per i conti.';
     $('#pnShStartW').hidden = type === 'budget';
     $('#pnShStartL').textContent = type === 'periodica' ? 'Prossima scadenza' : (type === 'una' ? 'Mese' : 'Parte da');
     $('#pnShRataW').hidden = type !== 'rata';
@@ -42878,6 +43308,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     } else if (t === 'periodica') {
       v.cad = +$('#pnShCad').value || 2; v.inizio = st == null ? S.NOW : st; if (v.inizio - S.NOW < v.cad) v.ongoing = true;
     } else if (t === 'una') { v.inizio = st == null ? S.NOW : st; v.fine = v.inizio; }
+    var dv = $('#pnShDay').value; if (t !== 'budget' && dv !== '') v.giorno = +dv;
+    if (t === 'budget') { var pv = $('#pnShPer').value; if (pv === 'sett' || pv === 'giorno') v.per = pv; }
+    var cv = $('#pnShCat').value, yv = $('#pnShPay').value; if (cv) v.cat = cv; if (yv) v.pay = yv;
     return { v: v };
   }
   function withVoce(v) {
@@ -42890,8 +43323,9 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     if (r.err) { el.innerHTML = '<p class="warnt">' + esc(r.err) + '</p>'; return; }
     var v = r.v, after = withVoce(v), h = '';
     if (v.tipo === 'rata') $('#pnShLast').textContent = cap(lab(v.fine));
-    var il = impactLine(S.draft, after);
-    h += '<p>' + (il.d != null && il.d !== 0 ? il.html.replace(/\(([^)]*)\)/, function (m0, g1) { return '<span class="' + (il.d < 0 ? 'neg' : 'pos') + '">(' + g1 + ')</span>'; }) : il.html) + '</p>';
+    var si = simImpact(S.draft, after, S.selMi), il = impactLine(S.draft, after);
+    h += '<p>' + si.html + '</p>';
+    if (il.mi != null || si.mi == null) h += '<p>' + (il.d != null && il.d !== 0 ? il.html.replace(/\(([^)]*)\)/, function (m0, g1) { return '<span class="' + (il.d < 0 ? 'neg' : 'pos') + '">(' + g1 + ')</span>'; }) : il.html) + '</p>';
     if (v.tipo === 'rata') h += '<p>' + v.n + (v.n === 1 ? ' rata' : ' rate') + ' da ' + eur(v.importo) + ' = <b>' + eur(v.n * v.importo) + '</b>, l’ultima a ' + lab(v.fine) + '.</p>';
     var t0 = tightest(S.draft), t1 = tightest(after);
     h += '<p>Mese più stretto dei prossimi 12: ' + (t0.v !== t1.v ? eur(t0.v) + ' → ' : '') + '<b>' + eur(t1.v) + '</b> (' + lab(t1.mi) + ').</p>';
@@ -42909,13 +43343,15 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     S.sh = { mode: mode, id: v ? v.id : null };
     var type = v ? v.tipo : (o.type || S.lastType || 'rata');
     $('#pnShT').textContent = v ? 'Modifica voce' : 'Nuova voce';
-    $('#pnShLead').textContent = v ? 'Cambia i dati: la modifica resta «in prova» finché non premi «Tieni nel piano».' : 'La voce resta «in prova»: vedi subito l’effetto, poi la tieni nel piano o la annulli.';
-    $('#pnShOk').textContent = v ? 'Salva in prova' : 'Aggiungi in prova';
+    $('#pnShLead').textContent = v ? 'Cambia i dati: la modifica resta nella simulazione finché non premi «Conferma».' : 'La voce entra nella simulazione: vedi subito l’effetto sul mese, poi confermi o annulli.';
+    $('#pnShOk').textContent = v ? 'Salva nella simulazione' : 'Aggiungi alla simulazione';
     $('#pnShDel').hidden = !v;
     $('#pnShType').value = type;
     $('#pnShNome').value = v ? v.nome : (o.name || '');
     $('#pnShImp').value = v ? fmtIn(v.importo) : '';
     fillStart(type, v); fillEnd(v); fillCad(v);
+    $('#pnShPer').value = (v && v.per) || 'mese'; fillDay(v);
+    fillOpts('#pnShCat', catList(), v && v.cat, 'Nessuna'); fillOpts('#pnShPay', payList(), v && v.pay, 'Non indicato');
     var n = 12;
     if (v && v.tipo === 'rata' && v.fine != null) n = Math.max(1, v.fine - Math.max(S.NOW, v.inizio == null ? S.NOW : v.inizio) + 1);
     $('#pnShN').value = String(n);
@@ -42937,14 +43373,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     closeSheet(); S.open[v.tipo] = true;
     var first = v.tipo === 'una' ? v.inizio : Math.max(S.NOW, v.inizio == null ? S.NOW : v.inizio);
     if (S.selMi < first && v.tipo !== 'periodica') S.selMi = first;
-    render(); setTab('oggi');
-    toast((editing ? 'Modifica' : 'Voce') + ' in prova: guarda il riquadro «Stai provando».');
+    render(); setTab(S.tab === 'oggi' ? 'oggi' : 'simula');
+    toast((editing ? 'Modifica' : 'Voce') + ' nella simulazione: guarda il riquadro «Simulazione in corso».');
   }
   function sheetDel() {
     if (!S.sh || !S.sh.id) return;
     var id = S.sh.id; S.draft.voci = S.draft.voci.filter(function (x) { return x.id !== id; });
-    closeSheet(); render(); setTab('oggi');
-    toast('Eliminata in prova: «Tieni nel piano» per confermare, «Annulla la prova» per riaverla.');
+    closeSheet(); render(); setTab(S.tab === 'oggi' ? 'oggi' : 'simula');
+    toast('Eliminata nella simulazione: «Conferma» per salvare, «Annulla» per riaverla.');
   }
 
   /* ───────── azioni ───────── */
@@ -42954,10 +43390,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     var seen = {}; P.ignored = (S.committed.ignored || []).concat(gone).filter(function (x) { if (seen[x]) return false; seen[x] = 1; return true; });
     // una voce di Spese fisse/Rate tolta e poi rimessa a mano non deve restare «ignorata»
     var have = {}; P.voci.forEach(function (v) { if (v.src) have[v.src] = 1; }); P.ignored = P.ignored.filter(function (x) { return !have[x]; });
-    if (!persist(P)) { toast('Non sono riuscito a salvare (memoria piena). Il Piano resta «in prova».'); return; }
-    S.committed = P; S.draft = clone(P); S.note = ''; render(); toast('Piano aggiornato e salvato.');
+    if (!persist(P)) { toast('Non sono riuscito a salvare (memoria piena). La simulazione resta in corso.'); return; }
+    S.committed = P; S.draft = clone(P); S.note = ''; render(); saveDraftNow(); toast('Simulazione confermata: ora è il tuo Piano. La Rimanenza della Dashboard non cambia.');
   }
-  function cancel() { S.draft = clone(S.committed); render(); }
+  function cancel() { S.draft = clone(S.committed); render(); saveDraftNow(); }
   function reread() {
     var imp = importOld(), have = {}, ign = {};
     S.committed.voci.concat(S.draft.voci).forEach(function (v) { if (v.src) have[v.src] = 1; });
@@ -42966,8 +43402,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     var add = imp.voci.filter(function (v) { return !have[v.src] && !ign[v.src]; });
     if (!add.length) { toast('Non ho trovato rate o voci nuove da aggiungere.'); return; }
     add.forEach(function (v) { var x = v.id, n = 2; while (ids[x]) { x = v.id + '_' + n; n++; } v.id = x; ids[x] = 1; S.draft.voci.push(v); S.open[v.tipo] = true; });
-    render(); setTab('oggi');
-    toast((add.length === 1 ? 'Aggiunta 1 voce' : 'Aggiunte ' + add.length + ' voci') + ' in prova: controlla e tieni nel piano.');
+    render(); setTab(S.tab === 'oggi' ? 'oggi' : 'simula');
+    toast((add.length === 1 ? 'Aggiunta 1 voce' : 'Aggiunte ' + add.length + ' voci') + ' alla simulazione: controlla e conferma.');
   }
   function useWeekly() {
     var x = weeklyVals(S.draft); if (!(x.w > 0)) return;
@@ -43009,14 +43445,16 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
       else if (a === 'reread') reread();
       else if (a === 'more') { S.showAll = !S.showAll; renderMesi(); }
       else if (a === 'pick') { S.selMi = +el.getAttribute('data-mi'); render(); setTab('oggi'); }
+      else if (a === 'spick') { var q = +el.getAttribute('data-mi'); if (q >= S.NOW && q <= S.LAST) { S.selMi = q; render(); } }
+      else if (a === 'ypage') { S.selMi = Math.max(S.NOW, Math.min(S.LAST, S.selMi + 12 * (+el.getAttribute('data-dir') || 0))); render(); }
       else if (a === 'usew') useWeekly();
-      else if (a === 'note-ok') { S.note = ''; renderOggi(); }
+      else if (a === 'note-ok') { S.note = ''; renderOggi(); renderSim(); }
     });
     root.addEventListener('change', function (e) {
       var t = e.target;
       if (t.classList && t.classList.contains('pn-vamt')) { setAmount(t.getAttribute('data-id'), t.value, t); return; }
       if (t.id === 'pnShType') { onTypeChange(); return; }
-      if (t.id === 'pnShStart') { fieldsFor($('#pnShType').value); updateImpact(); }
+      if (t.id === 'pnShStart' || t.id === 'pnShPer') { fieldsFor($('#pnShType').value); updateImpact(); }
     });
     root.addEventListener('input', function (e) { if (e.target.closest && e.target.closest('.pn-sheet') && e.target.id !== 'pnShType') updateImpact(); });
     root.addEventListener('keydown', function (e) {
@@ -43032,6 +43470,14 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
       }
       var tg = e.target;
       if (tg && tg.classList && tg.classList.contains('pn-vamt') && e.key === 'Enter') tg.blur();
+      if (tg && tg.id === 'pnSimChart') {
+        if (e.key === 'ArrowRight') { setSimDay(S.sday + 1); e.preventDefault(); }
+        else if (e.key === 'ArrowLeft') { setSimDay(S.sday - 1); e.preventDefault(); }
+        else if (e.key === 'PageDown') { setSimDay(S.sday + 7); e.preventDefault(); }
+        else if (e.key === 'PageUp') { setSimDay(S.sday - 7); e.preventDefault(); }
+        else if (e.key === 'Home') { setSimDay(1); e.preventDefault(); }
+        else if (e.key === 'End') { setSimDay(S.sgeo ? S.sgeo.n : 1); e.preventDefault(); }
+      }
       if (tg && tg.id === 'pnChart') {
         if (e.key === 'ArrowRight') { setIdx(S.chartIdx + 1); e.preventDefault(); }
         else if (e.key === 'ArrowLeft') { setIdx(S.chartIdx - 1); e.preventDefault(); }
@@ -43039,16 +43485,21 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
         else if (e.key === 'End') { setIdx(S.N - 1); e.preventDefault(); }
       }
       if (tg && tg.getAttribute && tg.getAttribute('role') === 'tab') {
-        var ks = ['oggi', 'scaletta', 'mesi'], i = ks.indexOf(S.tab);
-        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var nx = ks[(i + (e.key === 'ArrowRight' ? 1 : 2)) % 3]; setTab(nx); $('#pnT-' + nx).focus(); e.preventDefault(); }
+        var ks = TABS, i = ks.indexOf(S.tab);
+        if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') { var nx = ks[(i + (e.key === 'ArrowRight' ? 1 : ks.length - 1)) % ks.length]; setTab(nx); $('#pnT-' + nx).focus(); e.preventDefault(); }
       }
     });
-    var c = $('#pnChart');
+    var c = $('#pnChart'), sc = $('#pnSimChart');
     function at(e) { if (!S.geo) return; var r = c.getBoundingClientRect(), x = e.clientX - r.left; setIdx(Math.floor((x - S.geo.L) / (S.geo.PW / S.N))); }
     c.addEventListener('pointermove', at); c.addEventListener('pointerdown', at);
-    var redraw = function () { if (S.tab === 'scaletta') drawChart(); placeBanner(); };
-    if (window.ResizeObserver) { new ResizeObserver(redraw).observe(c); new ResizeObserver(placeBanner).observe(root); }
+    function atS(e) { if (!S.sgeo) return; var r = sc.getBoundingClientRect(), x = e.clientX - r.left; setSimDay(Math.floor((x - S.sgeo.L) / (S.sgeo.PW / S.sgeo.n)) + 1); }
+    sc.addEventListener('pointermove', atS); sc.addEventListener('pointerdown', atS);
+    var redraw = function () { if (S.tab === 'scaletta') drawChart(); if (S.tab === 'simula') drawSim(); placeBanner(); };
+    if (window.ResizeObserver) { new ResizeObserver(redraw).observe(c); new ResizeObserver(redraw).observe(sc); new ResizeObserver(placeBanner).observe(root); }
     window.addEventListener('resize', redraw);
+    /* la simulazione in corso si mette da parte quando l'app va in secondo piano o si chiude (iPhone: la chiude senza avviso) */
+    document.addEventListener('visibilitychange', function () { if (document.hidden) saveDraftNow(); });
+    window.addEventListener('pagehide', saveDraftNow);
   }
 
   function onShow() {
@@ -43061,7 +43512,10 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     // sola lettura, per i collaudi
     dbg: {
       state: function () { return S; }, month: function (mi) { return month(S.draft, mi); }, monthC: function (mi) { return month(S.committed, mi); },
-      mk: mk, eur: eur, parseEur: parseEur, events: function () { return events(S.draft); }, importOld: importOld, normPlan: normPlan, KEY: KEY
+      mk: mk, eur: eur, parseEur: parseEur, events: function () { return events(S.draft); }, importOld: importOld, normPlan: normPlan, KEY: KEY,
+      // v330 · funzioni «pure»: lavorano sul piano che gli si passa, senza toccare dati né pagina
+      monthOf: month, simMonth: simMonth, simYear: simYear, dim: dim, isLeap: isLeap, amountIn: amountIn, due: due, dayOf: dayOf, perOf: perOf,
+      render: function () { render(); }, setTab: function (t) { setTab(t); }, setNow: function (mi) { S.NOW = mi; }, sim: function (mi) { return simMonth(S.draft, mi); }, catList: catList, payList: payList, legacyDays: legacyDays
     }
   };
 })();
