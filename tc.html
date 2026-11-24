@@ -4,7 +4,7 @@
 <!-- AUTO-UPDATE: questo script gira prima di tutto, svuota la cache SW se la versione è cambiata -->
 <script>
 (function(){
-  var BUILD = '20261121-v330-simula';
+  var BUILD = '20261122-v331-bozza';
   // Disabilita console.log in produzione (non su localhost)
   if(window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     var _noop = function(){};
@@ -42516,6 +42516,8 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
          il calendario è quello vero (28/29/30/31 giorni), il grafico dice quanto resta ogni giorno e quando (se) i soldi finiscono.
          Niente di tutto questo tocca la Rimanenza della Dashboard né le spese fisse vecchie: la simulazione vive nella «prova» (in memoria e in una bozza su questo dispositivo)
          e solo «Conferma» la scrive nel Piano.
+   v331: la bozza (solo su questo dispositivo) ha ora la chiave «ew_bk_piano_prova_v1:<email>»: nella v330 («ew_piano_prova_v1:<email>») finiva per sbaglio nel cloud e nei backup;
+         la bozza vecchia si porta sulla chiave nuova da sola e la vecchia viene cancellata.
    Importi sempre in centesimi interi. Mesi come numero: anno*12 + (mese-1). */
 (function () {
   'use strict';
@@ -42791,10 +42793,26 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
     return true;
   }
 
-  /* la simulazione in corso (la «prova») si ricorda anche se l'app si chiude: bozza SOLO su questo dispositivo, chiave a parte («ew_…»,
-     non «tc_…»): non entra in backup, ZIP, cloud, e non tocca nessun dato dell'app. Si butta se il Piano salvato è cambiato nel frattempo. */
-  var DKEY = 'ew_piano_prova_v1';
+  /* la simulazione in corso (la «prova») si ricorda anche se l'app si chiude: bozza SOLO su questo dispositivo. La chiave DEVE iniziare per «ew_bk_»
+     (come ew_bk_last_file…): è l'unico prefisso che l'Hub e GoBank tengono fuori da cloud, backup e ZIP, e scriverla non fa partire nessun invio.
+     NON basta che non inizi per «tc_»: la v330 usava «ew_piano_prova_v1» e la bozza finiva nel cloud e nei backup. Non tocca nessun dato dell'app.
+     Si butta se il Piano salvato è cambiato nel frattempo. */
+  var DKEY = 'ew_bk_piano_prova_v1', OLDKEY = 'ew_piano_prova_v1';
   function dKey() { return DKEY + ':' + (S.user || ''); }
+  /* v331 · chi ha usato la v330 ha la bozza sotto la chiave vecchia (e una copia nel cloud e nei backup): la si porta sotto la chiave nuova e si cancella la vecchia,
+     così sparisce dal cloud al prossimo invio. Vale per ogni profilo; se la nuova esiste già, vince la nuova. Non scrive e non cancella altro. */
+  function migrateOldDrafts() {
+    try {
+      var old = [], i, k;
+      for (i = 0; i < localStorage.length; i++) { k = localStorage.key(i); if (k && k.indexOf(OLDKEY + ':') === 0) old.push(k); }
+      old.forEach(function (k0) {
+        var k1 = DKEY + k0.slice(OLDKEY.length), v = localStorage.getItem(k0);
+        if (v !== null && localStorage.getItem(k1) === null) localStorage.setItem(k1, v);
+        localStorage.removeItem(k0);
+      });
+    } catch (e) { }
+  }
+  migrateOldDrafts();
   function hash(str) { var h = 5381, i; for (i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0; return (h >>> 0).toString(36) + '.' + str.length.toString(36); }
   function baseId() { return hash(S.raw || ''); }
   function saveDraftNow() {
@@ -42809,6 +42827,7 @@ if (typeof module !== 'undefined' && module.exports) module.exports = EWSCO;
   /* 1 = ripresa · -1 = scartata perché il Piano è cambiato · 0 = niente da riprendere */
   function loadDraft() {
     try {
+      migrateOldDrafts();
       var raw = localStorage.getItem(dKey()); if (!raw) return 0;
       var o = JSON.parse(raw), P = (o && o.v === 1) ? normPlan(o.draft) : null;
       if (!P) { localStorage.removeItem(dKey()); return 0; }
